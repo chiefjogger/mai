@@ -31,5 +31,10 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+      # The artifact uploads in seconds, but GitHub's Pages queue has been
+      # sitting on deployments for this repo well past the action's 10-minute
+      # default, which aborts a deploy that would otherwise land. Give it 30.
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000
