@@ -2,7 +2,9 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<!-- không khoá maximum-scale: chặn pinch-zoom là vi phạm WCAG 1.4.4.
+     Safari iOS tự zoom khi focus input dưới 16px, nên ô nhập đã nâng lên 16px. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#F7F4ED" />
 <title>m.ai · v18</title>
 <meta name="description" content="m.ai — trợ lý gia đình. Demo v18." />

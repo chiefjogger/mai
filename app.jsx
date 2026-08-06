@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
 import {
   Camera, Phone, FolderClosed, Check, ShieldCheck, Banknote, FileText, Car,
@@ -7,13 +7,16 @@ import {
   TriangleAlert, Music, Ticket, X, Plus, Minus, Clock, MapPin, Bell, Download,
   CircleAlert, Sparkles, Wallet, CreditCard, Store, PhoneOff, Flag, Users,
 } from "lucide-react";
+import { matchMai, pickFallback, GREETING_CHIPS } from "./brain.js";
 
 // ————————————————————————————————————————————————————————————
-// m.ai · v17 · tối giản bề mặt, sâu bên trong.
+// m.ai · v19 · tối giản bề mặt, sâu bên trong.
 // Mọi thứ chạm được đều mở một luồng 6–7 bước thật:
 // trả học bơi (7) · đón Bin (6) · đơn dã ngoại (7) · giỏ WinMart+ (7)
 // vé concert (7) · sang nhượng vé escrow (6) · đăng kiểm (6) · cuộc gọi giả (6)
 // Cộng: bài kênh → bình luận → hồ sơ người đăng · hồ sơ nhà → chi tiết từng giấy tờ.
+// Mai trả lời bằng bộ não tại chỗ trong brain.js: không gọi mạng, không chờ,
+// và câu nào cũng đẻ ra gợi ý kế tiếp để anh đi hết demo mà không cần gõ.
 // Không có cú chạm nào chết.
 // ————————————————————————————————————————————————————————————
 
@@ -27,16 +30,6 @@ const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "H
 const DISPLAY = 'Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif';
 const num = { fontVariantNumeric: "tabular-nums" };
 const fmt = (n) => n.toLocaleString("vi-VN") + "đ";
-
-const MAI_SYSTEM = `Bạn là Mai, trợ lý gia đình. Bây giờ là 15:42 chiều thứ Tư. Mai xưng "Mai", gọi người dùng là "anh". Vợ anh: Vy. Con: Bin (lớp 3, TH Lê Lợi, bơi thứ Ba & Năm 16:30) và Na (lớp 6A2, THCS Trần Phú).
-Hồ sơ: học bơi Bin 850.000đ hạn 17:00 hôm nay, cô nhắc lần 2, 14/32 phụ huynh đã đóng (Vy chuyển tiếp từ Zalo) · anh họp khách tới 17:00, Vy nhận đón Bin · đơn dã ngoại Cần Giờ của Na hạn thứ Sáu, phí 120.000đ · ô tô 51K-238.19 đăng kiểm hạn 12/09, quá hạn phạt tới 6.000.000đ · hộ chiếu Na hết hạn 03/2027 · tiêm chủng hai bé đủ mũi · học phí quý 3 đã trả · điện tháng 7 đã trả 1.240.000đ · họp phụ huynh Na 19:00 ngày 15/08 · giỗ Ông thứ Bảy, Bà thích trà sen Phúc Long · số dư WinMoney 2.480.000đ.
-Hệ sinh thái: tạp hóa & đồ tươi đặt WinMart+ (Supra giao, tích điểm WinX) · trà cà phê Phúc Long · thịt mát MEATDeli · gia vị Chin-su, mì Omachi · tiền WinMoney liên kết Techcombank. Việc ngoài hệ (đăng kiểm, trường học) Mai vẫn làm bình thường, không cộng điểm.
-Kênh anh theo dõi: Vietnam Cars · Cơm tối 30 phút · Anh Trai Say Hi (tập cuối tối nay 20:00; vé đợt 3 mở 20:00 thứ Sáu, vé gắn CCCD).
-Trả lời tiếng Việt, tối đa 2 câu, đúng việc, thân tình. Nếu trả lời từ hồ sơ, cuối câu thêm nguồn 3-5 chữ trong ngoặc.
-Nếu anh muốn Mai làm gì, thêm đúng một khối:
-\`\`\`json
-{"action":{"label":"Mua 186.000đ","amount":186000}}
-\`\`\``;
 
 class Boundary extends React.Component {
   constructor(p) { super(p); this.state = { err: false }; }
@@ -172,6 +165,994 @@ const Intro = ({ onDone }) => {
   );
 };
 
+// ————————————————————————————————————————————————————————————
+// HÌNH VẼ · minh hoạ vector và biểu đồ nhỏ, thay cho emoji trên gradient
+// ————————————————————————————————————————————————————————————
+
+// ————————————————————————————————————————————————————————————
+// SCENES · bộ minh hoạ vector thay cho emoji-trên-gradient
+//
+// Một ngôn ngữ hình duy nhất: hình phẳng, không đổ bóng thật, không gradient
+// trên chủ thể. Mỗi cảnh có đúng một lớp nền chuyển sắc và đúng một chi tiết
+// biết cử động. Terracotta #C2552F xuất hiện trong cả 14 cảnh, dù chỉ một mảng
+// nhỏ, để cả bộ trông như do một người vẽ.
+//
+// Hệ toạ độ: viewBox "0 0 120 84", preserveAspectRatio="xMidYMid slice".
+//   · biến 56×56 (small) cắt còn 70% bề ngang  → vùng an toàn x ∈ [20, 100]
+//   · biến rộng (h=128 trên khung ~370px) cắt trên/dưới → y ∈ [21, 63]
+// Chủ thể của mọi cảnh nằm gọn trong x[22,98] × y[20,64]; nền luôn tràn viền
+// (-10 → 130) nên không có mép trắng ở bất kỳ tỉ lệ nào.
+//
+// Dán khối SCENE_CSS vào <style> sẵn có. Media query prefers-reduced-motion
+// toàn cục đã xử lý phần giảm chuyển động, nên ở đây chỉ dùng animation thường.
+// ————————————————————————————————————————————————————————————
+
+// Nét: 2 đơn vị, đầu và khớp bo tròn, dùng thống nhất cho cả bộ.
+const SW = 2;
+const ST = { strokeWidth: SW, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+
+// Nền chuyển sắc, luôn userSpaceOnUse để mọi hình khác tô cùng id sẽ khớp liền mạch.
+const wash = (id, c1, c2, p) => {
+  const q = p || [0, 0, 0, 84];
+  return (
+    <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={q[0]} y1={q[1]} x2={q[2]} y2={q[3]}>
+      <stop offset="0" stopColor={c1} />
+      <stop offset="1" stopColor={c2} />
+    </linearGradient>
+  );
+};
+const Bg = ({ u }) => <rect x="-10" y="-10" width="140" height="104" fill={`url(#${u}a)`} />;
+
+const SCENES = {
+
+  // ————— swim · làn bơi, mặt nước, một người bơi nhỏ —————
+  swim: (u) => (
+    <>
+      <defs>
+        {wash(u + "a", "#EFE8DA", "#DCEAEF")}
+        {wash(u + "b", "#4F9DBA", "#175A78", [0, 27, 0, 90])}
+        <pattern id={u + "r"} x="0" y="0" width="14" height="5" patternUnits="userSpaceOnUse">
+          <circle cx="2.5" cy="2.5" r="2.1" fill={T.brand} />
+          <circle cx="7" cy="2.5" r="2.1" fill="#F4E8DA" />
+          <circle cx="11.5" cy="2.5" r="2.1" fill={T.brand} />
+        </pattern>
+      </defs>
+      <Bg u={u} />
+      <rect x="-10" y="-10" width="140" height="32" fill="#EBE1CE" />
+      <rect x="-10" y="22" width="140" height="5" fill="#F8F2E5" />
+      <rect x="10" y="12" width="16" height="10" rx="1.5" fill="#DCCFB6" />
+      <rect x="10" y="9.5" width="16" height="3" rx="1.5" fill={T.brand} />
+      <rect x="-10" y="27" width="140" height="65" fill={`url(#${u}b)`} />
+
+      <g className="sn-water" opacity=".45">
+        {[[8, 33, 22], [66, 40, 26], [24, 58, 18], [84, 70, 24], [40, 78, 20]].map((s, i) => (
+          <rect key={i} x={s[0]} y={s[1]} width={s[2]} height="2.2" rx="1.1" fill="#FFFDF9" />
+        ))}
+      </g>
+
+      <rect x="-10" y="32" width="140" height="5" fill={`url(#${u}r)`} />
+
+      {/* thân chìm dưới mặt nước, vẽ trước để lớp mặt nước phủ lên */}
+      <ellipse cx="42" cy="51" rx="16" ry="4.2" fill="#FFFDF9" opacity=".5" transform="rotate(-5 42 51)" />
+      <ellipse cx="26" cy="49" rx="7" ry="2.6" fill="#FFFDF9" opacity=".38" transform="rotate(-14 26 49)" />
+
+      {/* mặt nước gần */}
+      <path d="M-10 46 q10 -2.4 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 V92 H-10 Z" fill="#3E8CAA" opacity=".55" />
+      <path d="M-10 46 q10 -2.4 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" stroke="#EAF7FB" strokeWidth={SW} fill="none" opacity=".7" />
+
+      {/* tay vung qua đầu */}
+      <path d="M55 47 C54.4 32.4 71 29.4 76.6 38.4 L73 40.6 C69.4 34.4 58.4 36.4 58.6 47 Z" fill="#FFFDF9" />
+      <circle cx="62" cy="41.5" r="5.2" fill={T.brand} />
+      <path d="M64.6 37.4 a5.2 5.2 0 0 1 1.6 5.4" stroke="#F3DAC6" strokeWidth={SW} fill="none" strokeLinecap="round" />
+      <circle cx="79" cy="36.5" r="2.1" fill="#FFFDF9" />
+      <circle cx="82.5" cy="32.5" r="1.3" fill="#FFFDF9" opacity=".8" />
+      <circle cx="30" cy="46.5" r="2.4" fill="#FFFDF9" opacity=".9" />
+      <circle cx="24.5" cy="43.5" r="1.5" fill="#FFFDF9" opacity=".7" />
+
+      <rect x="-10" y="63.5" width="140" height="5" fill={`url(#${u}r)`} />
+    </>
+  ),
+
+  // ————— pickup · cổng trường, xe chờ, nắng chiều —————
+  pickup: (u) => (
+    <>
+      <defs>{wash(u + "a", "#FFF0D2", "#F4C179")}</defs>
+      <Bg u={u} />
+      <circle className="sn-glow" cx="101" cy="19" r="12" fill="#FFF7E2" opacity=".8" />
+      <rect x="-10" y="64" width="140" height="30" fill="#E1D0AF" />
+      <rect x="-10" y="64" width="140" height="2.4" fill="#CDB68B" />
+
+      <polygon points="18,27 86,27 80,18 24,18" fill={T.brand} />
+      <rect x="22" y="27" width="60" height="37" fill="#F5E9D1" />
+      {[27, 42, 57, 70].map((x) => (
+        <rect key={x} x={x} y="33" width="10" height="9" rx="1.2" fill="#EFD9A8" />
+      ))}
+      <rect x="46" y="46" width="13" height="18" rx="1.5" fill="#D8C4A0" />
+
+      <circle cx="30" cy="45.5" r="3.6" fill="#EBCBA6" />
+      <rect x="26.8" y="49.5" width="6.6" height="10" rx="2.4" fill={T.brandInk} />
+      <rect x="24.6" y="50.6" width="3.4" height="6.4" rx="1.2" fill={T.brand} />
+      <g stroke={T.dark} {...ST}><path d="M28.4 59.5 V64" /><path d="M31.8 59.5 V64" /></g>
+
+      <path d="M34 59 V52 Q34 48.6 37.6 48 L48 46.6 L55.6 40.6 Q57.6 39 60.6 39 H82 Q85.6 39 87.6 41.6 L93 48 L97 48.8 Q101 49.6 101 53 V59 Z" fill={T.dark} />
+      <polygon points="49,47.4 56.6,41.9 67,41.6 67,47.1" fill="#F7D89A" />
+      <polygon points="70,41.6 81.6,41.6 86,47.1 70,47.1" fill="#F7D89A" />
+      <rect x="34.2" y="50.6" width="3.6" height="3.4" rx="1.2" fill={T.brand} />
+      <circle cx="48" cy="58.5" r="6" fill="#1B1713" />
+      <circle cx="48" cy="58.5" r="2.5" fill="#CDB68B" />
+      <circle cx="88" cy="58.5" r="6" fill="#1B1713" />
+      <circle cx="88" cy="58.5" r="2.5" fill="#CDB68B" />
+    </>
+  ),
+
+  // ————— form · tờ đơn đã ký, có con dấu —————
+  form: (u) => (
+    <>
+      <defs>{wash(u + "a", "#FBEEE5", "#F0E4D2")}</defs>
+      <Bg u={u} />
+      <circle cx="60" cy="42" r="33" fill="#FFFDF9" opacity=".55" />
+      <g transform="rotate(-3 60 42)">
+        <rect x="37" y="17" width="47" height="54" rx="2.5" fill={T.surf} stroke={T.hair} strokeWidth={SW} />
+        <rect x="37" y="17" width="47" height="5" rx="2.5" fill={T.brand} />
+        <rect x="43" y="28" width="27" height="2.8" rx="1.4" fill={T.hair} />
+        <rect x="43" y="34" width="33" height="2.8" rx="1.4" fill={T.hair} />
+        <rect x="43" y="40" width="19" height="2.8" rx="1.4" fill={T.hair} />
+        <path className="sn-sign" d="M43 51 c4 -6.4 7 5 10.2 -1 c2.4 -4.8 5 6 8.4 -1.4 c2 -4.4 4.8 4.6 8.2 0.2"
+          stroke={T.ink} {...ST} />
+        <rect x="43" y="58" width="15" height="2.2" rx="1.1" fill={T.faint} />
+      </g>
+      <g transform="rotate(8 77 55)">
+        <polygon fill={T.brand} opacity=".95" points="77,45 79.4,47.6 82.9,46.8 83.4,50.4 86.6,52 84.6,55 86.6,58 83.4,59.6 82.9,63.2 79.4,62.4 77,65 74.6,62.4 71.1,63.2 70.6,59.6 67.4,58 69.4,55 67.4,52 70.6,50.4 71.1,46.8 74.6,47.6" />
+        <circle cx="77" cy="55" r="6.6" fill={T.brandSoft} />
+        <path d="M73.6 55.2 L76 57.6 L80.4 52.6" stroke={T.brandInk} {...ST} />
+      </g>
+    </>
+  ),
+
+  // ————— cart · túi giấy đi chợ, rau củ nhô lên —————
+  cart: (u) => (
+    <>
+      <defs>{wash(u + "a", "#EAF3E9", "#F7F4ED")}</defs>
+      <Bg u={u} />
+      <rect x="-10" y="68" width="140" height="26" fill="#E9DFCB" />
+      <rect x="-10" y="68" width="140" height="2.2" fill="#D8CBB1" />
+
+      <g className="sn-bob">
+        <ellipse cx="46" cy="27" rx="4.4" ry="8" fill="#3E9B76" transform="rotate(-24 46 27)" />
+        <ellipse cx="53" cy="23.5" rx="4.2" ry="8.6" fill={T.green} transform="rotate(-6 53 23.5)" />
+        <ellipse cx="59.5" cy="27" rx="4.2" ry="7.6" fill="#3E9B76" transform="rotate(16 59.5 27)" />
+        <path d="M53 22 V36" stroke="#2C6B4F" {...ST} opacity=".55" />
+      </g>
+      <rect x="68" y="18" width="7" height="22" rx="3.5" fill="#D9A96A" transform="rotate(15 71.5 29)" />
+      <g stroke="#B98A4E" strokeWidth="1.6" strokeLinecap="round" opacity=".8">
+        <path d="M69.6 23 l3.4 1" transform="rotate(15 71.5 29)" />
+        <path d="M69.6 28 l3.4 1" transform="rotate(15 71.5 29)" />
+        <path d="M69.6 33 l3.4 1" transform="rotate(15 71.5 29)" />
+      </g>
+      <circle cx="64" cy="31.5" r="6" fill={T.brand} />
+      <path d="M64 26 q3 -3.4 6 -1.6" stroke={T.green} {...ST} />
+
+      <polygon points="36,34 84,34 80,70 40,70" fill="#DCBF97" />
+      <polygon points="36,34 84,34 84,40.5 36,40.5" fill="#C9A87B" />
+      <path d="M60 40.5 V70" stroke="#CBAB80" strokeWidth="1.4" opacity=".7" />
+      <rect x="41" y="50" width="38" height="10" rx="1.6" fill={T.brand} />
+      <rect x="45" y="53.4" width="17" height="1.9" rx="0.95" fill="#FFEFE4" opacity=".9" />
+      <rect x="45" y="56.4" width="10" height="1.6" rx="0.8" fill="#FFEFE4" opacity=".6" />
+    </>
+  ),
+
+  // ————— concert · dàn đèn sân khấu, đám đông đổ bóng —————
+  concert: (u) => (
+    <>
+      <defs>{wash(u + "a", "#3C2A6B", "#150C29")}</defs>
+      <Bg u={u} />
+      <g className="sn-beam" style={{ transformOrigin: "60px -6px" }}>
+        <path d="M26 -6 L2 64 L42 64 Z" fill="#FFF3D6" opacity=".13" />
+        <path d="M60 -6 L44 64 L78 64 Z" fill="#FFF3D6" opacity=".10" />
+        <path d="M94 -6 L76 64 L116 64 Z" fill={T.brand} opacity=".24" />
+      </g>
+
+      <ellipse cx="60" cy="58" rx="34" ry="7" fill="#F0D49A" opacity=".35" />
+      <rect x="-10" y="57.5" width="140" height="8.5" fill="#E8C98A" />
+      <rect x="-10" y="57.5" width="140" height="2" fill="#F6E3BB" />
+
+      <g fill="#120A22">
+        <circle cx="60" cy="37" r="5" />
+        <path d="M52.5 57.5 V48.5 Q52.5 43.5 60 43.5 Q67.5 43.5 67.5 48.5 V57.5 Z" />
+        <path d="M53.5 46 L46 40" stroke="#120A22" {...ST} />
+      </g>
+      <path d="M69 44.5 V57.5" stroke="#120A22" {...ST} />
+      <circle cx="69" cy="43" r="2.6" fill={T.brand} />
+
+      <g fill="#0B0618">
+        <rect x="22" y="54" width="3.4" height="12" rx="1.7" />
+        <rect x="80" y="51.5" width="3.4" height="14" rx="1.7" />
+        <rect x="99" y="56" width="3.4" height="10" rx="1.7" />
+        <rect x="-10" y="63" width="140" height="31" />
+        {[-8, 1, 10, 19, 28, 37, 46, 55, 64, 73, 82, 91, 100, 109, 118, 127].map((x, i) => (
+          <circle key={i} cx={x} cy="63" r="4.9" />
+        ))}
+      </g>
+      <rect x="80" y="49" width="3.4" height="4" rx="1.7" fill={T.brand} />
+    </>
+  ),
+
+  // ————— ticket · cuống vé, đường răng cưa xé rời —————
+  ticket: (u) => (
+    <>
+      <defs>{wash(u + "a", "#FBEEE5", "#F1E1CE")}</defs>
+      <Bg u={u} />
+      <circle cx="60" cy="42" r="31" fill="#FFFDF9" opacity=".4" />
+
+      <rect x="22" y="26" width="76" height="33" rx="3.5" fill={T.surf} stroke={T.brand} strokeWidth={SW} />
+      <rect x="26" y="31" width="14" height="14" rx="2.2" fill={T.brand} />
+      <circle cx="31.5" cy="41" r="2.4" fill="#FFEFE4" />
+      <rect x="33.2" y="34" width="1.9" height="7.4" rx="0.95" fill="#FFEFE4" />
+      <path d="M35.1 34 q2.6 0.6 2.6 3" stroke="#FFEFE4" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <rect x="45" y="32" width="25" height="3.2" rx="1.6" fill={T.faint} />
+      <rect x="45" y="38.5" width="19" height="2.6" rx="1.3" fill={T.hair} />
+      <rect x="45" y="44" width="23" height="2.6" rx="1.3" fill={T.hair} />
+      <rect x="45" y="50" width="13" height="4" rx="1.4" fill={T.brandSoft} />
+
+      <g className="sn-tear">
+        <rect x="80" y="31" width="13" height="8" rx="1.6" fill={T.brandSoft} />
+        <rect x="80" y="42" width="13" height="2.4" rx="1.2" fill={T.hair} />
+        <rect x="80" y="46.5" width="9" height="2.4" rx="1.2" fill={T.hair} />
+        <rect x="80" y="51.5" width="13" height="2.4" rx="1.2" fill={T.hair} />
+      </g>
+      <path d="M76 29.5 V55.5" stroke={T.brand} strokeWidth={SW} strokeLinecap="round" strokeDasharray="0.2 4" opacity=".75" />
+      <circle cx="76" cy="26" r="4.2" fill={`url(#${u}a)`} />
+      <circle cx="76" cy="59" r="4.2" fill={`url(#${u}a)`} />
+    </>
+  ),
+
+  // ————— inspect · xe nhìn ngang trong xưởng đăng kiểm —————
+  inspect: (u) => (
+    <>
+      <defs>
+        {wash(u + "a", "#E8EDF1", "#C4CFD9")}
+        <clipPath id={u + "c"}><rect x="24" y="24" width="72" height="40" /></clipPath>
+      </defs>
+      <Bg u={u} />
+      <rect x="-10" y="14" width="140" height="7" fill="#9BA6B1" />
+      <rect x="12" y="18" width="7" height="46" fill="#AAB5BF" />
+      <rect x="101" y="18" width="7" height="46" fill="#AAB5BF" />
+      <g fill="#8E99A4">
+        <rect x="36" y="21" width="3" height="5" /><rect x="81" y="21" width="3" height="5" />
+      </g>
+      <ellipse cx="37.5" cy="27.5" rx="5.4" ry="2.6" fill="#F5EFDF" />
+      <ellipse cx="82.5" cy="27.5" rx="5.4" ry="2.6" fill="#F5EFDF" />
+
+      <rect x="-10" y="62" width="140" height="32" fill="#B7C1CA" />
+      <rect x="30" y="62" width="60" height="6" rx="1" fill="#8C97A2" />
+      <rect x="-10" y="62" width="140" height="1.8" fill="#9BA6B1" />
+
+      <path d="M30 56 V50 Q30 46.4 33.6 45.6 L44 44 L52 35.6 Q54 33.6 57.6 33.6 H74 Q77.6 33.6 79.6 36 L86 44 L88.6 44.6 Q92 45.4 92 49 V56 Z" fill={T.brand} />
+      <path d="M32 50.4 H90" stroke={T.brandInk} strokeWidth="1.6" opacity=".5" />
+      <polygon points="46,43.6 53.4,36.4 60,36.2 60,43.4" fill="#D3E3EC" />
+      <polygon points="63,36.2 73.4,36.2 78,43.4 63,43.4" fill="#D3E3EC" />
+      <rect x="88.6" y="46.6" width="4.4" height="3" rx="1.4" fill="#FFF1CB" />
+      <circle cx="43" cy="56" r="6.2" fill={T.dark} />
+      <circle cx="43" cy="56" r="2.6" fill="#D7DEE4" />
+      <circle cx="79" cy="56" r="6.2" fill={T.dark} />
+      <circle cx="79" cy="56" r="2.6" fill="#D7DEE4" />
+
+      <g clipPath={`url(#${u}c)`}>
+        <rect className="sn-scan" x="24" y="28" width="72" height="2.6" rx="1.3" fill="#EAF8FF" />
+      </g>
+    </>
+  ),
+
+  // ————— call · điện thoại đổ chuông, khiên cảnh báo —————
+  call: (u) => (
+    <>
+      <defs>{wash(u + "a", "#F7F0E6", "#EBDCC7")}</defs>
+      <Bg u={u} />
+      <g stroke={T.brand} {...ST}>
+        <path className="sn-ring" d="M39.3 32.3 A8 8 0 0 0 39.3 43.7" />
+        <path className="sn-ring" style={{ animationDelay: "-.45s" }} d="M35.8 28.8 A13 13 0 0 0 35.8 47.2" />
+        <path className="sn-ring" style={{ animationDelay: "-.9s" }} d="M32.3 25.3 A18 18 0 0 0 32.3 50.7" />
+      </g>
+
+      <rect x="45" y="20" width="29" height="44" rx="5" fill={T.dark} />
+      <rect x="47.4" y="23.6" width="24.2" height="36.8" rx="3.2" fill="#F4EEE4" />
+      <rect x="54.5" y="21.4" width="10" height="1.6" rx="0.8" fill="#544D44" />
+      <circle cx="59.5" cy="33" r="6" fill={T.hair} />
+      <circle cx="59.5" cy="31.2" r="2.3" fill={T.faint} />
+      <path d="M55.7 36.8 q3.8 -3.9 7.6 0" fill={T.faint} />
+      <rect x="50" y="42.6" width="19" height="3" rx="1.5" fill={T.faint} />
+      <rect x="53.5" y="47.8" width="12" height="2.2" rx="1.1" fill={T.hair} />
+      <circle cx="53" cy="55.6" r="4" fill={T.green} opacity=".5" />
+      <circle cx="66" cy="55.6" r="4" fill={T.red} opacity=".5" />
+
+      <path d="M84 30 L96 34.2 V46 Q96 55.8 84 60.4 Q72 55.8 72 46 V34.2 Z" fill={T.brand} stroke={T.brandInk} strokeWidth={SW} />
+      <rect x="82.4" y="38.4" width="3.2" height="9.6" rx="1.6" fill="#FFF3EC" />
+      <circle cx="84" cy="52.4" r="1.9" fill="#FFF3EC" />
+    </>
+  ),
+
+  // ————— tea · hộp quà trà sen —————
+  tea: (u) => (
+    <>
+      <defs>
+        {wash(u + "a", "#E9F2EB", "#F7F4ED")}
+        <clipPath id={u + "c"}><polygon points="38,34 78,34 78,62 38,62" /></clipPath>
+      </defs>
+      <Bg u={u} />
+      <rect x="-10" y="62" width="140" height="32" fill="#E7DCC7" />
+      <rect x="-10" y="62" width="140" height="2.2" fill="#D6C9AE" />
+      <ellipse cx="63" cy="63" rx="30" ry="3.2" fill="#C9BCA1" opacity=".5" />
+
+      <polygon points="78,34 92,26.5 92,54.5 78,62" fill="#17563F" />
+      <polygon points="38,34 52,26.5 92,26.5 78,34" fill="#2E8A64" />
+      <polygon points="38,34 78,34 78,62 38,62" fill="#1E6B4F" />
+
+      <g clipPath={`url(#${u}c)`}>
+        <g transform="skewX(-18)">
+          <rect className="sn-glint" x="-4" y="24" width="10" height="48" fill="#FFFDF9" opacity=".16" />
+        </g>
+      </g>
+
+      <g opacity=".92">
+        {[-52, -26, 0, 26, 52].map((r, i) => (
+          <ellipse key={i} cx="52" cy="45" rx="2.9" ry="7.4" fill={i === 2 ? "#FFF1EA" : "#F5DCD1"} transform={`rotate(${r} 52 50)`} />
+        ))}
+        <circle cx="52" cy="50" r="2.2" fill={T.brand} />
+      </g>
+
+      <rect x="62" y="34" width="8" height="28" fill={T.brand} />
+      <polygon points="62,34 70,34 84,26.5 76,26.5" fill={T.brand} opacity=".82" />
+      <polygon points="78,34 78,62 82,59.8 82,31.9" fill={T.brandInk} />
+      <ellipse cx="70.4" cy="27" rx="4.2" ry="2.4" fill={T.brand} transform="rotate(-18 70.4 27)" />
+      <ellipse cx="78.4" cy="24.6" rx="4.2" ry="2.4" fill={T.brand} transform="rotate(18 78.4 24.6)" />
+      <circle cx="74.6" cy="26.4" r="2.1" fill={T.brandInk} />
+    </>
+  ),
+
+  // ————— meal · nồi cơm tối, hơi bốc lên —————
+  meal: (u) => (
+    <>
+      <defs>{wash(u + "a", "#F8EBD7", "#EDD5B2")}</defs>
+      <Bg u={u} />
+      <rect x="-10" y="64" width="140" height="30" fill="#DCC4A0" />
+      <rect x="-10" y="64" width="140" height="2.4" fill="#C7AC85" />
+      <ellipse cx="60" cy="65" rx="30" ry="3.2" fill="#BFA37B" opacity=".5" />
+
+      {[[48, "0s"], [60, "-1.3s"], [72, "-2.5s"]].map((s, i) => (
+        <path key={i} className="sn-steam" style={{ animationDelay: s[1] }}
+          d={`M${s[0]} 36 c-3.4 -3 -3.4 -6 0 -9 c3.4 -3 3.4 -6 0 -9`}
+          stroke="#FFFDF9" strokeWidth={SW} strokeLinecap="round" fill="none" opacity=".8" />
+      ))}
+
+      <g stroke={T.brandInk} {...ST}>
+        <path d="M34 48 q-5 0 -5 4.4 q0 4.4 5 4.4" />
+        <path d="M86 48 q5 0 5 4.4 q0 4.4 -5 4.4" />
+      </g>
+      <path d="M36 45 H84 V56 Q84 65 75 65 H45 Q36 65 36 56 Z" fill={T.brand} />
+      <path d="M36 57 H84 Q84 65 75 65 H45 Q36 65 36 57 Z" fill={T.brandInk} opacity=".55" />
+      <rect x="41.5" y="49" width="4" height="10" rx="2" fill="#FFFDF9" opacity=".2" />
+      <path d="M32 44.6 Q32 38.6 60 38.6 Q88 38.6 88 44.6 Z" fill={T.brandInk} />
+      <rect x="31" y="44.4" width="58" height="3.4" rx="1.7" fill={T.brandInk} />
+      <rect x="55" y="34.4" width="10" height="4.4" rx="2.2" fill="#F3E7D5" />
+    </>
+  ),
+
+  // ————— car · sedan góc ba phần tư —————
+  car: (u) => {
+    const body = "M27 56 V48.4 Q27 44.6 31 43.8 L42.6 42 L51 32.4 Q53.2 30 57 30 H76 Q80 30 82.2 32.6 L89 41.2 L94 42.2 Q98.4 43.2 98.4 47.2 V56 Z";
+    return (
+      <>
+        <defs>
+          {wash(u + "a", "#EBF1F6", "#CAD6E1")}
+          <clipPath id={u + "c"}><path d={body} /></clipPath>
+        </defs>
+        <Bg u={u} />
+        <rect x="-10" y="62" width="140" height="32" fill="#C3CFD8" />
+        <rect x="-10" y="62" width="140" height="1.8" fill="#AEBBC6" />
+        <ellipse cx="62" cy="63" rx="40" ry="4" fill="#94A5B4" opacity=".45" />
+
+        <path d="M33 44 L52.6 29.4 Q54.8 27.6 58.6 27.6 H78 Q82 27.6 84.2 30.2 L92 40.2 L94 43 L88 42.4 Z" fill={T.brandInk} />
+        <path d={body} fill={T.brand} />
+        <polygon points="45,42.2 53.4,33 62,32.6 62,42" fill="#D5E4EE" />
+        <polygon points="65,32.6 75.4,32.6 81,42 65,42" fill="#D5E4EE" />
+        <polygon points="65,32.6 70,32.6 65.6,42 65,42" fill="#EFF6FA" opacity=".8" />
+        <path d="M29 49.4 H97" stroke={T.brandInk} strokeWidth="1.6" opacity=".45" />
+        <rect x="93.6" y="45" width="5" height="3.4" rx="1.7" fill="#FFF1CB" />
+        <rect x="27" y="45.4" width="3.6" height="3.2" rx="1.4" fill={T.brandInk} />
+
+        <g clipPath={`url(#${u}c)`}>
+          <g transform="skewX(-22)">
+            <rect className="sn-glint" x="-10" y="24" width="11" height="40" fill="#FFFDF9" opacity=".22" />
+          </g>
+        </g>
+
+        <circle cx="41" cy="56" r="6.4" fill={T.dark} />
+        <circle cx="41" cy="56" r="2.7" fill="#D3DCE4" />
+        <circle cx="83" cy="56" r="6.4" fill={T.dark} />
+        <circle cx="83" cy="56" r="2.7" fill="#D3DCE4" />
+      </>
+    );
+  },
+
+  // ————— doc · chồng giấy tờ nhà —————
+  doc: (u) => (
+    <>
+      <defs>{wash(u + "a", "#F8F5EE", "#E8DFCF")}</defs>
+      <Bg u={u} />
+      <ellipse cx="60" cy="74" rx="30" ry="3.6" fill="#CFC4AE" opacity=".45" />
+      <g className="sn-riffle" style={{ transformOrigin: "60px 74px" }}>
+        <rect x="40" y="21" width="41" height="52" rx="2.5" fill="#EDE4D3" stroke={T.hair} strokeWidth={SW} transform="rotate(11 60 68)" />
+      </g>
+      <rect x="39" y="20" width="41" height="52" rx="2.5" fill="#F5EEE0" stroke={T.hair} strokeWidth={SW} transform="rotate(-9 60 68)" />
+      <g transform="rotate(1.5 60 68)">
+        <rect x="39" y="19" width="43" height="53" rx="2.5" fill={T.surf} stroke={T.hair} strokeWidth={SW} />
+        <rect x="45" y="26" width="19" height="4.2" rx="2.1" fill={T.brand} />
+        <rect x="45" y="35" width="31" height="2.6" rx="1.3" fill={T.hair} />
+        <rect x="45" y="40.6" width="25" height="2.6" rx="1.3" fill={T.hair} />
+        <rect x="45" y="46.2" width="29" height="2.6" rx="1.3" fill={T.hair} />
+        <rect x="45" y="53.6" width="14" height="10" rx="1.6" fill={T.brandSoft} />
+        <path d="M48.2 58.8 L51.2 61.8 L56 55.8" stroke={T.brand} {...ST} />
+        <rect x="62" y="54" width="14" height="2.4" rx="1.2" fill={T.hair} />
+        <rect x="62" y="58.6" width="10" height="2.4" rx="1.2" fill={T.hair} />
+      </g>
+      <path d="M70.5 14 V24.6 q0 3 -3 3 q-3 0 -3 -3 V17.6 q0 -1.8 1.8 -1.8 q1.8 0 1.8 1.8 V24.6"
+        stroke={T.brand} {...ST} />
+    </>
+  ),
+
+  // ————— shield · xác thực CCCD —————
+  shield: (u) => (
+    <>
+      <defs>
+        {wash(u + "a", "#E9F3EC", "#F7F4ED")}
+        <clipPath id={u + "c"}>
+          <path d="M60 19 L83 27 V45.4 Q83 58.6 60 67 Q37 58.6 37 45.4 V27 Z" />
+        </clipPath>
+      </defs>
+      <Bg u={u} />
+      <path d="M60 19 L83 27 V45.4 Q83 58.6 60 67 Q37 58.6 37 45.4 V27 Z" fill={T.surf} stroke={T.brand} strokeWidth={SW} />
+      <rect x="45" y="33" width="30" height="19" rx="2.2" fill={T.brandSoft} />
+      <rect x="47.6" y="36" width="9" height="11" rx="1.4" fill={T.brand} />
+      <circle cx="52.1" cy="39.6" r="2" fill="#FFEFE4" />
+      <path d="M48.8 45.6 q3.3 -4 6.6 0" fill="#FFEFE4" />
+      <rect x="59.4" y="36.4" width="13" height="2.2" rx="1.1" fill={T.faint} />
+      <rect x="59.4" y="40.6" width="10" height="2.2" rx="1.1" fill={T.hair} />
+      <rect x="59.4" y="44.8" width="12" height="2.2" rx="1.1" fill={T.hair} />
+      <g clipPath={`url(#${u}c)`}>
+        <rect className="sn-scan" x="34" y="24" width="52" height="2.8" rx="1.4" fill="#FFFDF9" opacity=".7" />
+      </g>
+      <circle cx="75" cy="54" r="7.6" fill={T.green} stroke={T.surf} strokeWidth={SW} />
+      <path d="M71.6 54.2 L74.2 56.8 L78.6 51.2" stroke="#FFFDF9" {...ST} />
+    </>
+  ),
+
+  // ————— win · xong việc, ăn mừng —————
+  win: (u) => (
+    <>
+      <defs>{wash(u + "a", "#FCEFE6", "#F7F4ED")}</defs>
+      <Bg u={u} />
+      <g className="sn-rays" style={{ transformOrigin: "60px 40px" }}>
+        {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((r) => (
+          <path key={r} d="M60 40 L56.6 -6 L63.4 -6 Z" fill={T.brand} opacity=".08" transform={`rotate(${r} 60 40)`} />
+        ))}
+      </g>
+
+      <polygon points="52,52 60,48 60,68 52,62" fill={T.brandInk} />
+      <polygon points="68,52 60,48 60,68 68,62" fill={T.brand} />
+      <circle cx="60" cy="40" r="17.5" fill={T.brandSoft} stroke={T.brand} strokeWidth={SW} />
+      <circle cx="60" cy="40" r="12" fill={T.brand} />
+      <path d="M54.4 40.4 L58.6 44.8 L66.4 34.8" stroke="#FFFDF9" {...ST} />
+
+      <g>
+        <rect x="26" y="24" width="5" height="3.4" rx="1.2" fill={T.green} transform="rotate(-24 28.5 25.7)" />
+        <rect x="88" y="28" width="5" height="3.4" rx="1.2" fill="#E8A33D" transform="rotate(32 90.5 29.7)" />
+        <rect x="33" y="54" width="4.6" height="3.2" rx="1.2" fill="#E8A33D" transform="rotate(18 35.3 55.6)" />
+        <rect x="92" y="52" width="4.6" height="3.2" rx="1.2" fill={T.green} transform="rotate(-14 94.3 53.6)" />
+        <circle cx="36" cy="38" r="2.1" fill={T.brand} />
+        <circle cx="86" cy="44" r="1.8" fill={T.brandInk} />
+        <circle cx="46" cy="20" r="1.7" fill="#E8A33D" />
+        <circle cx="74" cy="21" r="2" fill={T.green} />
+      </g>
+    </>
+  ),
+};
+
+const SCENE_NAMES = Object.keys(SCENES);
+
+// Mỗi instance cần id gradient/clip riêng, nếu không hai cảnh cùng loại trên
+// một màn hình sẽ giẫm lên nhau.
+let _sceneSeq = 0;
+
+const Scene = ({ name, h = 128, small, style }) => {
+  const ref = React.useRef(null);
+  if (ref.current === null) ref.current = "sn" + ++_sceneSeq + "_";
+  const draw = SCENES[name] || SCENES.doc;
+  return (
+    <div
+      style={{
+        height: small ? 56 : h,
+        width: small ? 56 : "100%",
+        borderRadius: small ? 12 : 14,
+        overflow: "hidden",
+        position: "relative",
+        flexShrink: 0,
+        background: T.hair,
+        boxShadow: "inset 0 0 0 1px rgba(36,31,26,.06)",
+        ...style,
+      }}
+    >
+      <svg
+        viewBox="0 0 120 84"
+        preserveAspectRatio="xMidYMid slice"
+        width="100%"
+        height="100%"
+        style={{ display: "block" }}
+        aria-hidden="true"
+        focusable="false"
+      >
+        {draw(ref.current)}
+      </svg>
+    </div>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// Dán vào khối <style> sẵn có. Media query prefers-reduced-motion toàn cục
+// (`*{animation-duration:.001s !important}`) sẽ ghim mọi cảnh về trạng thái
+// cuối, nên các keyframe ping-pong dùng `alternate` để trạng thái cuối vẫn đẹp.
+// ————————————————————————————————————————————————————————————
+const SCENE_CSS = `
+.sn-water{animation:sn-water 5s ease-in-out infinite alternate}
+.sn-glow{animation:sn-glow 4.6s ease-in-out infinite alternate}
+.sn-sign{stroke-dasharray:80;animation:sn-sign 1.5s ease-out .3s both}
+.sn-bob{transform-box:view-box;animation:sn-bob 3.4s ease-in-out infinite alternate}
+.sn-beam{transform-box:view-box;animation:sn-beam 7s ease-in-out infinite alternate}
+.sn-tear{transform-box:view-box;animation:sn-tear 3.8s ease-in-out infinite alternate}
+.sn-scan{transform-box:view-box;animation:sn-scan 3.6s cubic-bezier(.45,0,.55,1) infinite}
+.sn-ring{animation:sn-ring 1.5s ease-in-out infinite alternate}
+.sn-glint{transform-box:view-box;animation:sn-glint 5.4s ease-in-out infinite}
+.sn-steam{transform-box:view-box;animation:sn-steam 3.6s ease-in-out infinite alternate}
+.sn-riffle{transform-box:view-box;animation:sn-riffle 6s ease-in-out infinite alternate}
+.sn-rays{transform-box:view-box;animation:sn-rays 34s linear infinite}
+@keyframes sn-water{from{transform:translateX(-3px);opacity:.3}to{transform:translateX(3px);opacity:.6}}
+@keyframes sn-glow{from{opacity:.55}to{opacity:1}}
+@keyframes sn-sign{from{stroke-dashoffset:80}to{stroke-dashoffset:0}}
+@keyframes sn-bob{from{transform:translateY(0)}to{transform:translateY(-1.8px)}}
+@keyframes sn-beam{from{transform:rotate(-4.5deg)}to{transform:rotate(5.5deg)}}
+@keyframes sn-tear{from{transform:translateX(0)}to{transform:translateX(1.8px)}}
+@keyframes sn-scan{0%{transform:translateY(0);opacity:0}14%{opacity:.7}86%{opacity:.7}100%{transform:translateY(32px);opacity:0}}
+@keyframes sn-ring{from{opacity:.22}to{opacity:1}}
+@keyframes sn-glint{0%{transform:translateX(-8px)}60%,100%{transform:translateX(112px)}}
+@keyframes sn-steam{from{transform:translateY(3px);opacity:.18}to{transform:translateY(-7px);opacity:.6}}
+@keyframes sn-riffle{from{transform:rotate(0)}to{transform:rotate(-2.4deg)}}
+@keyframes sn-rays{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+`;
+
+// ————————————————————————————————————————————————————————————
+// m.ai · viz — SVG primitives: Logo · Donut · Countdown · Spark · Avatar · Bars
+//
+// Pure SVG. No deps beyond react. Every glyph is drawn in a unit viewBox and
+// scaled by `size`, so it is crisp at 1x, 2x, 3x. Nothing here holds a timer,
+// listens on window, or allocates per frame: safe to render dozens of times
+// in a list. All mount motion lives in VIZ_CSS, injected once by the host.
+//
+//   import { Logo, Donut, Countdown, Spark, Avatar, Bars, VIZ_CSS } from "./viz.jsx";
+//   <style>{VIZ_CSS}</style>
+//
+// Logo is a drop-in for the old <Mark size={26} alive /> blob.
+// ————————————————————————————————————————————————————————————
+
+// ————— tokens (mirror of T in app.jsx, kept local so this file stands alone) —————
+const VT = {
+  ink: "#241F1A", sub: "#6E665C", faint: "#A79E92", hair: "#E9E2D6",
+  bg: "#F7F4ED", surf: "#FFFDF9", brand: "#C2552F", brandLit: "#E8825A",
+  brandSoft: "#FBEDE4", brandInk: "#9C3F1F", cream: "#FFFDF9",
+  green: "#1B7A4E", amber: "#B54708", red: "#B42318",
+  muted: "#DED3C3", mutedInk: "#C9BCA9",
+};
+// DISPLAY: dùng chung với khai báo phía trên
+
+// ————— tiny helpers —————
+const r2 = (n) => Math.round(n * 100) / 100;
+const clamp = (n, lo, hi) => (n < lo ? lo : n > hi ? hi : n);
+
+// Stable per-instance id for <defs>. useId is not assumed to exist.
+let _seq = 0;
+const useUid = (p) => {
+  const ref = useRef(null);
+  if (ref.current === null) ref.current = p + (++_seq).toString(36);
+  return ref.current;
+};
+
+// One frame after mount. Used to drive CSS transitions from a rest state.
+const useMounted = () => {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => setOn(true)); });
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, []);
+  return on;
+};
+
+// FNV-1a. Same string in, same number out, forever.
+const hash32 = (s) => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+};
+
+// Catmull-Rom through the points, emitted as cubic beziers.
+// Control points are clamped into the box so a steep series never clips.
+const smoothPath = (pts, lo, hi, tension = 1) => {
+  if (!pts.length) return "";
+  if (pts.length === 1) return `M ${r2(pts[0][0])} ${r2(pts[0][1])}`;
+  const cy = (y) => clamp(y, lo, hi);
+  let d = `M ${r2(pts[0][0])} ${r2(pts[0][1])}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || pts[i + 1];
+    const k = tension / 6;
+    const c1x = p1[0] + (p2[0] - p0[0]) * k, c1y = cy(p1[1] + (p2[1] - p0[1]) * k);
+    const c2x = p2[0] - (p3[0] - p1[0]) * k, c2y = cy(p2[1] - (p3[1] - p1[1]) * k);
+    d += ` C ${r2(c1x)} ${r2(c1y)}, ${r2(c2x)} ${r2(c2y)}, ${r2(p2[0])} ${r2(p2[1])}`;
+  }
+  return d;
+};
+
+// ————————————————————————————————————————————————————————————
+// 1 · Logo — the m. wordmark as real geometry
+//
+// Drawn in a 32 box. Squircle tile, then a monoline "m": one stem, two
+// half-round counters of identical radius, then the period. Stroke is 2.6 at
+// 32 units, i.e. 1.95px at size 24 and 7.8px at size 96 — heavy enough to hold
+// at a chat avatar, light enough to look drawn at hero size.
+//
+//   <Logo size={26} alive />         drop-in for <Mark size={26} alive />
+//   <Logo size={96} tone="mono" />   glyph only, inherits currentColor
+// ————————————————————————————————————————————————————————————
+const M_GLYPH = "M6.6 21 V14.6 a3.6 3.6 0 0 1 7.2 0 V21 M13.8 14.6 a3.6 3.6 0 0 1 7.2 0 V21";
+const TILE_R = 11.2; // 0.35 of the 32 box — the old Mark's border-radius, kept
+
+const Logo = ({ size = 26, alive, tone = "solid", color, title }) => {
+  const uid = useUid("mai");
+  const mono = tone === "mono";
+  const ink = color || (mono ? "currentColor" : VT.cream);
+
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 32 32"
+      className={"viz-in" + (alive ? " viz-alive" : "")}
+      role={title ? "img" : "presentation"} aria-label={title || undefined} aria-hidden={title ? undefined : true}
+      style={{ display: "block", flexShrink: 0, overflow: "visible" }}
+      shapeRendering="geometricPrecision"
+    >
+      {!mono && (
+        <defs>
+          <linearGradient id={uid} x1="0.12" y1="0" x2="0.86" y2="1">
+            <stop offset="0" stopColor={VT.brandLit} />
+            <stop offset="1" stopColor={color || VT.brand} />
+          </linearGradient>
+        </defs>
+      )}
+
+      {/* halo — only while Mai is thinking */}
+      {alive && !mono && (
+        <rect className="viz-halo" x="0.7" y="0.7" width="30.6" height="30.6" rx={TILE_R - 0.5}
+          fill="none" stroke={color || VT.brand} strokeWidth="1.4" style={{ transformOrigin: "16px 16px" }} />
+      )}
+
+      {!mono && <rect x="0" y="0" width="32" height="32" rx={TILE_R} fill={`url(#${uid})`} />}
+
+      <path d={M_GLYPH} fill="none" stroke={ink} strokeWidth={mono ? 3 : 2.6}
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="25.2" cy="20.1" r={mono ? 1.9 : 1.75} fill={ink} className={alive ? "viz-dot" : undefined}
+        style={{ transformOrigin: "25.2px 20.1px" }} />
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// 2 · Donut — progress ring
+//   <Donut value={14} total={32} size={44} label="14" />   "14/32 phụ huynh đã đóng"
+// Sweeps in from empty on mount and transitions again whenever value moves.
+// ————————————————————————————————————————————————————————————
+const Donut = ({
+  value = 0, total = 1, size = 44, color = VT.brand, track = VT.hair,
+  label, sub, stroke, delay = 0, title,
+}) => {
+  const on = useMounted();
+  const sw = stroke || clamp(size * 0.115, 3, 7);
+  const rad = (size - sw) / 2;
+  const c = 2 * Math.PI * rad;
+  const pct = total > 0 ? clamp(value / total, 0, 1) : 0;
+  const off = on ? c * (1 - pct) : c;
+  const cx = size / 2;
+
+  const txt = label === true ? String(value) : label;
+  const fs = sub ? size * 0.3 : size * 0.34;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+      role={title ? "img" : "presentation"} aria-label={title || undefined} aria-hidden={title ? undefined : true}
+      style={{ display: "block", flexShrink: 0 }} shapeRendering="geometricPrecision"
+    >
+      <circle cx={cx} cy={cx} r={r2(rad)} fill="none" stroke={track} strokeWidth={r2(sw)} />
+      {pct > 0 && (
+        <circle
+          className="viz-ring" cx={cx} cy={cx} r={r2(rad)} fill="none"
+          stroke={color} strokeWidth={r2(sw)} strokeLinecap="round"
+          strokeDasharray={r2(c)} strokeDashoffset={r2(off)}
+          transform={`rotate(-90 ${cx} ${cx})`}
+          style={{ transitionDelay: delay ? delay + "ms" : undefined }}
+        />
+      )}
+      {txt != null && txt !== false && (
+        <text x={cx} y={r2(cx + fs * 0.34 - (sub ? fs * 0.26 : 0))} textAnchor="middle"
+          fontFamily={DISPLAY} fontSize={r2(fs)} fontWeight="600" fill={color}
+          style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{txt}</text>
+      )}
+      {sub && (
+        <text x={cx} y={r2(cx + fs * 0.34 + size * 0.21)} textAnchor="middle"
+          fontSize={r2(size * 0.17)} fontWeight="650" fill={VT.faint}>{sub}</text>
+      )}
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// 3 · Countdown — a ring that empties, time in the middle
+//   <Countdown minutes={48} total={180} size={52} />   "còn 48 phút" trước giờ đón Bin
+// Terracotta above an hour, amber under 60 minutes, red under 15 (and the red
+// state breathes, so it reads as pressure without a badge).
+// ————————————————————————————————————————————————————————————
+const fmtLeft = (m) => {
+  if (m <= 0) return ["0", "phút"];
+  if (m < 60) return [String(Math.round(m)), "phút"];
+  const h = Math.floor(m / 60), mm = Math.round(m % 60);
+  return mm ? [`${h}g${String(mm).padStart(2, "0")}`, ""] : [`${h}g`, "còn lại"];
+};
+
+const Countdown = ({
+  minutes = 0, total = 60, size = 52, stroke, track = VT.hair, color, unit, title,
+}) => {
+  const on = useMounted();
+  const left = Math.max(0, minutes);
+  const urgent = left < 15, warn = left < 60;
+  const tint = color || (urgent ? VT.red : warn ? VT.amber : VT.brand);
+  const sw = stroke || clamp(size * 0.105, 3, 7);
+  const rad = (size - sw) / 2;
+  const c = 2 * Math.PI * rad;
+  const pct = total > 0 ? clamp(left / total, 0, 1) : 0;
+  const off = on ? c * (1 - pct) : 0; // depletes: starts full, drains to remaining
+  const cx = size / 2;
+  const [big, small] = fmtLeft(left);
+  // the number owns the counter: shrink it as the string grows so 1g48 still fits
+  const fs = size * (big.length <= 2 ? 0.33 : big.length === 3 ? 0.27 : 0.225);
+  const unitTxt = unit != null ? unit : small;
+  const showUnit = !!unitTxt && size >= 34 && big.length <= 3;
+  const uy = cx + fs * (showUnit ? 0.06 : 0.34);
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+      className={urgent ? "viz-urgent" : undefined}
+      role={title ? "img" : "presentation"} aria-label={title || undefined} aria-hidden={title ? undefined : true}
+      style={{ display: "block", flexShrink: 0, transformOrigin: "50% 50%" }} shapeRendering="geometricPrecision"
+    >
+      <circle cx={cx} cy={cx} r={r2(rad)} fill="none" stroke={track} strokeWidth={r2(sw)} />
+      {pct > 0 && (
+        <circle className="viz-ring" cx={cx} cy={cx} r={r2(rad)} fill="none"
+          stroke={tint} strokeWidth={r2(sw)} strokeLinecap="round"
+          strokeDasharray={r2(c)} strokeDashoffset={r2(off)}
+          transform={`rotate(-90 ${cx} ${cx})`} />
+      )}
+      <text x={cx} y={r2(uy)} textAnchor="middle"
+        fontFamily={DISPLAY} fontSize={r2(fs)} fontWeight="600" fill={tint}
+        style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" }}>{big}</text>
+      {showUnit && (
+        <text x={cx} y={r2(uy + size * 0.175)} textAnchor="middle"
+          fontSize={r2(clamp(size * 0.145, 6.5, 9.5))} fontWeight="650" fill={VT.faint}>{unitTxt}</text>
+      )}
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// 4 · Spark — sparkline, Catmull-Rom smoothed, soft area beneath
+//   <Spark points={[12,9,14,11,17,15,21]} w={64} h={20} />
+// pathLength=1 normalises the draw-in so every series takes the same time.
+// ————————————————————————————————————————————————————————————
+const Spark = ({
+  points = [], w = 64, h = 20, color = "currentColor", fill, cap = true, strokeWidth = 1.5, title,
+}) => {
+  const uid = useUid("spk");
+  const geo = useMemo(() => {
+    const raw = (points || []).filter((n) => typeof n === "number" && isFinite(n));
+    if (raw.length < 2) return null;
+    const pad = strokeWidth / 2 + (cap ? 1.4 : 0.4);
+    const min = Math.min(...raw), max = Math.max(...raw);
+    const span = max - min || 1;
+    const stepX = (w - pad * 2) / (raw.length - 1);
+    const pts = raw.map((v, i) => [pad + i * stepX, pad + (1 - (v - min) / span) * (h - pad * 2)]);
+    const line = smoothPath(pts, pad * 0.4, h - pad * 0.4);
+    const area = `${line} L ${r2(pts[pts.length - 1][0])} ${r2(h)} L ${r2(pts[0][0])} ${r2(h)} Z`;
+    return { line, area, last: pts[pts.length - 1], rising: raw[raw.length - 1] >= raw[0] };
+  }, [points, w, h, strokeWidth, cap]);
+
+  if (!geo) return <svg width={w} height={h} aria-hidden="true" style={{ display: "block" }} />;
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+      role={title ? "img" : "presentation"} aria-label={title || undefined} aria-hidden={title ? undefined : true}
+      style={{ display: "block", flexShrink: 0, color: color === "currentColor" ? undefined : color, overflow: "visible" }}
+      shapeRendering="geometricPrecision"
+    >
+      <defs>
+        <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={fill || color} stopOpacity="0.14" />
+          <stop offset="1" stopColor={fill || color} stopOpacity="0.03" />
+        </linearGradient>
+      </defs>
+      <path className="viz-fade" d={geo.area} fill={`url(#${uid})`} />
+      <path className="viz-draw" d={geo.line} pathLength="1" fill="none" stroke={color}
+        strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      {cap && (
+        <circle className="viz-cap" cx={r2(geo.last[0])} cy={r2(geo.last[1])} r={strokeWidth * 1.1}
+          fill={color} style={{ transformOrigin: `${r2(geo.last[0])}px ${r2(geo.last[1])}px` }} />
+      )}
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// 5 · Avatar — deterministic, generated, not an emoji
+//   <Avatar name="Vy" size={34} />  <Avatar name="cô Lan" tone="cool" />
+// Two hues are hashed out of the name and clamped to a warm band (15-45°) plus
+// an optional muted teal band (150-190°), so a whole family list still sits
+// inside the terracotta palette. Shape is a squircle blob or a hexagon, picked
+// by the same hash. Initial is the last word's first letter, in the DISPLAY serif.
+// ————————————————————————————————————————————————————————————
+const AV_BLOB = "M20 2.2 C29.4 2.2 37.8 7.4 37.8 20 C37.8 32.2 30.2 37.8 20 37.8 C9.4 37.8 2.2 31.4 2.2 20 C2.2 8.2 10.6 2.2 20 2.2 Z";
+const AV_HEX = "M20 2.6 C21.3 2.6 22.5 2.95 23.6 3.6 L32.6 8.8 C34.8 10.1 35.8 11.8 35.8 14.3 L35.8 25.7 C35.8 28.2 34.8 29.9 32.6 31.2 L23.6 36.4 C21.4 37.7 18.6 37.7 16.4 36.4 L7.4 31.2 C5.2 29.9 4.2 28.2 4.2 25.7 L4.2 14.3 C4.2 11.8 5.2 10.1 7.4 8.8 L16.4 3.6 C17.5 2.95 18.7 2.6 20 2.6 Z";
+
+const initialOf = (name) => {
+  const words = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  return words[words.length - 1].charAt(0).toUpperCase();
+};
+
+// `initial` để ghi đè: quy tắc lấy chữ cuối đúng cho tên người Việt
+// ("Nguyễn Thị Vy" → V) nhưng sai cho tên nhóm ("Nhà mình" → M).
+const Avatar = ({ name = "", size = 34, tone, ring, title, initial }) => {
+  const uid = useUid("av");
+  const g = useMemo(() => {
+    const h = hash32(String(name).toLowerCase());
+    const warm = 14 + (h % 23);                       // 14-36°  clay/terracotta band
+    const cool = 150 + ((h >>> 11) % 41);             // 150-190° muted teal band
+    const wantsCool = ((h >>> 8) & 1) === 1;
+    let hA = warm, hB = wantsCool ? cool : 14 + ((h >>> 17) % 23);
+    if (tone === "warm") hB = 14 + ((h >>> 17) % 23);
+    if (tone === "cool") hB = cool;
+    if (tone === "brand") { hA = 16; hB = 28; }
+    return {
+      hA, hB,
+      hex: ((h >>> 3) & 1) === 1,
+      tilt: ((h >>> 5) % 9) - 4,                      // -4..4 deg, so no two blobs sit identically
+      // the accent is a corner wash, never the field: warm always wins
+      ax: ((h >>> 13) & 1) ? 3 + ((h >>> 14) % 9) : 28 + ((h >>> 14) % 9),
+      ay: 29 + ((h >>> 19) % 10),
+      ar: 10 + ((h >>> 23) % 6),
+    };
+  }, [name, tone]);
+
+  const shape = g.hex ? AV_HEX : AV_BLOB;
+  const fs = size * (g.hex ? 0.4 : 0.42);
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" className="viz-in"
+      role={title || name ? "img" : "presentation"} aria-label={title || (name ? String(name) : undefined)}
+      style={{ display: "block", flexShrink: 0 }} shapeRendering="geometricPrecision"
+    >
+      <defs>
+        <linearGradient id={uid + "g"} x1="0.15" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor={`hsl(${g.hA} 56% 63%)`} />
+          <stop offset="1" stopColor={`hsl(${g.hA} 60% 45%)`} />
+        </linearGradient>
+        <clipPath id={uid + "c"}><path d={shape} /></clipPath>
+      </defs>
+      <g transform={`rotate(${g.tilt} 20 20)`}>
+        <path d={shape} fill={`url(#${uid}g)`} />
+        <g clipPath={`url(#${uid}c)`}>
+          <circle cx={g.ax} cy={g.ay} r={g.ar} fill={`hsl(${g.hB} 44% 48%)`} opacity="0.26" />
+          <path d="M0 0 H40 V13 C28 19 12 9 0 15 Z" fill="#FFFFFF" opacity="0.11" />
+        </g>
+      </g>
+      <text x="20" y={r2(20 + (fs / size) * 40 * 0.34)} textAnchor="middle"
+        fontFamily={DISPLAY} fontSize={r2((fs / size) * 40)} fontWeight="600" fill={VT.cream}
+        style={{ letterSpacing: "-0.01em" }}>{initial || initialOf(name)}</text>
+      {ring && <path d={shape} fill="none" stroke={ring === true ? VT.surf : ring} strokeWidth="2.4" />}
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// 6 · Bars — 5-7 bar micro chart
+//   <Bars data={[8,3,11,9,14,17]} highlight={1} labels={["T2","T3","T4","T5","T6","T7"]} />
+//   "sáng thứ Ba vắng nhất" — the highlighted bar carries the brand colour.
+// Bars grow from the baseline, staggered 34ms apart.
+// ————————————————————————————————————————————————————————————
+const Bars = ({
+  data = [], w = 68, h = 26, color = VT.brand, muted = VT.muted, highlight = -1,
+  labels, gap = 3, radius, title,
+}) => {
+  const vals = (data || []).filter((n) => typeof n === "number" && isFinite(n));
+  const n = vals.length;
+  const labH = labels && labels.length ? clamp(h * 0.42, 9, 13) : 0;
+  if (!n) return <svg width={w} height={h + labH} aria-hidden="true" style={{ display: "block" }} />;
+
+  const max = Math.max(...vals, 1);
+  const bw = (w - gap * (n - 1)) / n;
+  const rx = radius != null ? radius : Math.min(bw / 2, 2.5);
+  const labFs = clamp(labH * 0.72, 7, 9.5);
+
+  return (
+    <svg width={w} height={r2(h + labH)} viewBox={`0 0 ${r2(w)} ${r2(h + labH)}`}
+      role={title ? "img" : "presentation"} aria-label={title || undefined} aria-hidden={title ? undefined : true}
+      style={{ display: "block", flexShrink: 0 }} shapeRendering="geometricPrecision"
+    >
+      {vals.map((v, i) => {
+        const bh = Math.max(2, (v / max) * h);
+        const x = r2(i * (bw + gap));
+        const hot = i === highlight;
+        return (
+          <g key={i}>
+            <rect className="viz-bar" x={x} y={r2(h - bh)} width={r2(bw)} height={r2(bh)} rx={r2(rx)}
+              fill={hot ? color : muted}
+              style={{ animationDelay: i * 34 + "ms" }} />
+            {labH > 0 && (
+              <text x={r2(x + bw / 2)} y={r2(h + labFs + 1)} textAnchor="middle"
+                fontSize={r2(labFs)} fontWeight={hot ? 750 : 600} fill={hot ? VT.brandInk : VT.faint}>
+                {labels[i]}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// VIZ_CSS — inject once, next to the app's own <style> block.
+// Every class is viz- prefixed so nothing collides with app.jsx.
+// ————————————————————————————————————————————————————————————
+const VIZ_CSS = `
+.viz-in{animation:viz-in .32s cubic-bezier(.22,1.2,.36,1) both}
+.viz-alive{animation:viz-in .32s cubic-bezier(.22,1.2,.36,1) both,viz-breathe 2.6s ease-in-out .32s infinite;transform-origin:50% 50%}
+.viz-halo{transform-origin:50% 50%;animation:viz-halo 2.6s ease-in-out infinite}
+.viz-dot{animation:viz-dot 2.6s ease-in-out infinite}
+.viz-ring{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1),stroke .3s ease}
+.viz-urgent{animation:viz-urgent 1.8s ease-in-out infinite}
+.viz-draw{stroke-dasharray:1;stroke-dashoffset:1;animation:viz-draw .7s cubic-bezier(.3,.9,.4,1) both}
+.viz-fade{opacity:0;animation:viz-fade .5s ease-out .28s both}
+.viz-cap{opacity:0;transform:scale(.4);animation:viz-cap .3s cubic-bezier(.34,1.7,.5,1) .58s both}
+.viz-bar{transform-box:fill-box;transform-origin:50% 100%;animation:viz-grow .46s cubic-bezier(.22,1.2,.36,1) both}
+@keyframes viz-in{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes viz-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
+@keyframes viz-halo{0%,100%{transform:scale(1);opacity:.32}50%{transform:scale(1.22);opacity:0}}
+@keyframes viz-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.7}}
+@keyframes viz-urgent{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes viz-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes viz-fade{from{opacity:0}to{opacity:1}}
+@keyframes viz-cap{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes viz-grow{from{transform:scaleY(0);opacity:.4}to{transform:scaleY(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .viz-in,.viz-alive,.viz-halo,.viz-dot,.viz-urgent,.viz-draw,.viz-fade,.viz-cap,.viz-bar{animation:none!important;opacity:1!important;transform:none!important;stroke-dashoffset:0!important}
+  .viz-ring{transition:none!important}
+}
+`;
+
+// (bộ biểu đồ dùng trực tiếp trong file này, không cần export)
+
 // ————— primitives —————
 const Pill = ({ tone, children }) => {
   const m = { green: [T.green, T.greenBg], amber: [T.amber, T.amberBg], red: [T.red, T.redBg], brand: [T.brandInk, T.brandSoft], gray: [T.sub, "#F1EBE1"] }[tone || "gray"];
@@ -182,15 +1163,64 @@ const IconSq = ({ Icon, tint, color, size = 32 }) => (
     <Icon size={size / 2} color={color || T.sub} strokeWidth={2} />
   </span>
 );
-const Thumb = ({ from, to, emoji, small, h = 128 }) => (
-  <div style={{ height: small ? 56 : h, width: small ? 56 : "100%", borderRadius: small ? 12 : 14, background: `linear-gradient(140deg, ${from}, ${to})`, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-    <span style={{ fontSize: small ? 26 : 46, filter: "drop-shadow(0 5px 12px rgba(0,0,0,.3))" }}>{emoji}</span>
-    <div style={{ position: "absolute", inset: 0, background: "radial-gradient(130% 90% at 18% 0%, rgba(255,255,255,.22), transparent 52%)" }} />
-  </div>
-);
-const Mark = ({ size = 26, alive }) => (
-  <span className={alive ? "blob" : "breathe"} style={{ width: size, height: size, borderRadius: alive ? "46% 54% 52% 48%" : size * 0.36, background: `linear-gradient(145deg, #E8825A, ${T.brand})`, color: "#FFFDF9", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: size * 0.42, letterSpacing: -0.5, flexShrink: 0, boxShadow: "0 2px 8px rgba(194,85,47,.3)" }}>m.</span>
-);
+// Emoji cũ ánh xạ sang cảnh vector. Chỗ nào chưa có cảnh thì vẫn rơi về
+// gradient cũ, nên không màn hình nào bị trống.
+const EMOJI_SCENE = {
+  "🚗": "car", "🛞": "inspect", "🍲": "meal", "🥘": "meal", "🎤": "concert",
+  "🎫": "ticket", "🎟️": "ticket", "🍵": "tea", "📞": "call", "🧾": "doc",
+  "🚫": "shield", "⚠️": "call", "✅": "win", "⚡": "win", "🏊": "swim",
+};
+const Thumb = ({ from, to, emoji, small, h = 128, scene }) => {
+  const name = scene || EMOJI_SCENE[emoji];
+  if (name) return <Scene name={name} h={h} small={small} />;
+  return (
+    <div style={{ height: small ? 56 : h, width: small ? 56 : "100%", borderRadius: small ? 12 : 14, background: `linear-gradient(140deg, ${from}, ${to})`, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ fontSize: small ? 26 : 46, filter: "drop-shadow(0 5px 12px rgba(0,0,0,.3))" }}>{emoji}</span>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(130% 90% at 18% 0%, rgba(255,255,255,.22), transparent 52%)" }} />
+    </div>
+  );
+};
+// Dấu của Mai giờ là một chữ m vẽ tay, không còn là chữ "m." nhét trong ô bo tròn.
+const Mark = ({ size = 26, alive }) => <Logo size={size} alive={alive} />;
+// ————— con lăn số dư —————
+// Dùng đúng một lần trong cả app, ở màn biên lai. Số tiền đã trả là con số
+// trừu tượng; số dư bị trừ đi mới là thứ anh thật sự cảm. Chữ số hàng đơn vị
+// quay trước, chữ số dẫn đầu hạ cánh sau cùng, đúng cơ học máy đếm.
+// Ràng buộc: hai giá trị phải cùng độ dài chuỗi.
+const Odometer = ({ from, to, size = 22, delay = 420 }) => {
+  const [v, setV] = useState(from);
+  useEffect(() => {
+    const t = setTimeout(() => { setV(to); if (navigator.vibrate) navigator.vibrate(8); }, delay);
+    return () => clearTimeout(t);
+  }, [to, delay]);
+  const s = fmt(v), sizer = fmt(Math.max(from, to)), D = "0123456789";
+  return (
+    <span style={{ fontFamily: DISPLAY, fontWeight: 600, ...num, fontSize: size, color: T.ink, display: "inline-grid", lineHeight: 1.1 }}>
+      <span style={{ gridArea: "1/1", visibility: "hidden", whiteSpace: "pre" }}>{sizer}</span>
+      <span style={{ gridArea: "1/1", display: "inline-flex", justifyContent: "flex-end" }}>
+        {s.split("").map((ch, i) => {
+          const d = D.indexOf(ch);
+          if (d < 0) return <span key={i} style={{ opacity: ch === "." ? 0.45 : 1 }}>{ch}</span>;
+          return (
+            <span key={i} className="odo" style={{ "--d": d, "--i": s.length - 1 - i }}>
+              <span className="odoCol">{D.split("").map((n) => <span key={n} style={{ height: "1.1em" }}>{n}</span>)}</span>
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+};
+// Giao cả câu cho layout một lần, rồi mở từng chữ bằng CSS. Animate cách
+// trình bày, đừng animate nội dung: khung không giật, và cả câu trả lời tốn
+// đúng hai lần render thay vì một lần cho mỗi chữ.
+const Reveal = ({ text, on }) => {
+  if (!on) return text;
+  const w = String(text).split(" ");
+  return w.map((s, i) => (
+    <span key={i} className="wordIn" style={{ "--i": Math.min(i, 26) }}>{s}{i < w.length - 1 ? " " : ""}</span>
+  ));
+};
 const Thinking = () => (
   <div className="rise" style={{ display: "flex", gap: 9, padding: "8px 0 6px" }}>
     <Mark size={26} alive />
@@ -201,17 +1231,19 @@ const Thinking = () => (
   </div>
 );
 const Burst = () => {
-  const bits = [["#C2552F", -70, -54, "128deg"], ["#1B7A4E", 62, -62, "-96deg"], ["#E8A33D", -34, -78, "72deg"], ["#7A2ECC", 40, -40, "-140deg"], ["#C2552F", 78, -26, "60deg"], ["#1B7A4E", -78, -22, "-70deg"]];
-  return (
-    <div style={{ position: "relative", height: 0 }}>
-      {bits.map(([c, dx, dy, rot], i) => (
-        <span key={i} className="confetti" style={{ left: "50%", top: 0, background: c, animationDelay: i * 30 + "ms", "--dx": dx + "px", "--dy": dy + "px", "--rot": rot }} />
-      ))}
-    </div>
-  );
+  // Thành tựu ở đây là không bị phạt và không bị cô nhắc tên trước 32 phụ
+  // huynh. Đó là sự nhẹ nhõm, không phải tiệc tùng. Một quầng sáng ấm nở ra
+  // một lần, và một nét check được vẽ ra. Không có giấy vụn.
+  return <div style={{ position: "relative", height: 0 }}><span className="bloom" /></div>;
 };
+const StrokeCheck = ({ size = 30, color = T.green, delay = 120 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: "inline-block", overflow: "visible", verticalAlign: "middle" }}>
+    <circle cx="16" cy="16" r="14.4" stroke={color} strokeWidth="1.4" opacity=".32" className="ring" style={{ animationDelay: delay + "ms" }} />
+    <path d="M9.6 16.4 L14 20.7 L22.5 11.7" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="tick" style={{ animationDelay: (delay + 150) + "ms" }} />
+  </svg>
+);
 const CardBox = ({ children, style, onClick }) => (
-  <div onClick={onClick} className={"rise" + (onClick ? " press" : "")} style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, boxShadow: "0 1px 2px rgba(60,45,30,.04), 0 6px 18px rgba(60,45,30,.05)", ...style }}>{children}</div>
+  <div onClick={onClick} className={"rise" + (onClick ? " press" : "")} style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, boxShadow: "var(--e1)", ...style }}>{children}</div>
 );
 const Btn = ({ children, onClick, kind, style, wide }) => {
   const k = { primary: [T.brand, "#FFFDF9", "none"], soft: [T.surf, T.ink, `1px solid ${T.hair}`], ghost: ["transparent", T.sub, "none"], danger: [T.red, "#FFFDF9", "none"] }[kind || "primary"];
@@ -228,8 +1260,10 @@ const AuthBtn = ({ label, onDone }) => {
     </button>
   );
 };
+// Hình 38px nhưng vùng chạm 44px theo HIG: nới hit area bằng padding âm,
+// không bằng cách vẽ nút to hơn.
 const HBtn = ({ Icon, onTap, ml }) => (
-  <button onClick={onTap} className="btn" style={{ border: `1px solid ${T.hair}`, background: T.surf, borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: ml ? 8 : 0, flexShrink: 0 }}>
+  <button onClick={onTap} className="btn tap44" style={{ border: `1px solid ${T.hair}`, background: T.surf, borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: ml ? 8 : 0, flexShrink: 0, boxShadow: "var(--e1)" }}>
     <Icon size={16} color={T.sub} />
   </button>
 );
@@ -245,6 +1279,41 @@ const Head = ({ back, title, right, sub }) => (
     {right}
   </header>
 );
+
+// ————— gợi ý chạm —————
+// Mỗi câu trả lời của Mai đẻ ra 2–3 gợi ý kế tiếp, nên anh đi hết demo
+// được mà không cần gõ chữ nào.
+const Chip = ({ children, onTap, i = 0 }) => (
+  <button onClick={onTap} className="btn chip" style={{
+    animationDelay: i * 45 + "ms", background: T.surf, color: T.ink,
+    border: `1px solid ${T.hair}`, borderRadius: 999, padding: "9px 14px",
+    fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+    boxShadow: "0 1px 2px rgba(60,45,30,.05)",
+  }}>{children}</button>
+);
+const ChipRail = ({ items, seed, onPick }) => (
+  <div style={{ position: "relative", flexShrink: 0, background: T.bg }}>
+    <div key={seed} style={{ display: "flex", gap: 8, padding: "9px 14px", overflowX: "auto" }}>
+      {items.map((c, i) => <Chip key={c} i={i} onTap={() => onPick(c)}>{c}</Chip>)}
+    </div>
+    <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 28, pointerEvents: "none", background: `linear-gradient(90deg, rgba(247,244,237,0), ${T.bg})` }} />
+  </div>
+);
+
+// nút thật dưới câu trả lời của Mai
+const ReplyActions = ({ hit, onFlow, onGoto, onFiles }) => {
+  const b = [];
+  if (hit.action)
+    b.push(<AuthBtn key="a" label={hit.action.label} onDone={() => { ding(true); if (hit.flow) onFlow(hit.flow); }} />);
+  else if (hit.flow)
+    b.push(<button key="f" onClick={() => onFlow(hit.flow)} className="btn" style={{ background: T.brand, color: "#FFFDF9", boxShadow: "0 2px 8px rgba(194,85,47,.28)", display: "inline-flex", alignItems: "center", gap: 3 }}>{hit.cta || "Mở"}<ChevronRight size={13} strokeWidth={2.6} /></button>);
+  if (hit.goto)
+    b.push(<button key="g" onClick={() => onGoto(hit.goto)} className="btn" style={{ background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, display: "inline-flex", alignItems: "center", gap: 3 }}>{hit.gotoCta || "Mở kênh"}<ChevronRight size={13} strokeWidth={2.6} color={T.faint} /></button>);
+  if (hit.files)
+    b.push(<button key="d" onClick={onFiles} className="btn" style={{ background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, display: "inline-flex", alignItems: "center", gap: 5 }}><FolderClosed size={13} color={T.sub} />Hồ sơ nhà mình</button>);
+  if (!b.length) return null;
+  return <div className="rise" style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>{b}</div>;
+};
 
 // ————— messages & rows —————
 const Msg = ({ m }) => {
@@ -275,19 +1344,20 @@ const Msg = ({ m }) => {
   if (mai)
     return (
       <div className="rise" style={{ display: "flex", gap: 9, padding: "8px 0 6px" }}>
-        <Mark size={26} />
+        <Mark size={26} alive={m.streaming} />
         <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
-          <div style={{ fontSize: 14.5, lineHeight: 1.62, color: T.ink }}>{m.text}{m.streaming && <span className="caret" />}</div>
-          {m.src && <div style={{ marginTop: 6 }}><Pill tone="brand">{m.src}</Pill></div>}
-          {m.extra}
+          <div style={{ fontSize: 14.5, lineHeight: 1.62, color: T.ink }}><Reveal text={m.text} on={m.streaming} /></div>
+          {m.src && !m.streaming && <div className="rise" style={{ marginTop: 7 }}><Pill tone="brand">{m.src}</Pill></div>}
+          {!m.streaming && m.extra}
         </div>
       </div>
     );
   return (
-    <div className="rise" style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", padding: "4px 0" }}>
+    <div className="rise" style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 7, padding: "4px 0" }}>
+      {!mine && m.name && <Avatar name={m.name} size={26} />}
       <div style={{ maxWidth: "84%" }}>
         {!mine && m.name && <div style={{ fontSize: 11, fontWeight: 650, color: T.sub, margin: "0 0 3px 4px" }}>{m.name}</div>}
-        <div style={{ background: mine ? T.dark : T.surf, color: mine ? "#FFFDF9" : T.ink, border: mine ? "none" : `1px solid ${T.hair}`, boxShadow: mine ? "0 2px 10px rgba(44,40,34,.18)" : "0 1px 2px rgba(60,45,30,.04)", borderRadius: 18, borderBottomRightRadius: mine ? 6 : 18, borderBottomLeftRadius: mine ? 18 : 6, padding: "10px 13px", fontSize: 14.5, lineHeight: 1.55 }}>
+        <div style={{ background: mine ? T.dark : T.surf, color: mine ? "#FFFDF9" : T.ink, border: mine ? "none" : `1px solid ${T.hair}`, boxShadow: mine ? "0 2px 10px rgba(44,40,34,.18)" : "var(--e1)", borderRadius: 18, borderBottomRightRadius: mine ? 6 : 18, borderBottomLeftRadius: mine ? 18 : 6, padding: "10px 13px", fontSize: 14.5, lineHeight: 1.55 }}>
           {m.text}{m.extra}
         </div>
       </div>
@@ -566,6 +1636,14 @@ const flowPay = (finish) => [
     <>
       <H1 sub="Mai gom từ tin Vy chuyển tiếp sáng nay. Anh xem lại nguồn trước khi trả.">Khoản thu này từ đâu?</H1>
       <Evidence src="Zalo · Vy chuyển tiếp · nhóm bơi TH Lê Lợi" time="07:42" text="Cô Lan: Nhắc lần 2, phụ huynh đóng học phí bơi tháng 8 trước 17:00 hôm nay giúp cô. Đã đóng 14/32." />
+      <div style={{ marginTop: 13, display: "flex", alignItems: "center", gap: 13, background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 13px" }}>
+        <Donut value={14} total={32} size={50} label="14" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink, ...num }}>14 trên 32 phụ huynh đã đóng</div>
+          <div style={{ fontSize: 11.5, color: T.amber, fontWeight: 650, marginTop: 2, ...num }}>Còn 78 phút tới hạn 17:00</div>
+        </div>
+        <Countdown minutes={78} total={480} size={52} />
+      </div>
       <div style={{ marginTop: 12 }}><KV rows={[["Hạn chót", "Hôm nay · 17:00", "amber"], ["Đã đóng", "14/32 phụ huynh"], ["Cô nhắc", "lần 2"]]} /></div>
       <Foot><Btn wide onClick={a.next}>Xem chi tiết khoản thu</Btn></Foot>
     </>
@@ -605,8 +1683,12 @@ const flowPay = (finish) => [
     <>
       <div style={{ textAlign: "center", marginBottom: 4 }}>
         <div style={{ fontSize: 12.5, color: T.sub }}>Học bơi tháng 8 · Bin</div>
-        <div style={{ fontFamily: DISPLAY, fontSize: 38, fontWeight: 600, color: T.ink, margin: "6px 0 10px", letterSpacing: -1, ...num }}>850.000đ</div>
+        <div style={{ fontFamily: DISPLAY, fontSize: 38, fontWeight: 600, color: T.ink, margin: "6px 0 10px", letterSpacing: -1, ...num }}>−850.000đ</div>
         <Pill tone="green"><Check size={11} strokeWidth={3} /> Trả lúc 15:43</Pill>
+        <div style={{ marginTop: 17, paddingTop: 13, borderTop: `1px solid ${T.hair}`, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11.5, color: T.faint, fontWeight: 650, letterSpacing: 0.3 }}>WinMoney còn lại</span>
+          <Odometer from={2480000} to={1630000} size={22} delay={420} />
+        </div>
       </div>
       <div style={{ marginTop: 16 }}>
         <KV rows={[["Trước hạn", "1 tiếng 17 phút", "green"], ["Nguồn tiền", a.d.src === "visa" ? "VISA ····8890" : a.d.src === "tcb" ? "TCB ····4102" : "WinMoney · TCB ····4102"], ["Mã giao dịch", "m_pay_8K2F91QD"], ["Biên lai", a.d.rcpt === false ? "chỉ lưu hồ sơ" : "đã gửi riêng cô Lan"]]} />
@@ -619,7 +1701,7 @@ const flowPay = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "6px 0 2px" }}><Burst /><div style={{ fontSize: 40 }}>🎉</div></div>
+      <div style={{ textAlign: "center", padding: "6px 0 2px" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Mai đã cập nhật hồ sơ Bin, và sẽ nhắc anh kỳ tháng 9 vào ngày 02/09 để không bị nhắc tên lần nữa.">Xong rồi anh</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.55 }}>
         Trả trước hạn 1 tiếng 17 phút · tránh được một lần cô nhắc tên trong nhóm 32 phụ huynh.
@@ -696,7 +1778,7 @@ const flowPickup = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>✅</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Mai theo dõi tới lúc Bin lên xe. Nếu 16:35 chưa ai tới, Mai gọi anh ngay.">Đã chốt người đón</H1>
       <KV rows={[["Người đón", a.d.who === "me" ? "anh" : a.d.who === "co" ? "cô Hạnh" : "Vy"], ["Giờ", a.d.at || "16:20"], ["Đã báo", [a.d.n1 !== false && "Vy", a.d.n2 !== false && "cô Hạnh", a.d.n3 && "ông bà"].filter(Boolean).join(", ") || "chưa báo ai"], ["Đã vào lịch", "2 người", "green"]]} />
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về Nhà mình</Btn></Foot>
@@ -765,7 +1847,7 @@ const flowForm = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>📄</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Mai đã lưu bản ký vào hồ sơ Na và đặt hai nhắc để anh không phải nhớ.">Gửi xong rồi</H1>
       <KV rows={[["Nhắc 1", "Thứ Năm 20:00 · soạn balo cho Na"], ["Nhắc 2", "Thứ Sáu 6:00 · tập trung 6:30 cổng trường"], ["Lưu tại", "Hồ sơ nhà mình · Na", "green"]]} />
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về Nhà mình</Btn></Foot>
@@ -855,7 +1937,7 @@ const flowCart = (finish) => {
       const tt = total(a.d.items || CART0, a.d.ex || {});
       return (
         <>
-          <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🍲</div></div>
+          <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
           <H1 sub="Mai lưu công thức bò kho vào hồ sơ, lần sau chỉ cần nói đặt lại là xong.">Đã giao 18:02</H1>
           <KV rows={[["Tổng trả", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"], ["Lưu", "Công thức + giỏ hàng lặp lại"]]} />
           <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
@@ -1019,7 +2101,7 @@ const flowResale = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🎟️</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Vé đã nằm trong hồ sơ nhà mình, vào cổng quét mặt anh và Vy.">Vé về tên anh rồi</H1>
       <KV rows={[["Vé", "B12 · anh · B13 · Vy"], ["Đã trả", fmt(1780000)], ["Mã giao dịch", "m_esc_4TQ71B"], ["Lưu tại", "Hồ sơ · vé & sự kiện", "green"]]} />
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
@@ -1051,6 +2133,14 @@ const flowInspect = (finish) => [
   (a) => (
     <>
       <H1 sub="Mẹo trong kênh: sáng thứ Ba vắng nhất, tránh cuối tháng.">Sáng thứ Ba 12/08</H1>
+      {/* Số xe xếp hàng theo khung giờ, lấy từ kênh Vietnam Cars.
+          Cột sáng nhất là khung Mai đề xuất. */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px 10px", marginBottom: 11 }}>
+        <Bars data={[4, 9, 11, 17, 21, 16]} highlight={0} w={128} h={38} />
+        <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: T.sub, lineHeight: 1.5 }}>
+          Xe xếp hàng theo giờ, trung tâm 50-07V. <span style={{ color: T.brandInk, fontWeight: 650 }}>07:30 vắng nhất</span>, khoảng 20 phút là xong.
+        </div>
+      </div>
       <Slots value={a.d.slot || "07:30"} onPick={(v) => a.set({ slot: v })}
         list={[{ t: "07:30", note: "vắng nhất" }, { t: "08:00", note: "vừa" }, { t: "08:30", note: "vừa" }, { t: "09:00", note: "đông" }, { t: "09:30", full: true }, { t: "10:00", note: "đông" }]} />
       <div style={{ marginTop: 12, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>
@@ -1088,7 +2178,7 @@ const flowInspect = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🚗</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Mai đã vào lịch anh và cập nhật hồ sơ xe. Xong đăng kiểm, anh chụp giấy mới, Mai tự đọc và đặt hạn 2028.">Đặt xong</H1>
       <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px" }}>
         <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.4 }}>LỊCH CỦA ANH</div>
@@ -1471,7 +2561,7 @@ const flowKeyboard = (finish, app) => {
     ),
     (a) => (
       <>
-        <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>⌨️</div></div>
+        <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
         <H1 sub="Bàn phím là cấp hệ điều hành. Nó chạy trong mọi app có ô nhập chữ, và không app nào chặn được.">Bàn phím m.ai</H1>
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
           {["Zalo", "WhatsApp", "Messenger", "Gmail", "Telegram", "Notes", "trình duyệt"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
@@ -1544,7 +2634,7 @@ const flowShare = (finish) => [
     : <FaceStep label={a.d.act === "now" ? "Nhìn vào máy để trả 1.310.000đ" : "Cho phép Mai trả tự động kỳ điện"} sub="WinMoney · TCB ····4102 · hạn mức 2.000.000đ/lần" onDone={a.next} />,
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>📤</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Mail, ảnh, tin nhắn, link, PDF: cái gì share được là Mai nhận được. Đây là cửa vào không ai chặn.">Share sheet</H1>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
         {["Gmail", "WhatsApp", "Zalo", "ảnh chụp giấy", "Safari", "PDF", "voice note"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
@@ -1627,7 +2717,7 @@ const flowSpeaker = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🔊</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Cửa nào phù hợp với người đó thì dùng cửa đó. Bà dùng giọng, anh dùng app, Vy dùng điện thoại, Bin sau này dùng đồng hồ.">Bà cũng dùng chung một Mai</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
         Bà không cài app, không có smartphone, không nhớ mật khẩu. Vẫn nói được với Mai và vẫn nằm trong két của nhà mình.
@@ -1701,7 +2791,7 @@ const flowDevices = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🧿</div></div>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Điện thoại, loa, đồng hồ, tai nghe, xe, và app của hãng khác qua API. Mỗi thiết bị là một cánh cửa, két vẫn là một và là của anh.">Cửa nào cũng vào được</H1>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
         {["điện thoại", "loa m.ai", "đồng hồ", "tai nghe", "xe", "TV", "camera", "gia dụng · API"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
@@ -1750,14 +2840,17 @@ export default function MaiV18() {
   const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm mic nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [hist, setHist] = useState([]);
+  const [chips, setChips] = useState(GREETING_CHIPS);
   const [tick, setTick] = useState(0);
   const bump = () => setTick((t) => t + 1);
   const endRef = useRef(null);
   const vyReplied = useRef(false);
   const recRef = useRef(null);
+  const lastHit = useRef(null);   // để "ừ", "ok" nối được vào câu trước
+  const fbSeq = useRef(0);        // xoay vòng câu đỡ, không lặp lại một câu
+  const flowFrom = useRef(null);  // luồng mở từ chat thì Mai báo lại trong chat
 
-  useEffect(() => { if (tick === 0) return; endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [tick]);
+  useEffect(() => { if (tick === 0) return; endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [tick]);
   useEffect(() => { setInput(""); }, [screen]);
   useEffect(() => {
     if (intro) return;
@@ -1784,47 +2877,33 @@ export default function MaiV18() {
     setTimeout(() => { setCam(2); ding(true); bump(); }, 1300);
   };
 
-  const parse = (raw) => {
-    const mm = raw.match(/```json([\s\S]*?)```/);
-    let action = null, text = raw;
-    if (mm) { try { action = JSON.parse(mm[1]).action || null; } catch (e) {} text = raw.replace(mm[0], "").trim(); }
-    const s = text.match(/\(([^)]{3,28})\)\s*$/);
-    if (s) text = text.replace(s[0], "").trim();
-    return { text, action, src: s ? s[1] : null };
-  };
-  const stream = (text, src, action) => {
+  // Mai gõ ra từng chữ. Chữ dài đánh chậm hơn chữ ngắn, nên nhịp
+  // nghe như người thật chứ không như con trỏ máy.
+  const stream = (hit) => {
     const id = Date.now() + Math.random();
-    setMaiMsgs((x) => [...x, { id, from: "mai", text: "", streaming: true }]);
-    const words = text.split(" ");
-    let i = 0;
-    const step = () => {
-      i += 1;
-      const partial = words.slice(0, i).join(" "), last = i >= words.length;
-      setMaiMsgs((x) => x.map((m) => (m.id === id ? { ...m, text: partial, streaming: !last, src: last ? src : null, extra: last && action ? <div style={{ marginTop: 9 }}><AuthBtn label={action.label} onDone={() => ding(true)} /></div> : null } : m)));
+    const text = hit.reply || "Mai đây anh.";
+    setMaiMsgs((x) => [...x, {
+      id, from: "mai", text, src: hit.src, streaming: true,
+      extra: <ReplyActions hit={hit} onFlow={(f) => openFlow(f, "mai")} onGoto={(s) => setScreen(s)} onFiles={() => { setFiles(true); ding(); }} />,
+    }]);
+    bump();
+    const ms = Math.min(text.split(" ").length, 27) * 28 + 400;
+    setTimeout(() => {
+      setMaiMsgs((x) => x.map((m) => (m.id === id ? { ...m, streaming: false } : m)));
+      if (hit.chips && hit.chips.length) setChips(hit.chips);
       bump();
-      if (!last) setTimeout(step, 32 + Math.random() * 36);
-    };
-    setTimeout(step, 90);
+    }, ms);
   };
-  const askMai = async (q) => {
-    setScreen("mai");
+
+  // Không gọi mạng. Ghép ý định tại chỗ rồi trả lời kèm nút bấm thật.
+  const askMai = (q) => {
+    setScreen("mai"); setSeenMai(true);
     setMaiMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]);
     setBusy(true); bump();
-    const h = [...hist, { role: "user", content: q }];
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, system: MAI_SYSTEM, messages: h }),
-      });
-      const data = await res.json();
-      const raw = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-      setHist([...h, { role: "assistant", content: raw }]);
-      const { text, action, src } = parse(raw || "Mai đây anh.");
-      stream(text, src, action);
-    } catch (e) {
-      stream("Mạng chập chờn, Mai trả lời anh lại liền.", null, null);
-    }
-    setBusy(false); bump();
+    const hit = matchMai(q, { last: lastHit.current, chips }) || pickFallback(fbSeq.current++);
+    lastHit.current = hit;
+    // nghĩ một nhịp ngắn, đủ để thấy Mai đang đọc chứ không phải tra bảng
+    setTimeout(() => { setBusy(false); stream(hit); }, 260 + Math.min(520, q.length * 11));
   };
   const startMic = () => {
     if (mic === 1) { try { recRef.current && recRef.current.stop(); } catch (e) {} setMic(0); return; }
@@ -1853,27 +2932,52 @@ export default function MaiV18() {
   };
   const sendMai = () => { const q = input.trim(); if (!q || busy) return; setInput(""); askMai(q); };
 
+  // Luồng mở từ chat thì Mai quay lại chat báo kết quả, để cuộc trò
+  // chuyện khép được vòng chứ không bỏ anh ở màn hình trống.
+  const AFTER = {
+    pay: ["Xong rồi anh. Biên lai Mai gửi riêng cô Lan, nhà mình là người thứ 15 trên 32.", "biên lai đã gửi", ["Đơn dã ngoại của Na ký chưa?", "Số dư còn bao nhiêu?", "Ai đón Bin chiều nay?"]],
+    pickup: ["Chốt xong, Vy đón Bin 16:20. Mai đã vào lịch cả hai người và đặt nhắc trước 15 phút.", "lịch anh và Vy", ["Trả học bơi cho Bin", "Chiều mai lớp có nghỉ không?", "Hôm nay còn việc gì gấp?"]],
+    form: ["Đơn đã gửi, cô Hồng nhận rồi. Mai lưu một bản vào hồ sơ của Na.", "email nhà trường", ["Na họp phụ huynh hôm nào?", "Tôi nợ gì tuần này?", "Hộ chiếu Na còn hạn không?"]],
+    cart: ["Đặt xong, Supra giao trước 18:00. Giỏ này cộng 186 điểm WinX cho nhà mình.", "WinMart+ · Supra", ["Tối nay nấu gì nhanh?", "Điểm WinX được bao nhiêu?", "Mua quà gì cho Bà?"]],
+    ticket: ["Mai canh vé đợt 3, 20:00 thứ Sáu. Tới giờ Mai bấm giúp, anh chỉ cần quét mặt duyệt.", "vé gắn CCCD", ["Tối nay nhà mình xem gì?", "Sang nhượng vé có an toàn không?", "Thứ Sáu tối tôi rảnh không?"]],
+    resale: ["Vé đã sang tên anh, ghế B12-13. Tiền chỉ rời ví khi vé về tới tên anh.", "escrow đã đóng", ["Vé concert đợt 3 khi nào mở?", "Tối nay nhà mình xem gì?", "Hôm nay còn việc gì gấp?"]],
+    inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong két.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
+    call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
+  };
+  const afterFlow = (id) => {
+    if (flowFrom.current !== "mai" || !AFTER[id]) return;
+    flowFrom.current = null;
+    const [text, src, cs] = AFTER[id];
+    setTimeout(() => {
+      setMaiMsgs((x) => [...x, { id: Date.now() + Math.random(), from: "mai", text, src }]);
+      setChips(cs); bump();
+    }, 620);
+  };
+
   // đăng ký luồng
+  const end = (id, fn) => () => { fn(); afterFlow(id); };
   const FLOWS = {
-    pay: () => flowPay(() => complete("pay")),
-    pickup: () => flowPickup(() => complete("pick")),
-    form: () => flowForm(() => complete("form")),
-    cart: () => flowCart(() => setDone((d) => ({ ...d, cart: true }))),
-    ticket: () => flowTicket(() => setDone((d) => ({ ...d, ticket: true }))),
-    resale: () => flowResale(() => setDone((d) => ({ ...d, resale: true }))),
-    inspect: () => flowInspect(() => setDone((d) => ({ ...d, inspect: true }))),
-    call: () => flowCall(() => setDone((d) => ({ ...d, call: true }))),
+    pay: () => flowPay(end("pay", () => complete("pay"))),
+    pickup: () => flowPickup(end("pickup", () => complete("pick"))),
+    form: () => flowForm(end("form", () => complete("form"))),
+    cart: () => flowCart(end("cart", () => setDone((d) => ({ ...d, cart: true })))),
+    ticket: () => flowTicket(end("ticket", () => setDone((d) => ({ ...d, ticket: true })))),
+    resale: () => flowResale(end("resale", () => setDone((d) => ({ ...d, resale: true })))),
+    inspect: () => flowInspect(end("inspect", () => setDone((d) => ({ ...d, inspect: true })))),
+    call: () => flowCall(end("call", () => setDone((d) => ({ ...d, call: true })))),
     kb: () => flowKeyboard(() => setDone((d) => ({ ...d, kb: true })), surfApp),
     share: () => flowShare(() => setDone((d) => ({ ...d, share: true }))),
     speaker: () => flowSpeaker(() => setDone((d) => ({ ...d, speaker: true }))),
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
   };
   const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe" };
-  const openFlow = (id) => { setPost(null); setFile(null); setFlow(id); ding(); };
+  const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
-  const ChatRow = ({ Icon, tint, color, letter, title, sub, time, unread, verified, onTap }) => (
+  const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
     <div onClick={onTap} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderBottom: `1px solid ${T.hair}`, cursor: "pointer", background: T.surf }}>
-      {Icon ? <IconSq Icon={Icon} tint={tint} color={color} size={40} /> : <span style={{ width: 40, height: 40, borderRadius: 14, background: tint, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, flexShrink: 0 }}>{letter}</span>}
+      {Icon ? <IconSq Icon={Icon} tint={tint} color={color} size={40} />
+        : avatar ? <Avatar name={avatar} initial={letter} size={40} />
+        : <span style={{ width: 40, height: 40, borderRadius: 14, background: tint, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, flexShrink: 0 }}>{letter}</span>}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>{title}</span>
@@ -1894,11 +2998,17 @@ export default function MaiV18() {
           <Mic size={16} color={mic ? "#FFFDF9" : T.sub} className={mic ? "blob" : ""} />
         </button>
       )}
+      {/* 16px là ngưỡng Safari iOS ngừng tự phóng to khi focus, nên bỏ được
+          maximum-scale trong index.html mà ô nhập vẫn không giật. */}
       <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSend()} placeholder={mic ? "Mai đang nghe anh nói…" : ph}
-        style={{ flex: 1, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "11px 16px", fontSize: 14.5, fontFamily: FONT, outline: "none", background: T.bg, color: T.ink, minWidth: 0 }} />
-      <button onClick={onSend} className="btn" style={{ background: input.trim() ? T.brand : "#E4DCCE", color: "#FFFDF9", borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transform: input.trim() ? "scale(1)" : "scale(.9)" }}>
-        <ArrowUp size={17} strokeWidth={2.6} />
-      </button>
+        style={{ flex: 1, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "12px 16px", fontSize: 16, fontFamily: FONT, outline: "none", background: T.bg, color: T.ink, minWidth: 0 }} />
+      {/* Nút gửi kiểu iOS Messages: mờ và co lại khi chưa có chữ, nhưng vùng
+          chạm vẫn đủ 44px nhờ lớp bọc, không phải nhờ phóng to hình. */}
+      <span style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "-3px -3px -3px 0" }}>
+        <button onClick={onSend} disabled={!input.trim()} className="btn" style={{ background: input.trim() ? T.brand : "#E4DCCE", color: "#FFFDF9", borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: input.trim() ? "var(--e-brand)" : "none", transform: input.trim() ? "scale(1)" : "scale(.88)", opacity: input.trim() ? 1 : 0.75, cursor: input.trim() ? "pointer" : "default" }}>
+          <ArrowUp size={17} strokeWidth={2.6} />
+        </button>
+      </span>
     </div>
   );
 
@@ -1921,28 +3031,63 @@ export default function MaiV18() {
   return (
     <div style={{ minHeight: "100vh", background: "#171310", display: "flex", justifyContent: "center", fontFamily: FONT }}>
       <style>{`
+        /* ————— token chuyển động · ba lò xo thay cho một rổ bezier —————
+           Material 3 Expressive định nghĩa motion bằng độ cứng và độ tắt dần
+           của lò xo. CSS làm được bằng linear(); trình duyệt cũ giữ dòng bezier
+           đứng trước. Tay dùng --sp-tap, bề mặt dùng --sp-sheet, ăn mừng dùng --sp-cel. */
+        :root{
+          --sp-tap: cubic-bezier(.34,1.56,.64,1);
+          --sp-tap: linear(0, 0.2089, 0.5647, 0.846, 1.0007, 1.0554, 1.055, 1.0353, 1.0158, 1.0032, 0.9976, 0.9965, 1);
+          --sp-sheet: cubic-bezier(.32,.72,0,1);
+          --sp-sheet: linear(0, 0.0521, 0.1668, 0.3021, 0.4352, 0.5547, 0.6562, 0.7393, 0.8052, 0.8565, 0.8956, 0.925, 0.9467, 0.9626, 0.9741, 0.9822, 0.988, 0.992, 1);
+          --sp-cel: cubic-bezier(.34,1.7,.5,1);
+          --sp-cel: linear(0, 0.1374, 0.432, 0.742, 0.9829, 1.1242, 1.1733, 1.1577, 1.1093, 1.0543, 1.0094, 0.9816, 0.9704, 0.9714, 0.9792, 0.9888, 0.9971, 1.0026, 1.005, 1.0051, 1.0039, 1.0022, 1);
+          --out: cubic-bezier(.4,0,.2,1);
+          --in-fast: cubic-bezier(.4,0,1,1);
+          /* ————— độ sâu · bóng nhuộm ấm theo màu giấy, không phải xám trung tính ————— */
+          --e1: 0 1px 1.5px rgba(74,52,34,.05), 0 2px 5px -1px rgba(74,52,34,.055);
+          --e2: 0 1px 2px rgba(74,52,34,.05), 0 5px 12px -3px rgba(74,52,34,.075), 0 14px 30px -10px rgba(74,52,34,.085);
+          --e3: inset 0 1px 0 rgba(255,255,255,.72), 0 -6px 20px -6px rgba(50,34,22,.10), 0 -20px 56px -14px rgba(50,34,22,.20);
+          --e-brand: 0 1px 1.5px rgba(120,44,18,.22), 0 4px 10px -2px rgba(194,85,47,.30);
+        }
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         ::-webkit-scrollbar{display:none}
         .phoneH{height:100vh;height:100dvh;max-height:940px}
-        .btn{border:none;border-radius:11px;padding:9px 14px;font-weight:650;font-size:13px;font-family:${FONT};cursor:pointer;white-space:nowrap;transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease}
-        .btn:active{transform:scale(.94)}
-        .press{transition:transform .16s cubic-bezier(.34,1.56,.64,1)}
-        .press:active{transform:scale(.985)}
-        .dim{position:absolute;inset:0;background:rgba(36,31,26,.42);z-index:40;animation:fi .18s ease-out}
-        .sheet{position:absolute;left:0;right:0;bottom:0;z-index:50;background:${T.surf};border-radius:22px 22px 0 0;padding:14px 20px calc(24px + env(safe-area-inset-bottom));animation:up .38s cubic-bezier(.22,1.2,.36,1);box-shadow:0 -10px 40px rgba(36,31,26,.18)}
+        /* Nhấn xuống nhanh và tuyến tính, nhả ra theo lò xo: ngón tay mới
+           cảm được điểm tiếp xúc. Đối xứng hai chiều thì không cảm thấy gì. */
+        .btn{border:none;border-radius:11px;padding:9px 14px;font-weight:650;font-size:13px;font-family:${FONT};cursor:pointer;white-space:nowrap;transition:transform var(--sp-tap-d,250ms) var(--sp-tap),box-shadow .2s var(--out)}
+        .btn:active{transform:scale(.94);transition:transform 90ms var(--in-fast)}
+        .press{transition:transform var(--sp-tap-d,250ms) var(--sp-tap)}
+        .press:active{transform:scale(.985);transition:transform 90ms var(--in-fast)}
+        .dim{position:absolute;inset:0;background:rgba(36,31,26,.42);z-index:40;animation:fi .22s var(--out)}
+        .sheet{position:absolute;left:0;right:0;bottom:0;z-index:50;background:${T.surf};border-radius:22px 22px 0 0;padding:14px 20px calc(24px + env(safe-area-inset-bottom));animation:up .46s var(--sp-sheet);box-shadow:var(--e3)}
         .scan{position:absolute;left:10%;right:10%;height:30%;top:0;background:linear-gradient(180deg,transparent,rgba(194,85,47,.5),transparent);animation:sc 1.1s ease-in-out infinite}
-        .rise{animation:rise .34s cubic-bezier(.22,1.2,.36,1) both}
-        .drop{animation:drop .42s cubic-bezier(.22,1.4,.36,1) both}
+        .rise{animation:rise .4s var(--sp-sheet) both}
+        .drop{animation:drop .46s var(--sp-sheet) both}
         .spin-soft{animation:pu .6s ease-in-out infinite}
-        .wordmark{animation:wm .5s cubic-bezier(.22,1.2,.36,1) both}
-        .pop{animation:pop .45s cubic-bezier(.34,1.7,.5,1) both}
+        .wordmark{animation:wm .5s var(--sp-sheet) both}
+        .pop{animation:pop .54s var(--sp-cel) both}
         .shim{background:linear-gradient(90deg,${T.hair} 8%,${T.brandSoft} 22%,${T.hair} 36%);background-size:280% 100%;animation:shim 1.25s linear infinite;border-radius:6px}
-        .caret{display:inline-block;width:2px;height:1em;background:${T.brand};margin-left:2px;vertical-align:-2px;animation:blink .9s steps(1) infinite}
+        .wordIn{display:inline-block;white-space:pre;animation:wordIn 380ms var(--sp-sheet) both;animation-delay:calc(var(--i) * 28ms)}
+        @keyframes wordIn{from{opacity:0;filter:blur(3px);transform:translateY(2px)}to{opacity:1;filter:none;transform:none}}
         .blob{animation:blob 1.6s ease-in-out infinite}
         .breathe{animation:breathe 3.2s ease-in-out infinite}
         .sweep{position:relative;overflow:hidden}
         .sweep::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(27,122,78,.16),transparent);animation:sweep .7s ease-out 1 both}
-        .confetti{position:absolute;width:7px;height:7px;border-radius:2px;animation:conf .9s cubic-bezier(.2,.7,.4,1) both}
+        .bloom{position:absolute;left:50%;top:6px;width:220px;height:220px;margin-left:-110px;border-radius:50%;pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(27,122,78,.26),rgba(27,122,78,.10) 42%,transparent 68%);animation:bloom 900ms var(--sp-sheet) both}
+        @keyframes bloom{0%{opacity:0;transform:scale(.35)}22%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
+        .ring{stroke-dasharray:91;stroke-dashoffset:91;animation:draw 520ms var(--sp-sheet) both}
+        .tick{stroke-dasharray:23;stroke-dashoffset:23;animation:draw 400ms var(--sp-cel) both}
+        @keyframes draw{to{stroke-dashoffset:0}}
+        .chip{animation:chip .38s var(--sp-sheet, cubic-bezier(.22,1.2,.36,1)) both}
+        @keyframes chip{from{opacity:0;transform:translateY(7px) scale(.94)}to{opacity:1;transform:none}}
+        /* Vùng chạm 44px quanh nút nhỏ, không đổi kích thước hình. */
+        .tap44{position:relative}
+        .tap44::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px}
+        .odo{display:inline-block;overflow:hidden;height:1.1em;vertical-align:top}
+        .odoCol{display:flex;flex-direction:column;will-change:transform;transform:translateY(calc(var(--d) * -1.1em));transition:transform 620ms var(--sp-sheet);transition-delay:calc(var(--i) * 26ms)}
+        ${SCENE_CSS}
+        ${VIZ_CSS}
         @keyframes fi{from{opacity:0}to{opacity:1}}
         @keyframes up{from{transform:translateY(30px);opacity:.5}to{transform:none;opacity:1}}
         @keyframes drop{from{transform:translateY(-20px) scale(.96);opacity:0}to{transform:none;opacity:1}}
@@ -1952,12 +3097,10 @@ export default function MaiV18() {
         @keyframes pu{0%,100%{opacity:.5}50%{opacity:1}}
         @keyframes wm{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
         @keyframes shim{from{background-position:140% 0}to{background-position:-140% 0}}
-        @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
         @keyframes blob{0%,100%{border-radius:46% 54% 52% 48%;transform:scale(1)}33%{border-radius:58% 42% 44% 56%;transform:scale(1.1)}66%{border-radius:44% 56% 60% 40%;transform:scale(1.04)}}
         @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
         @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
-        @keyframes conf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
-        @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important}}
+                @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important}}
       `}</style>
 
       <div className="phoneH" style={{ width: "100%", maxWidth: 430, background: T.bg, position: "relative", overflow: "hidden" }}>
@@ -1995,8 +3138,8 @@ export default function MaiV18() {
                   </div>
                   <ChatRow Icon={MessageCircle} tint={T.brandSoft} color={T.brand} title="Mai" sub="Hỏi gì cũng được · gõ hoặc nói" time="15:44" unread={seenMai ? null : "1"} onTap={() => { setSeenMai(true); setScreen("mai"); }} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>NHÓM</div>
-                  <ChatRow letter="🏠" tint="#8A5FBF" title="Nhà mình" verified sub={allDone ? "Mai: xong sớm trước hạn 🎉" : "Vy: đừng lo vụ đón Bin nha"} time="15:38" onTap={() => setScreen("family")} />
-                  <ChatRow letter="👴" tint="#2C9E8F" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
+                  <ChatRow avatar="Nhà mình" letter="N" title="Nhà mình" verified sub={allDone ? "Mai: xong sớm trước hạn" : "Vy: đừng lo vụ đón Bin nha"} time="15:38" onTap={() => setScreen("family")} />
+                  <ChatRow avatar="Ông bà cô chú" letter="Ô" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>KÊNH</div>
                   <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
                   <ChatRow Icon={Car} tint={T.amberBg} color={T.amber} title="Vietnam Cars" sub="Đăng kiểm Q2: sáng thứ Ba vắng nhất · ▲214" time="15:10" onTap={() => setScreen("cars")} />
@@ -2037,9 +3180,18 @@ export default function MaiV18() {
                   {allDone && (
                     <>
                       <Burst />
-                      <div className="pop" style={{ margin: "10px 0 4px", background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 18, padding: "13px 15px" }}>
-                        <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 600, color: "#14603C", letterSpacing: -0.2 }}>Xong sớm trước hạn 🎉</div>
-                        <div style={{ fontSize: 13.5, color: "#2C6B4C", lineHeight: 1.5, marginTop: 4, ...num }}>15:46 · Hôm nay Mai đỡ cho anh: 1 vụ suýt trễ đóng tiền · 1 vụ suýt không ai đón Bin.</div>
+                      <div className="pop" style={{ position: "relative", margin: "12px 0 4px", background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 20, padding: "16px 16px 15px", boxShadow: "var(--e2)" }}>
+                        <StrokeCheck size={30} color="#14603C" />
+                        <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: "#14603C", letterSpacing: -0.4, marginTop: 9 }}>Xong sớm trước hạn</div>
+                        <div style={{ fontSize: 13.5, color: "#2C6B4C", lineHeight: 1.5, marginTop: 5, ...num }}>15:46 · hôm nay Mai đỡ cho anh một vụ suýt trễ đóng tiền và một vụ suýt không ai đón Bin.</div>
+                        <div style={{ display: "flex", gap: 14, marginTop: 13, paddingTop: 12, borderTop: "1px solid #CFE7DA" }}>
+                          {[["Đã trả", fmt(850000)], ["Đón Bin", "16:20 · Vy"], ["Đơn Na", "đã gửi"]].map(([k, v]) => (
+                            <div key={k} style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 9.5, fontWeight: 750, letterSpacing: 0.5, color: "#5C8A72" }}>{k.toUpperCase()}</div>
+                              <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 13, color: "#14603C", marginTop: 3, ...num }}>{v}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}
@@ -2076,22 +3228,16 @@ export default function MaiV18() {
 
             {screen === "mai" && (
               <>
-                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh và Mai</span>} />
-                <div style={{ display: "flex", gap: 9, padding: "12px 14px 4px", overflowX: "auto", flexShrink: 0 }}>
-                  {[["🚗", "Hạn đăng kiểm xe?", "còn 37 ngày"], ["🍲", "Tối nay nấu gì nhanh?", "30 phút là xong"], ["🎤", "Tối nay nhà mình xem gì?", "tập cuối 20:00"]].map(([e, q, hint]) => (
-                    <button key={q} onClick={() => !busy && askMai(q)} className="btn press" style={{ background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "11px 13px", textAlign: "left", minWidth: 152, boxShadow: "0 1px 2px rgba(60,45,30,.04)" }}>
-                      <div style={{ fontSize: 19, marginBottom: 5 }}>{e}</div>
-                      <div style={{ fontSize: 13, fontWeight: 650, lineHeight: 1.3, whiteSpace: "normal" }}>{q}</div>
-                      <div style={{ fontSize: 11.5, color: T.faint, marginTop: 3, whiteSpace: "normal" }}>{hint}</div>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ flex: 1, overflowY: "auto", padding: "8px 14px 6px" }}>
+                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh và Mai · chạy trên máy</span>} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
                   {maiMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   {busy && <Thinking />}
                   <div ref={endRef} />
                 </div>
-                {inputBar(sendMai, "Hỏi Mai bất cứ điều gì… (chạy thật)", false, true)}
+                {/* thanh gợi ý xếp lại sau mỗi câu trả lời, nằm ngay trên
+                    ngón cái, để anh đi hết demo mà không cần gõ */}
+                <ChipRail items={chips} seed={chips.join("|")} onPick={(c) => !busy && askMai(c)} />
+                {inputBar(sendMai, "Hỏi Mai bất cứ điều gì…", false, true)}
               </>
             )}
 
