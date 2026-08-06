@@ -1,0 +1,2148 @@
+import React, { useState, useEffect, useRef } from "react";
+import * as THREE from "three";
+import {
+  Camera, Phone, FolderClosed, Check, ShieldCheck, Banknote, FileText, Car,
+  GraduationCap, Syringe, Zap, ScanFace, ArrowUp, ChevronRight, ChevronLeft,
+  BadgeCheck, ShieldAlert, ArrowBigUp, MessageCircle, Hash, ShoppingCart, Mic,
+  TriangleAlert, Music, Ticket, X, Plus, Minus, Clock, MapPin, Bell, Download,
+  CircleAlert, Sparkles, Wallet, CreditCard, Store, PhoneOff, Flag, Users,
+} from "lucide-react";
+
+// ————————————————————————————————————————————————————————————
+// m.ai · v17 · tối giản bề mặt, sâu bên trong.
+// Mọi thứ chạm được đều mở một luồng 6–7 bước thật:
+// trả học bơi (7) · đón Bin (6) · đơn dã ngoại (7) · giỏ WinMart+ (7)
+// vé concert (7) · sang nhượng vé escrow (6) · đăng kiểm (6) · cuộc gọi giả (6)
+// Cộng: bài kênh → bình luận → hồ sơ người đăng · hồ sơ nhà → chi tiết từng giấy tờ.
+// Không có cú chạm nào chết.
+// ————————————————————————————————————————————————————————————
+
+const T = {
+  ink: "#241F1A", sub: "#6E665C", faint: "#A79E92", hair: "#E9E2D6",
+  bg: "#F7F4ED", surf: "#FFFDF9", brand: "#C2552F", brandSoft: "#FBEDE4",
+  brandInk: "#9C3F1F", dark: "#2C2822", green: "#1B7A4E", greenBg: "#E6F4EC",
+  amber: "#B54708", amberBg: "#FCF0DE", red: "#B42318", redBg: "#FDECEA",
+};
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif';
+const DISPLAY = 'Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif';
+const num = { fontVariantNumeric: "tabular-nums" };
+const fmt = (n) => n.toLocaleString("vi-VN") + "đ";
+
+const MAI_SYSTEM = `Bạn là Mai, trợ lý gia đình. Bây giờ là 15:42 chiều thứ Tư. Mai xưng "Mai", gọi người dùng là "anh". Vợ anh: Vy. Con: Bin (lớp 3, TH Lê Lợi, bơi thứ Ba & Năm 16:30) và Na (lớp 6A2, THCS Trần Phú).
+Hồ sơ: học bơi Bin 850.000đ hạn 17:00 hôm nay, cô nhắc lần 2, 14/32 phụ huynh đã đóng (Vy chuyển tiếp từ Zalo) · anh họp khách tới 17:00, Vy nhận đón Bin · đơn dã ngoại Cần Giờ của Na hạn thứ Sáu, phí 120.000đ · ô tô 51K-238.19 đăng kiểm hạn 12/09, quá hạn phạt tới 6.000.000đ · hộ chiếu Na hết hạn 03/2027 · tiêm chủng hai bé đủ mũi · học phí quý 3 đã trả · điện tháng 7 đã trả 1.240.000đ · họp phụ huynh Na 19:00 ngày 15/08 · giỗ Ông thứ Bảy, Bà thích trà sen Phúc Long · số dư WinMoney 2.480.000đ.
+Hệ sinh thái: tạp hóa & đồ tươi đặt WinMart+ (Supra giao, tích điểm WinX) · trà cà phê Phúc Long · thịt mát MEATDeli · gia vị Chin-su, mì Omachi · tiền WinMoney liên kết Techcombank. Việc ngoài hệ (đăng kiểm, trường học) Mai vẫn làm bình thường, không cộng điểm.
+Kênh anh theo dõi: Vietnam Cars · Cơm tối 30 phút · Anh Trai Say Hi (tập cuối tối nay 20:00; vé đợt 3 mở 20:00 thứ Sáu, vé gắn CCCD).
+Trả lời tiếng Việt, tối đa 2 câu, đúng việc, thân tình. Nếu trả lời từ hồ sơ, cuối câu thêm nguồn 3-5 chữ trong ngoặc.
+Nếu anh muốn Mai làm gì, thêm đúng một khối:
+\`\`\`json
+{"action":{"label":"Mua 186.000đ","amount":186000}}
+\`\`\``;
+
+class Boundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: false }; }
+  static getDerivedStateFromError() { return { err: true }; }
+  render() {
+    if (this.state.err)
+      return (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: T.bg, fontFamily: FONT }}>
+          <div style={{ fontSize: 14, color: T.sub }}>Có lỗi nhỏ, Mai xin lỗi anh.</div>
+          <button onClick={() => this.setState({ err: false })} style={{ border: "none", borderRadius: 11, padding: "10px 18px", background: T.brand, color: "#FFFDF9", fontWeight: 650, fontSize: 13, fontFamily: FONT, cursor: "pointer" }}>Thử lại</button>
+        </div>
+      );
+    return this.props.children;
+  }
+}
+
+let _ac = null;
+const ding = (hi) => {
+  try {
+    if (navigator.vibrate) navigator.vibrate(hi ? [14, 40, 22] : 18);
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!_ac) _ac = new AC();
+    const ac = _ac, o = ac.createOscillator(), g = ac.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(hi ? 660 : 880, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(hi ? 1180 : 1318, ac.currentTime + 0.09);
+    g.gain.setValueAtTime(0.0001, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.09, ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.2);
+    o.connect(g).connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + 0.22);
+  } catch (e) {}
+};
+
+// ————— intro —————
+const Intro = ({ onDone }) => {
+  const holder = useRef(null);
+  const [label, setLabel] = useState(false);
+  useEffect(() => {
+    let cleanup = () => {};
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { onDone(); return cleanup; }
+      const el = holder.current;
+      if (!el) { onDone(); return cleanup; }
+      let W = el.clientWidth || 430, H = el.clientHeight || 900;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(W, H);
+      el.appendChild(renderer.domElement);
+      const FOV = 50, Z0 = 4.5, Z1 = 3.95;
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(FOV, W / H, 0.1, 60);
+      cam.position.z = Z0;
+      const pxPerWorld = H / (2 * Z1 * Math.tan((FOV * Math.PI) / 360));
+      const S = (0.31 * Math.min(W, H)) / pxPerWorld;
+      const N = 2800;
+      const pos = new Float32Array(N * 3), st = new Float32Array(N * 3), tg = new Float32Array(N * 3), dl = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        const r = S * (2.4 + Math.random() * 2), th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+        st[i * 3] = r * Math.sin(ph) * Math.cos(th);
+        st[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th) * 0.75;
+        st[i * 3 + 2] = (Math.random() - 0.5) * S * 1.8;
+        const a = Math.random() * Math.PI * 2, rr = S * (1 + (Math.random() - 0.5) * 0.075);
+        tg[i * 3] = rr * Math.cos(a); tg[i * 3 + 1] = rr * Math.sin(a); tg[i * 3 + 2] = (Math.random() - 0.5) * S * 0.06;
+        dl[i] = Math.random() * 0.32;
+        pos[i * 3] = st[i * 3]; pos[i * 3 + 1] = st[i * 3 + 1]; pos[i * 3 + 2] = st[i * 3 + 2];
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const c0 = new THREE.Color("#9C8F7E"), c1 = new THREE.Color("#E8825A"), c2 = new THREE.Color("#FBEDE4");
+      const base = S * 0.02;
+      const mat = new THREE.PointsMaterial({ color: c0.clone(), size: base, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      const CONV = 1.3, PULSE = 1.72, END = 2.15, DUR = 1;
+      const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+      const cl = (x) => Math.max(0, Math.min(1, x));
+      let raf = 0, fin = false, shown = false;
+      const t0 = performance.now();
+      const finish = () => {
+        if (fin) return;
+        fin = true;
+        cancelAnimationFrame(raf);
+        onDone();
+        setTimeout(() => { try { geo.dispose(); mat.dispose(); renderer.dispose(); if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement); } catch (e) {} }, 60);
+      };
+      const tick = () => {
+        const t = (performance.now() - t0) / 1000, attr = geo.attributes.position;
+        for (let i = 0; i < N; i++) {
+          const k = ease(cl((t - dl[i]) / DUR));
+          attr.array[i * 3] = st[i * 3] + (tg[i * 3] - st[i * 3]) * k;
+          attr.array[i * 3 + 1] = st[i * 3 + 1] + (tg[i * 3 + 1] - st[i * 3 + 1]) * k;
+          attr.array[i * 3 + 2] = st[i * 3 + 2] + (tg[i * 3 + 2] - st[i * 3 + 2]) * k;
+        }
+        attr.needsUpdate = true;
+        pts.rotation.z = 0.35 * (1 - cl(t / CONV));
+        cam.position.z = Z0 - (Z0 - Z1) * cl(t / PULSE);
+        if (!shown && t > 1.02) { shown = true; setLabel(true); }
+        if (t > CONV && t <= PULSE) {
+          const k = cl((t - CONV) / (PULSE - CONV));
+          mat.color.copy(c0).lerp(c1, k);
+          mat.size = base + S * 0.014 * Math.sin(k * Math.PI);
+        }
+        if (t > PULSE) {
+          const k = cl((t - PULSE) / (END - PULSE));
+          mat.color.copy(c1).lerp(c2, k * 0.6);
+          mat.opacity = 0.95 * (1 - k);
+          el.style.opacity = String(1 - k);
+        }
+        renderer.render(scene, cam);
+        if (t >= END) finish(); else raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      const skip = () => { finish(); };
+      el.addEventListener("pointerdown", skip);
+      const onResize = () => { W = el.clientWidth || W; H = el.clientHeight || H; renderer.setSize(W, H); cam.aspect = W / H; cam.updateProjectionMatrix(); };
+      window.addEventListener("resize", onResize);
+      cleanup = () => { el.removeEventListener("pointerdown", skip); window.removeEventListener("resize", onResize); finish(); };
+      return cleanup;
+    } catch (e) { onDone(); return cleanup; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div ref={holder} style={{ position: "absolute", inset: 0, zIndex: 90, background: "#171310", transition: "opacity .2s linear" }}>
+      {label && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: FONT }}>
+          <div className="wordmark" style={{ fontFamily: DISPLAY, fontSize: 40, fontWeight: 600, letterSpacing: -1.4, lineHeight: 1, color: "#FBF7F1" }}>m.ai</div>
+          <div className="wordmark" style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1, color: "#B9A997", marginTop: 13, animationDelay: ".08s" }}>một Mai · lo hết</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ————— primitives —————
+const Pill = ({ tone, children }) => {
+  const m = { green: [T.green, T.greenBg], amber: [T.amber, T.amberBg], red: [T.red, T.redBg], brand: [T.brandInk, T.brandSoft], gray: [T.sub, "#F1EBE1"] }[tone || "gray"];
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: m[0], background: m[1], borderRadius: 999, padding: "3px 9px", fontSize: 11.5, fontWeight: 650, whiteSpace: "nowrap" }}>{children}</span>;
+};
+const IconSq = ({ Icon, tint, color, size = 32 }) => (
+  <span style={{ width: size, height: size, borderRadius: size * 0.36, background: tint || "#F1EBE1", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <Icon size={size / 2} color={color || T.sub} strokeWidth={2} />
+  </span>
+);
+const Thumb = ({ from, to, emoji, small, h = 128 }) => (
+  <div style={{ height: small ? 56 : h, width: small ? 56 : "100%", borderRadius: small ? 12 : 14, background: `linear-gradient(140deg, ${from}, ${to})`, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <span style={{ fontSize: small ? 26 : 46, filter: "drop-shadow(0 5px 12px rgba(0,0,0,.3))" }}>{emoji}</span>
+    <div style={{ position: "absolute", inset: 0, background: "radial-gradient(130% 90% at 18% 0%, rgba(255,255,255,.22), transparent 52%)" }} />
+  </div>
+);
+const Mark = ({ size = 26, alive }) => (
+  <span className={alive ? "blob" : "breathe"} style={{ width: size, height: size, borderRadius: alive ? "46% 54% 52% 48%" : size * 0.36, background: `linear-gradient(145deg, #E8825A, ${T.brand})`, color: "#FFFDF9", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: size * 0.42, letterSpacing: -0.5, flexShrink: 0, boxShadow: "0 2px 8px rgba(194,85,47,.3)" }}>m.</span>
+);
+const Thinking = () => (
+  <div className="rise" style={{ display: "flex", gap: 9, padding: "8px 0 6px" }}>
+    <Mark size={26} alive />
+    <div style={{ flex: 1, paddingTop: 5 }}>
+      <div className="shim" style={{ height: 9, width: "72%" }} />
+      <div className="shim" style={{ height: 9, width: "44%", marginTop: 7 }} />
+    </div>
+  </div>
+);
+const Burst = () => {
+  const bits = [["#C2552F", -70, -54, "128deg"], ["#1B7A4E", 62, -62, "-96deg"], ["#E8A33D", -34, -78, "72deg"], ["#7A2ECC", 40, -40, "-140deg"], ["#C2552F", 78, -26, "60deg"], ["#1B7A4E", -78, -22, "-70deg"]];
+  return (
+    <div style={{ position: "relative", height: 0 }}>
+      {bits.map(([c, dx, dy, rot], i) => (
+        <span key={i} className="confetti" style={{ left: "50%", top: 0, background: c, animationDelay: i * 30 + "ms", "--dx": dx + "px", "--dy": dy + "px", "--rot": rot }} />
+      ))}
+    </div>
+  );
+};
+const CardBox = ({ children, style, onClick }) => (
+  <div onClick={onClick} className={"rise" + (onClick ? " press" : "")} style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, boxShadow: "0 1px 2px rgba(60,45,30,.04), 0 6px 18px rgba(60,45,30,.05)", ...style }}>{children}</div>
+);
+const Btn = ({ children, onClick, kind, style, wide }) => {
+  const k = { primary: [T.brand, "#FFFDF9", "none"], soft: [T.surf, T.ink, `1px solid ${T.hair}`], ghost: ["transparent", T.sub, "none"], danger: [T.red, "#FFFDF9", "none"] }[kind || "primary"];
+  return (
+    <button onClick={onClick} className="btn" style={{ background: k[0], color: k[1], border: k[2], width: wide ? "100%" : undefined, padding: wide ? "13px 16px" : undefined, fontSize: wide ? 14.5 : 13, boxShadow: kind === "primary" ? "0 2px 8px rgba(194,85,47,.28)" : "none", ...style }}>{children}</button>
+  );
+};
+const AuthBtn = ({ label, onDone }) => {
+  const [s, setS] = useState(0);
+  return (
+    <button onClick={s === 0 ? () => { setS(1); setTimeout(() => { setS(2); setTimeout(onDone, 260); }, 620); } : undefined}
+      className="btn" style={{ background: s === 2 ? T.green : T.brand, color: "#FFFDF9", boxShadow: s === 1 ? `0 0 0 4px ${T.brandSoft}` : "0 2px 8px rgba(194,85,47,.28)", minWidth: 64, transform: s === 1 ? "scale(.96)" : "none" }}>
+      {s === 1 ? <ScanFace size={15} className="spin-soft" /> : s === 2 ? <Check size={15} strokeWidth={3} className="pop" /> : label}
+    </button>
+  );
+};
+const HBtn = ({ Icon, onTap, ml }) => (
+  <button onClick={onTap} className="btn" style={{ border: `1px solid ${T.hair}`, background: T.surf, borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: ml ? 8 : 0, flexShrink: 0 }}>
+    <Icon size={16} color={T.sub} />
+  </button>
+);
+const Head = ({ back, title, right, sub }) => (
+  <header style={{ padding: "11px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+    {back && <button onClick={back} className="btn" style={{ background: "none", padding: "8px 8px 8px 2px", marginLeft: -6, display: "flex" }}><ChevronLeft size={22} color={T.ink} /></button>}
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, color: T.ink, letterSpacing: -0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        {sub}
+      </div>
+    </div>
+    {right}
+  </header>
+);
+
+// ————— messages & rows —————
+const Msg = ({ m }) => {
+  if (m.type === "ext")
+    return (
+      <CardBox onClick={m.onTap} style={{ margin: "8px 0", padding: "10px 13px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <span style={{ width: 16, height: 16, borderRadius: 5, background: m.color || "#0068FF", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            {m.Icon ? <m.Icon size={10} color="#fff" strokeWidth={2.5} /> : null}
+          </span>
+          <span style={{ fontSize: 11.5, color: T.sub, fontWeight: 650 }}>{m.src}</span>
+          <span style={{ fontSize: 11, color: T.faint, marginLeft: "auto", ...num }}>{m.time}</span>
+        </div>
+        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.5 }}>{m.text}</div>
+      </CardBox>
+    );
+  if (m.type === "act")
+    return (
+      <div className="rise" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 2px" }}>
+        <span style={{ width: 6, height: 6, borderRadius: 3, background: m.done ? T.faint : m.tone === "green" ? T.green : T.brand, marginTop: 7, flexShrink: 0 }} />
+        <div style={{ fontSize: 13, color: m.done ? T.faint : T.ink, lineHeight: 1.55, flex: 1, ...num }}>
+          {m.text}
+          {m.undo && !m.done && <button onClick={m.undo} className="btn" style={{ background: "#F1EBE1", color: T.sub, fontSize: 11.5, padding: "4px 10px", marginLeft: 8, fontWeight: 600 }}>{m.undoLabel || "Giữ như cũ"}</button>}
+        </div>
+      </div>
+    );
+  const mine = m.from === "vy", mai = m.from === "mai";
+  if (mai)
+    return (
+      <div className="rise" style={{ display: "flex", gap: 9, padding: "8px 0 6px" }}>
+        <Mark size={26} />
+        <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+          <div style={{ fontSize: 14.5, lineHeight: 1.62, color: T.ink }}>{m.text}{m.streaming && <span className="caret" />}</div>
+          {m.src && <div style={{ marginTop: 6 }}><Pill tone="brand">{m.src}</Pill></div>}
+          {m.extra}
+        </div>
+      </div>
+    );
+  return (
+    <div className="rise" style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", padding: "4px 0" }}>
+      <div style={{ maxWidth: "84%" }}>
+        {!mine && m.name && <div style={{ fontSize: 11, fontWeight: 650, color: T.sub, margin: "0 0 3px 4px" }}>{m.name}</div>}
+        <div style={{ background: mine ? T.dark : T.surf, color: mine ? "#FFFDF9" : T.ink, border: mine ? "none" : `1px solid ${T.hair}`, boxShadow: mine ? "0 2px 10px rgba(44,40,34,.18)" : "0 1px 2px rgba(60,45,30,.04)", borderRadius: 18, borderBottomRightRadius: mine ? 6 : 18, borderBottomLeftRadius: mine ? 18 : 6, padding: "10px 13px", fontSize: 14.5, lineHeight: 1.55 }}>
+          {m.text}{m.extra}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Row = ({ Icon, iconTint, iconColor, title, meta, metaTone, amount, pill, cta, done, doneMeta, onTap, quote, quoteWho, last, hot }) => (
+  <div onClick={onTap} className={"press" + (done ? " sweep" : "")} style={{ display: "flex", gap: 11, padding: "13px 14px", borderBottom: last ? "none" : `1px solid ${T.hair}`, cursor: "pointer", alignItems: "flex-start", boxShadow: hot ? `inset 0 0 0 2px ${T.amber}66` : "none", borderRadius: hot ? 14 : 0, background: done ? "rgba(230,244,236,.42)" : "transparent", transition: "box-shadow .4s, background .5s" }}>
+    <IconSq Icon={Icon} tint={done ? T.greenBg : iconTint} color={done ? T.green : iconColor} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span style={{ fontWeight: 650, fontSize: 14.5, color: T.ink, flex: 1, ...num }}>{title}</span>
+        {amount && <span style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 15.5, color: T.ink, ...num }}>{amount}</span>}
+      </div>
+      {quote && !done && (
+        <div style={{ margin: "6px 0 2px", borderLeft: `2px solid ${T.hair}`, paddingLeft: 8 }}>
+          <span style={{ fontSize: 11, color: T.sub, fontWeight: 650, ...num }}>{quoteWho} </span>
+          <span style={{ fontSize: 12.5, color: T.ink }}>{quote}</span>
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+        <span style={{ fontSize: 12, color: done ? T.sub : metaTone === "amber" ? T.amber : T.faint, fontWeight: !done && metaTone === "amber" ? 650 : 400, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...num }}>{done ? doneMeta : meta}</span>
+        {done ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Pill tone="green"><Check size={11} strokeWidth={3} /> {done}</Pill>
+            <ChevronRight size={15} color={T.faint} />
+          </span>
+        ) : (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {pill}
+            <span className="btn" style={{ background: T.brand, color: "#FFFDF9", boxShadow: "0 2px 8px rgba(194,85,47,.28)", display: "inline-flex", alignItems: "center", gap: 3 }}>{cta}<ChevronRight size={13} strokeWidth={2.6} /></span>
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const MaiBanner = ({ text, cta, done, doneText, onTap, thumb }) => (
+  <div onClick={onTap} className="rise press" style={{ margin: "2px 0 10px", border: `1px solid ${done ? "#CFE7DA" : "#F0DCCD"}`, background: done ? T.greenBg : T.brandSoft, borderRadius: 18, padding: "11px 13px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "background .5s, border-color .5s" }}>
+    {thumb ? <Thumb small {...thumb} /> : <Mark size={26} />}
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 750, color: done ? T.green : T.brandInk, letterSpacing: 0.2 }}>MAI</div>
+      <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.45, marginTop: 1, ...num }}>{done ? doneText : text}</div>
+    </div>
+    {done ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <span className="btn" style={{ background: T.brand, color: "#FFFDF9", flexShrink: 0 }}>{cta}</span>}
+  </div>
+);
+
+const Post = ({ up, title, meta, body, hero, thumb, onTap, onAuthor, comments }) => {
+  const [v, setV] = useState(false);
+  return (
+    <CardBox style={{ margin: "8px 0", padding: "11px 13px" }}>
+      <div style={{ display: "flex", gap: 11 }}>
+        <button onClick={() => { setV(!v); ding(); }} className="btn" style={{ background: "none", padding: 4, margin: -4, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, color: v ? T.brand : T.faint, alignSelf: "flex-start" }}>
+          <ArrowBigUp size={20} fill={v ? T.brand : "none"} strokeWidth={1.9} className={v ? "pop" : ""} />
+          <span style={{ fontSize: 11.5, fontWeight: 700, ...num }}>{up + (v ? 1 : 0)}</span>
+        </button>
+        <div onClick={onTap} className="press" style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 650, fontSize: 14.5, color: T.ink, lineHeight: 1.4 }}>{title}</div>
+              {body && <div style={{ fontSize: 13, color: T.sub, marginTop: 3, lineHeight: 1.5 }}>{body}</div>}
+            </div>
+            {thumb && <Thumb small {...thumb} />}
+          </div>
+          {hero && <div style={{ marginTop: 9 }}><Thumb {...hero} /></div>}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7 }}>
+            <span onClick={(e) => { e.stopPropagation(); onAuthor && onAuthor(); }} style={{ fontSize: 11.5, color: T.brandInk, fontWeight: 650, textDecoration: "underline" }}>{meta.who}</span>
+            <span style={{ fontSize: 11.5, color: T.faint, ...num }}>· {meta.when} · {comments || 0} bình luận</span>
+            <ChevronRight size={13} color={T.faint} style={{ marginLeft: "auto" }} />
+          </div>
+        </div>
+      </div>
+    </CardBox>
+  );
+};
+
+// ————— sheet & wizard engine —————
+const Sheet = ({ onClose, children, tall }) => (
+  <>
+    <div className="dim" onClick={onClose} />
+    <div className="sheet" style={{ maxHeight: tall ? "92%" : "86%", overflowY: "auto" }}>{children}</div>
+  </>
+);
+
+const Foot = ({ children }) => <div style={{ marginTop: 16, display: "flex", gap: 8 }}>{children}</div>;
+const H1 = ({ children, sub }) => (
+  <div style={{ marginBottom: 12 }}>
+    <div style={{ fontFamily: DISPLAY, fontSize: 21, fontWeight: 600, color: T.ink, letterSpacing: -0.3, lineHeight: 1.25 }}>{children}</div>
+    {sub && <div style={{ fontSize: 13, color: T.sub, marginTop: 5, lineHeight: 1.5 }}>{sub}</div>}
+  </div>
+);
+const KV = ({ rows }) => (
+  <div style={{ borderTop: `1px solid ${T.hair}` }}>
+    {rows.map(([k, v, tone], i) => (
+      <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "10px 0", borderBottom: `1px solid ${T.hair}`, fontSize: 13.5 }}>
+        <span style={{ color: T.sub, flexShrink: 0 }}>{k}</span>
+        <span style={{ color: tone === "amber" ? T.amber : tone === "green" ? T.green : T.ink, fontWeight: 600, textAlign: "right", ...num }}>{v}</span>
+      </div>
+    ))}
+  </div>
+);
+const Evidence = ({ src, time, text, color, Icon }) => (
+  <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderLeft: `3px solid ${color || "#0068FF"}`, borderRadius: 12, padding: "10px 12px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+      {Icon ? <Icon size={12} color={T.sub} /> : null}
+      <span style={{ fontSize: 11, color: T.sub, fontWeight: 650 }}>{src}</span>
+      <span style={{ fontSize: 11, color: T.faint, marginLeft: "auto", ...num }}>{time}</span>
+    </div>
+    <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.55 }}>{text}</div>
+  </div>
+);
+const Choice = ({ items, value, onPick }) => (
+  <div style={{ display: "grid", gap: 8 }}>
+    {items.map((it) => {
+      const on = value === it.id;
+      return (
+        <button key={it.id} onClick={() => { onPick(it.id); ding(); }} className="btn press" disabled={it.off}
+          style={{ background: on ? T.brandSoft : T.surf, border: `1.5px solid ${on ? T.brand : T.hair}`, borderRadius: 14, padding: "11px 12px", display: "flex", alignItems: "center", gap: 11, textAlign: "left", opacity: it.off ? 0.45 : 1 }}>
+          {it.Icon ? <IconSq Icon={it.Icon} tint={on ? "#F6DFD1" : "#F1EBE1"} color={on ? T.brand : T.sub} size={30} /> : it.emoji ? <span style={{ fontSize: 20, width: 30, textAlign: "center" }}>{it.emoji}</span> : null}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink, whiteSpace: "normal" }}>{it.t}</div>
+            {it.s && <div style={{ fontSize: 11.5, color: it.warn ? T.amber : T.sub, marginTop: 2, whiteSpace: "normal", ...num }}>{it.s}</div>}
+          </div>
+          {it.right && <span style={{ fontSize: 12.5, fontWeight: 650, color: T.ink, ...num }}>{it.right}</span>}
+          <span style={{ width: 18, height: 18, borderRadius: 9, border: `1.5px solid ${on ? T.brand : T.hair}`, background: on ? T.brand : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {on && <Check size={11} color="#FFFDF9" strokeWidth={3.5} />}
+          </span>
+        </button>
+      );
+    })}
+  </div>
+);
+const Toggle = ({ on, onTap, t, s }) => (
+  <button onClick={() => { onTap(!on); ding(); }} className="btn press" style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px", display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left" }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink, whiteSpace: "normal" }}>{t}</div>
+      {s && <div style={{ fontSize: 11.5, color: T.sub, marginTop: 2, whiteSpace: "normal" }}>{s}</div>}
+    </div>
+    <span style={{ width: 40, height: 24, borderRadius: 999, background: on ? T.green : "#DCD3C4", position: "relative", flexShrink: 0, transition: "background .2s" }}>
+      <span style={{ position: "absolute", top: 3, left: on ? 19 : 3, width: 18, height: 18, borderRadius: 9, background: "#FFFDF9", transition: "left .2s cubic-bezier(.34,1.56,.64,1)", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
+    </span>
+  </button>
+);
+const Qty = ({ items, set }) => (
+  <div>
+    {items.map((it, i) => (
+      <div key={it.n} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${T.hair}` }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 600 }}>{it.n}</div>
+          <div style={{ fontSize: 11.5, color: T.faint, ...num }}>{fmt(it.p)} · {it.brand || "WinMart+"}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => set(i, Math.max(0, it.q - 1))} className="btn" style={{ background: "#F1EBE1", color: T.ink, width: 30, height: 30, padding: 0, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}><Minus size={13} /></button>
+          <span style={{ minWidth: 20, textAlign: "center", fontWeight: 700, fontSize: 14, ...num }}>{it.q}</span>
+          <button onClick={() => set(i, it.q + 1)} className="btn" style={{ background: T.brandSoft, color: T.brand, width: 30, height: 30, padding: 0, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}><Plus size={13} /></button>
+        </div>
+        <span style={{ width: 74, textAlign: "right", fontWeight: 650, fontSize: 13.5, ...num }}>{fmt(it.p * it.q)}</span>
+      </div>
+    ))}
+  </div>
+);
+const Slots = ({ list, value, onPick }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+    {list.map((s) => {
+      const on = value === s.t;
+      return (
+        <button key={s.t} disabled={s.full} onClick={() => { onPick(s.t); ding(); }} className="btn press"
+          style={{ background: on ? T.brand : s.full ? "#F1EBE1" : T.surf, color: on ? "#FFFDF9" : s.full ? T.faint : T.ink, border: `1.5px solid ${on ? T.brand : T.hair}`, borderRadius: 13, padding: "10px 4px", display: "block", textAlign: "center" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, ...num }}>{s.t}</div>
+          <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>{s.full ? "hết chỗ" : s.note}</div>
+        </button>
+      );
+    })}
+  </div>
+);
+const Track = ({ steps, speed = 1100, onEnd }) => {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (i >= steps.length - 1) { if (onEnd) onEnd(); return; }
+    const t = setTimeout(() => { setI(i + 1); ding(); }, speed);
+    return () => { clearTimeout(t); };
+  }, [i, steps.length, speed, onEnd]);
+  return (
+    <div>
+      {steps.map((s, k) => {
+        const doneK = k < i, now = k === i;
+        return (
+          <div key={k} style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <span className={now ? "pop" : ""} style={{ width: 22, height: 22, borderRadius: 11, background: doneK || now ? T.green : "#EDE6DA", color: "#FFFDF9", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {doneK || now ? <Check size={12} strokeWidth={3.5} /> : null}
+              </span>
+              {k < steps.length - 1 && <span style={{ width: 2, height: 24, background: doneK ? T.green : "#EDE6DA" }} />}
+            </div>
+            <div style={{ paddingBottom: 12, flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: now ? 700 : 600, color: doneK || now ? T.ink : T.faint }}>{s.t}</div>
+              {(doneK || now) && s.s && <div style={{ fontSize: 11.5, color: T.sub, marginTop: 2, ...num }}>{s.s}</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+const FaceStep = ({ label, sub, onDone }) => {
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    const a = setTimeout(() => { setOk(true); ding(true); }, 1150);
+    const b = setTimeout(() => { onDone(); }, 1950);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, [onDone]);
+  return (
+    <div style={{ textAlign: "center", padding: "18px 0 6px" }}>
+      <div style={{ position: "relative", width: 122, height: 122, margin: "0 auto 18px" }}>
+        <span className={ok ? "pop" : "breathe"} style={{ position: "absolute", inset: 0, borderRadius: "50%", background: ok ? T.greenBg : T.brandSoft, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+          {ok ? <Check size={46} color={T.green} strokeWidth={3} /> : <ScanFace size={46} color={T.brand} />}
+          {!ok && <div className="scan" />}
+        </span>
+      </div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, color: T.ink }}>{ok ? "Đã xác thực" : label}</div>
+      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 6, ...num }}>{sub}</div>
+    </div>
+  );
+};
+
+const AutoNext = ({ ms, onDone, children }) => {
+  useEffect(() => {
+    const t = setTimeout(() => { onDone(); }, ms);
+    return () => { clearTimeout(t); };
+  }, [ms, onDone]);
+  return children;
+};
+
+const Wizard = ({ title, steps, onClose, ctx }) => {
+  const [i, setI] = useState(0);
+  const [d, setD] = useState({});
+  const api = {
+    d, ctx,
+    set: (p) => setD((x) => ({ ...x, ...p })),
+    next: () => setI((v) => Math.min(v + 1, steps.length - 1)),
+    go: (n) => setI(n),
+    close: onClose,
+  };
+  const back = () => { if (i === 0) onClose(); else setI(i - 1); };
+  return (
+    <Sheet onClose={onClose} tall>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <button onClick={back} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}>
+          {i === 0 ? <X size={15} color={T.sub} /> : <ChevronLeft size={15} color={T.sub} />}
+        </button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>{title.toUpperCase()}</div>
+          <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+            {steps.map((_, k) => (
+              <span key={k} style={{ height: 3, flex: 1, borderRadius: 2, background: k <= i ? T.brand : "#EDE6DA", transition: "background .3s" }} />
+            ))}
+          </div>
+        </div>
+        <span style={{ fontSize: 11.5, color: T.faint, fontWeight: 650, ...num }}>{i + 1}/{steps.length}</span>
+      </div>
+      <div key={i} className="rise">{steps[i](api)}</div>
+    </Sheet>
+  );
+};
+
+// ————————————————————————————————————————————————————————————
+// LUỒNG · mỗi luồng 6–7 bước, có bằng chứng nguồn và kết quả ghi hồ sơ
+// ————————————————————————————————————————————————————————————
+
+// 1 · TRẢ HỌC BƠI (7 bước)
+const flowPay = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Mai gom từ tin Vy chuyển tiếp sáng nay. Anh xem lại nguồn trước khi trả.">Khoản thu này từ đâu?</H1>
+      <Evidence src="Zalo · Vy chuyển tiếp · nhóm bơi TH Lê Lợi" time="07:42" text="Cô Lan: Nhắc lần 2, phụ huynh đóng học phí bơi tháng 8 trước 17:00 hôm nay giúp cô. Đã đóng 14/32." />
+      <div style={{ marginTop: 12 }}><KV rows={[["Hạn chót", "Hôm nay · 17:00", "amber"], ["Đã đóng", "14/32 phụ huynh"], ["Cô nhắc", "lần 2"]]} /></div>
+      <Foot><Btn wide onClick={a.next}>Xem chi tiết khoản thu</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai tách nhỏ để anh biết mình trả cho cái gì.">Học bơi tháng 8 · Bin</H1>
+      <KV rows={[["Lớp", "Bơi cơ bản · nhóm 6 bé"], ["Số buổi", "8 buổi · thứ Ba & Năm"], ["Đơn giá", "106.250đ/buổi"], ["Tổng", fmt(850000)], ["Kỳ trước", "tháng 7 · đã trả ✓", "green"]]} />
+      <Foot><Btn wide onClick={a.next}>Chọn nguồn tiền</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="WinMoney miễn phí chuyển. Thẻ tính phí 1.100đ.">Trả bằng gì?</H1>
+      <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })}
+        items={[
+          { id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư 2.480.000đ · phí 0đ", right: "0đ" },
+          { id: "tcb", Icon: Banknote, t: "Techcombank ····4102", s: "tài khoản liên kết", right: "0đ" },
+          { id: "visa", Icon: CreditCard, t: "VISA ····8890", s: "phí 1.100đ", right: "1.100đ" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Biên lai gửi riêng, không đăng vào nhóm 32 phụ huynh.">Ai nhận và ghi vào đâu</H1>
+      <KV rows={[["Người nhận", "CLB bơi · TH Lê Lợi"], ["Nội dung", "Bơi T8 · Bin · lớp 3B"], ["Số tiền", fmt(850000)]]} />
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+        <Toggle on={a.d.rcpt !== false} onTap={(v) => a.set({ rcpt: v })} t="Gửi biên lai riêng cho cô Lan" s="chỉ cô thấy, không vào nhóm chung" />
+        <Toggle on={a.d.file !== false} onTap={(v) => a.set({ file: v })} t="Lưu vào hồ sơ của Bin" s="để sang tháng Mai đối chiếu" />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xác nhận {fmt(850000)}</Btn></Foot>
+    </>
+  ),
+  (a) => <FaceStep label="Nhìn vào máy để trả 850.000đ" sub="WinMoney · TCB ····4102" onDone={a.next} />,
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", marginBottom: 4 }}>
+        <div style={{ fontSize: 12.5, color: T.sub }}>Học bơi tháng 8 · Bin</div>
+        <div style={{ fontFamily: DISPLAY, fontSize: 38, fontWeight: 600, color: T.ink, margin: "6px 0 10px", letterSpacing: -1, ...num }}>850.000đ</div>
+        <Pill tone="green"><Check size={11} strokeWidth={3} /> Trả lúc 15:43</Pill>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <KV rows={[["Trước hạn", "1 tiếng 17 phút", "green"], ["Nguồn tiền", a.d.src === "visa" ? "VISA ····8890" : a.d.src === "tcb" ? "TCB ····4102" : "WinMoney · TCB ····4102"], ["Mã giao dịch", "m_pay_8K2F91QD"], ["Biên lai", a.d.rcpt === false ? "chỉ lưu hồ sơ" : "đã gửi riêng cô Lan"]]} />
+      </div>
+      <Foot>
+        <Btn kind="soft" onClick={a.next} style={{ flex: 1 }}><Download size={13} style={{ marginRight: 5, verticalAlign: -2 }} />Lưu biên lai</Btn>
+        <Btn onClick={a.next} style={{ flex: 1 }}>Xong</Btn>
+      </Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "6px 0 2px" }}><Burst /><div style={{ fontSize: 40 }}>🎉</div></div>
+      <H1 sub="Mai đã cập nhật hồ sơ Bin, và sẽ nhắc anh kỳ tháng 9 vào ngày 02/09 để không bị nhắc tên lần nữa.">Xong rồi anh</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.55 }}>
+        Trả trước hạn 1 tiếng 17 phút · tránh được một lần cô nhắc tên trong nhóm 32 phụ huynh.
+      </div>
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về Nhà mình</Btn></Foot>
+    </>
+  ),
+];
+
+// 2 · ĐÓN BIN (6 bước)
+const flowPickup = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Mai đọc lịch của anh và lịch Vy chia sẻ, thấy 16:30 không có ai.">Đụng lịch rồi</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ background: T.amberBg, border: "1px solid #F0D8B0", borderRadius: 14, padding: "11px 12px" }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: T.amber, letterSpacing: 0.4 }}>LỊCH CỦA ANH</div>
+          <div style={{ fontSize: 13.5, color: T.ink, marginTop: 3, ...num }}>16:00–17:00 · Họp khách hàng Q7</div>
+        </div>
+        <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: T.sub, letterSpacing: 0.4 }}>BIN</div>
+          <div style={{ fontSize: 13.5, color: T.ink, marginTop: 3, ...num }}>16:30 · tan lớp bơi · cổng sau TH Lê Lợi</div>
+        </div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xem ai đón được</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai chỉ hỏi, không tự hứa thay ai.">Ai đón Bin?</H1>
+      <Choice value={a.d.who || "vy"} onPick={(v) => a.set({ who: v })}
+        items={[
+          { id: "vy", emoji: "👩", t: "Vy", s: "đã nhắn 15:38: em đón được" },
+          { id: "me", emoji: "🙋", t: "Anh rời họp sớm 20 phút", s: "kịp nếu đi 16:05", warn: true },
+          { id: "co", emoji: "🧑‍🍼", t: "Cô Hạnh · cô của Bin", s: "đã đón hộ 3 lần trước" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub={a.d.who === "me" ? "Anh cần rời họp trước 16:05." : a.d.who === "co" ? "Mai sẽ hỏi cô Hạnh trước khi chốt." : "Đây là tin Vy nhắn, Mai không viết thay Vy."}>Chốt giờ</H1>
+      {(!a.d.who || a.d.who === "vy") && <Evidence src="Vy · Nhà mình" time="15:38 · đã xem 15:39" color="#8A5FBF" text="Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha 👍" />}
+      <div style={{ marginTop: 12, fontSize: 12, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Có mặt ở cổng lúc</div>
+      <Slots value={a.d.at || "16:20"} onPick={(v) => a.set({ at: v })} list={[{ t: "16:20", note: "sớm 10 phút" }, { t: "16:30", note: "đúng giờ" }, { t: "16:45", note: "Bin chờ 15p" }]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai gửi tin riêng từng người, không spam nhóm.">Báo cho ai biết</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        <Toggle on={a.d.n1 !== false} onTap={(v) => a.set({ n1: v })} t="Vy" s="xác nhận lại giờ và điểm đón" />
+        <Toggle on={a.d.n2 !== false} onTap={(v) => a.set({ n2: v })} t="Cô Hạnh · cô của Bin" s="để cô biết ai tới nhận bé" />
+        <Toggle on={!!a.d.n3} onTap={(v) => a.set({ n3: v })} t="Ông bà" s="thường hay hỏi tối" />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xem trước</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Vào lịch cả hai người, không ai phải nhập lại.">Mai sẽ ghi thế này</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        {["Lịch của anh", "Lịch của Vy"].map((x) => (
+          <div key={x} style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.4 }}>{x.toUpperCase()}</div>
+            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 3, fontWeight: 600, ...num }}>{a.d.at || "16:20"} · Đón Bin · cổng sau TH Lê Lợi</div>
+            <div style={{ fontSize: 11.5, color: T.sub, marginTop: 2 }}>người phụ trách: {a.d.who === "me" ? "anh" : a.d.who === "co" ? "cô Hạnh" : "Vy"} · nhắc trước 15 phút</div>
+          </div>
+        ))}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Chốt</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>✅</div></div>
+      <H1 sub="Mai theo dõi tới lúc Bin lên xe. Nếu 16:35 chưa ai tới, Mai gọi anh ngay.">Đã chốt người đón</H1>
+      <KV rows={[["Người đón", a.d.who === "me" ? "anh" : a.d.who === "co" ? "cô Hạnh" : "Vy"], ["Giờ", a.d.at || "16:20"], ["Đã báo", [a.d.n1 !== false && "Vy", a.d.n2 !== false && "cô Hạnh", a.d.n3 && "ông bà"].filter(Boolean).join(", ") || "chưa báo ai"], ["Đã vào lịch", "2 người", "green"]]} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về Nhà mình</Btn></Foot>
+    </>
+  ),
+];
+
+// 3 · ĐƠN DÃ NGOẠI (7 bước)
+const flowForm = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Email trường gửi 3 ngày trước, Mai giữ lại chờ anh.">Thư của trường</H1>
+      <Evidence Icon={FileText} color="#7A5CB8" src="Email · THCS Trần Phú" time="03/08" text="Kính gửi phụ huynh em Nguyễn Thị Na, lớp 6A2. Nhà trường tổ chức dã ngoại Cần Giờ thứ Sáu 08/08. Phụ huynh vui lòng ký đơn đồng ý và nộp phí 120.000đ trước thứ Sáu." />
+      <Foot><Btn wide onClick={a.next}>Xem đơn Mai điền sẵn</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai lấy từ hồ sơ nhà mình. Anh chạm để sửa nếu sai.">Đơn đã điền sẵn</H1>
+      <KV rows={[["Học sinh", "Nguyễn Thị Na"], ["Lớp", "6A2"], ["Phụ huynh", "anh · bố"], ["SĐT", a.d.phone || "0903 8•• •19"], ["CCCD", "···· 4102"]]} />
+      <div style={{ marginTop: 10 }}>
+        <Btn kind="soft" wide onClick={() => a.set({ phone: "0908 122 447" })}>Sửa số điện thoại</Btn>
+        {a.d.phone && <div style={{ fontSize: 11.5, color: T.green, marginTop: 7, fontWeight: 650 }}>Đã đổi sang số mới · Mai cập nhật hồ sơ luôn</div>}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Hai mục này trường bắt buộc phụ huynh tự quyết.">Phần anh phải quyết</H1>
+      <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Cho Na đi dã ngoại?</div>
+      <Choice value={a.d.ok || "yes"} onPick={(v) => a.set({ ok: v })} items={[{ id: "yes", emoji: "✅", t: "Đồng ý cho đi" }, { id: "no", emoji: "🚫", t: "Không cho đi lần này" }]} />
+      <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, margin: "14px 0 8px" }}>Na có dị ứng gì không?</div>
+      <Choice value={a.d.al || "none"} onPick={(v) => a.set({ al: v })} items={[{ id: "none", emoji: "—", t: "Không có", s: "khớp sổ tiêm chủng trong hồ sơ" }, { id: "yes", emoji: "⚠️", t: "Có · hải sản", s: "Mai ghi vào đơn và nhắc cô" }]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Trường nhận tiền mặt hoặc chuyển khoản. Mai khuyên chuyển để có biên lai.">Phí 120.000đ</H1>
+      <Choice value={a.d.fee || "now"} onPick={(v) => a.set({ fee: v })}
+        items={[
+          { id: "now", Icon: Wallet, t: "Chuyển luôn cùng lúc ký", s: "WinMoney · có biên lai gửi cô Hồng", right: fmt(120000) },
+          { id: "later", Icon: Store, t: "Na mang tiền mặt thứ Sáu", s: "Mai nhắc anh tối thứ Năm chuẩn bị" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => <FaceStep label={a.d.fee === "later" ? "Ký đơn bằng định danh của anh" : "Ký đơn và chuyển 120.000đ"} sub="Chữ ký số gắn CCCD ···· 4102" onDone={a.next} />,
+  (a) => (
+    <>
+      <H1 sub="Bản này đã gửi cô Hồng chủ nhiệm 6A2 lúc 15:47.">Đơn đã gửi</H1>
+      <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: 14, fontSize: 12.5, color: T.ink, lineHeight: 1.7 }}>
+        <div style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 600, marginBottom: 6 }}>ĐƠN ĐỒNG Ý CHO HỌC SINH ĐI DÃ NGOẠI</div>
+        Học sinh: <b>Nguyễn Thị Na</b> · lớp 6A2<br />
+        Địa điểm: Cần Giờ · thứ Sáu 08/08<br />
+        Dị ứng: {a.d.al === "yes" ? "có · hải sản" : "không"}<br />
+        Phí: {a.d.fee === "later" ? "nộp tiền mặt thứ Sáu" : "đã chuyển 120.000đ"}<br />
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.hair}`, display: "flex", alignItems: "center", gap: 7 }}>
+          <BadgeCheck size={15} color={T.green} />
+          <span style={{ fontSize: 11.5, color: T.green, fontWeight: 650 }}>Ký số bằng CCCD ···· 4102 · 15:47 06/08</span>
+        </div>
+      </div>
+      <Foot><Btn kind="soft" onClick={a.next} style={{ flex: 1 }}>Tải PDF</Btn><Btn onClick={a.next} style={{ flex: 1 }}>Xong</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>📄</div></div>
+      <H1 sub="Mai đã lưu bản ký vào hồ sơ Na và đặt hai nhắc để anh không phải nhớ.">Gửi xong rồi</H1>
+      <KV rows={[["Nhắc 1", "Thứ Năm 20:00 · soạn balo cho Na"], ["Nhắc 2", "Thứ Sáu 6:00 · tập trung 6:30 cổng trường"], ["Lưu tại", "Hồ sơ nhà mình · Na", "green"]]} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về Nhà mình</Btn></Foot>
+    </>
+  ),
+];
+
+// 4 · GIỎ WINMART+ (7 bước)
+const CART0 = [
+  { n: "Bò nạm 500g", p: 139000, q: 1, brand: "MEATDeli" },
+  { n: "Cà rốt 500g", p: 15000, q: 1 },
+  { n: "Sả · gừng", p: 8000, q: 1 },
+  { n: "Gia vị bò kho Chin-su", p: 12000, q: 1, brand: "Chin-su" },
+  { n: "Bánh mì · 2 ổ", p: 12000, q: 1 },
+];
+const EXTRA = [
+  { n: "Mì Omachi bò hầm ×5", p: 34000, brand: "Omachi" },
+  { n: "Nước mắm Nam Ngư 500ml", p: 28000, brand: "Chin-su" },
+  { n: "Chuối tiêu 1kg", p: 26000 },
+];
+const flowCart = (finish) => {
+  const total = (items, extras) => items.reduce((s, i) => s + i.p * i.q, 0) + EXTRA.filter((e, k) => extras[k]).reduce((s, e) => s + e.p, 0);
+  return [
+    (a) => {
+      const items = a.d.items || CART0;
+      return (
+        <>
+          <H1 sub="Mai soạn theo bài bò kho trong kênh, chia cho nhà 4 người. Anh sửa số lượng thoải mái.">Giỏ Mai soạn</H1>
+          <Thumb from="#8A4630" to="#3A1B12" emoji="🍲" h={92} />
+          <div style={{ marginTop: 10 }}>
+            <Qty items={items} set={(i, q) => { const c = items.map((x, k) => (k === i ? { ...x, q } : x)); a.set({ items: c }); }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 2px", fontWeight: 700, fontSize: 15, color: T.ink }}>
+            <span>Tạm tính</span><span style={{ fontFamily: DISPLAY, fontSize: 17, ...num }}>{fmt(total(items, a.d.ex || {}))}</span>
+          </div>
+          <Foot><Btn wide onClick={a.next}>Mai gợi ý thêm gì?</Btn></Foot>
+        </>
+      );
+    },
+    (a) => {
+      const items = a.d.items || CART0, ex = a.d.ex || {};
+      return (
+        <>
+          <H1 sub="Dựa trên đồ nhà mình hay mua và giỏ tuần trước. Bỏ qua được.">Thêm cho đủ tuần?</H1>
+          <div style={{ display: "grid", gap: 8 }}>
+            {EXTRA.map((e, k) => (
+              <Toggle key={e.n} on={!!ex[k]} onTap={(v) => a.set({ ex: { ...ex, [k]: v } })} t={e.n} s={fmt(e.p) + (e.brand ? " · " + e.brand : "")} />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 2px", fontWeight: 700, fontSize: 15 }}>
+            <span>Tạm tính</span><span style={{ fontFamily: DISPLAY, fontSize: 17, ...num }}>{fmt(total(items, ex))}</span>
+          </div>
+          <Foot><Btn wide onClick={a.next}>Chọn giờ giao</Btn></Foot>
+        </>
+      );
+    },
+    (a) => (
+      <>
+        <H1 sub="Tập cuối Anh Trai Say Hi 20:00, Mai để mặc định giao sớm cho anh kịp nấu.">Supra giao lúc nào</H1>
+        <Slots value={a.d.slot || "18:00"} onPick={(v) => a.set({ slot: v })}
+          list={[{ t: "17:30", note: "còn 2 tài" }, { t: "18:00", note: "trống" }, { t: "18:30", note: "trống" }, { t: "19:00", full: true }, { t: "19:30", note: "trống" }, { t: "20:00", note: "muộn" }]} />
+        <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+      </>
+    ),
+    (a) => {
+      const tt = total(a.d.items || CART0, a.d.ex || {});
+      return (
+        <>
+          <H1 sub="Điểm WinX chỉ cộng ở hàng trong hệ nhà mình.">Giao tới đâu, trả bằng gì</H1>
+          <KV rows={[["Địa chỉ", "Zeit River · T1.02.06"], ["Siêu thị", "WinMart+ Thảo Điền · 1,4km"], ["Giao bởi", "Supra · " + (a.d.slot || "18:00")], ["Tổng", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"]]} />
+          <div style={{ marginTop: 12 }}>
+            <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })} items={[{ id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư 2.480.000đ" }, { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không tích điểm WinX", warn: true }]} />
+          </div>
+          <Foot><Btn wide onClick={a.next}>{a.d.src === "cod" ? "Đặt đơn" : "Trả " + fmt(tt)}</Btn></Foot>
+        </>
+      );
+    },
+    (a) => <FaceStep label={"Nhìn vào máy để trả " + fmt(total(a.d.items || CART0, a.d.ex || {}))} sub="WinMart+ · WinMoney" onDone={a.next} />,
+    (a) => (
+      <>
+        <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang chạy</H1>
+        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Shipper Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Đã giao", s: "18:02 · để ở cửa" }]} />
+        <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+      </>
+    ),
+    (a) => {
+      const tt = total(a.d.items || CART0, a.d.ex || {});
+      return (
+        <>
+          <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🍲</div></div>
+          <H1 sub="Mai lưu công thức bò kho vào hồ sơ, lần sau chỉ cần nói đặt lại là xong.">Đã giao 18:02</H1>
+          <KV rows={[["Tổng trả", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"], ["Lưu", "Công thức + giỏ hàng lặp lại"]]} />
+          <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
+        </>
+      );
+    },
+  ];
+};
+
+// 5 · VÉ CONCERT (7 bước)
+const flowTicket = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Đợt 2 hết trong 7 phút. Đợt 3 mở 20:00 thứ Sáu.">Đợt bán thứ 3</H1>
+      <KV rows={[["Mở bán", "20:00 · thứ Sáu 08/08", "amber"], ["Khu B", fmt(890000) + "/vé"], ["Giới hạn", "4 vé mỗi CCCD"], ["Quy định", "vé gắn CCCD, không sang tay ngoài app"]]} />
+      <Foot><Btn wide onClick={a.next}>Chọn vé</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai chỉ giữ ý định mua, chưa trừ tiền của anh.">Mấy vé, khu nào</H1>
+      <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Khu ngồi</div>
+      <Choice value={a.d.zone || "B"} onPick={(v) => a.set({ zone: v })}
+        items={[{ id: "A", t: "Khu A · sát sân khấu", s: "ít vé, hết nhanh", right: fmt(1490000) }, { id: "B", t: "Khu B · giữa", s: "đợt 3 còn nhiều", right: fmt(890000) }, { id: "C", t: "Khu C · trên cao", s: "gia đình hay chọn", right: fmt(590000) }]} />
+      <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, margin: "14px 0 8px" }}>Số vé</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "center", padding: "6px 0" }}>
+        <button onClick={() => a.set({ qty: Math.max(1, (a.d.qty || 2) - 1) })} className="btn" style={{ background: "#F1EBE1", color: T.ink, width: 40, height: 40, padding: 0, borderRadius: 999 }}><Minus size={15} /></button>
+        <span style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, minWidth: 46, textAlign: "center", ...num }}>{a.d.qty || 2}</span>
+        <button onClick={() => a.set({ qty: Math.min(4, (a.d.qty || 2) + 1) })} className="btn" style={{ background: T.brandSoft, color: T.brand, width: 40, height: 40, padding: 0, borderRadius: 999 }}><Plus size={15} /></button>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Gắn vé cho ai</Btn></Foot>
+    </>
+  ),
+  (a) => {
+    const q = a.d.qty || 2, who = a.d.who || { me: true, na: true };
+    const cnt = Object.values(who).filter(Boolean).length;
+    return (
+      <>
+        <H1 sub={"Vé gắn CCCD từng người, vào cổng quét mặt. Cần chọn đúng " + q + " người."}>Vé của ai</H1>
+        <div style={{ display: "grid", gap: 8 }}>
+          {[["me", "Anh", "CCCD ···· 4102"], ["vy", "Vy", "CCCD ···· 7781"], ["na", "Na · 12 tuổi", "định danh theo hộ chiếu"], ["bin", "Bin · 9 tuổi", "chưa đủ tuổi vào khu B", true]].map(([id, t, s, off]) => (
+            <Toggle key={id} on={!!who[id]} onTap={(v) => !off && a.set({ who: { ...who, [id]: v } })} t={t + (off ? " · không được" : "")} s={s} />
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: cnt === q ? T.green : T.amber, fontWeight: 650, marginTop: 10, ...num }}>Đã chọn {cnt}/{q} người</div>
+        <Foot><Btn wide onClick={a.next} style={{ opacity: cnt === q ? 1 : 0.5 }}>{cnt === q ? "Tiếp tục" : "Chọn đủ người đã"}</Btn></Foot>
+      </>
+    );
+  },
+  (a) => (
+    <>
+      <H1 sub="20:00 thứ Sáu anh đang ăn cơm với nhà, để Mai lo phần tay nhanh.">Mai canh giúp anh</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        <Toggle on={a.d.t1 !== false} onTap={(v) => a.set({ t1: v })} t="Nhắc lúc 19:55" s="rung máy + báo trước 5 phút" />
+        <Toggle on={a.d.t2 !== false} onTap={(v) => a.set({ t2: v })} t="Tự mở trang đặt vé đúng 20:00" s="Mai mở sẵn, anh chỉ bấm xác nhận" />
+        <Toggle on={a.d.t3 !== false} onTap={(v) => a.set({ t3: v })} t="Điền sẵn CCCD từng người" s="khỏi gõ lại lúc tranh vé" />
+        <Toggle on={!!a.d.t4} onTap={(v) => a.set({ t4: v })} t="Nhắc cả Vy" s="hai máy tranh vé cùng lúc" />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xác nhận kế hoạch</Btn></Foot>
+    </>
+  ),
+  (a) => <FaceStep label="Xác nhận ý định mua vé" sub="Chưa trừ tiền · chỉ ghi CCCD để điền sẵn" onDone={a.next} />,
+  (a) => {
+    const q = a.d.qty || 2, zone = a.d.zone || "B";
+    const price = { A: 1490000, B: 890000, C: 590000 }[zone];
+    return (
+      <>
+        <H1 sub="Còn 2 ngày 4 giờ. Mai đếm ngược và tự mở trang lúc 20:00.">Mai đang canh</H1>
+        <div style={{ background: T.brandSoft, border: "1px solid #F0DCCD", borderRadius: 16, padding: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Mark size={30} alive />
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>Đang canh đợt 3</div>
+              <div style={{ fontSize: 11.5, color: T.brandInk, ...num }}>20:00 thứ Sáu · {q} vé khu {zone} · {fmt(price * q)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 12, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Vé của anh sẽ trông như vậy</div>
+        <div style={{ background: T.dark, borderRadius: 16, padding: 14, color: "#FFFDF9" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ width: 54, height: 54, borderRadius: 10, background: "#FFFDF9", display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, padding: 4, flexShrink: 0 }}>
+              {Array.from({ length: 25 }).map((_, i) => <span key={i} style={{ background: (i * 7) % 3 ? T.dark : "transparent", borderRadius: 1 }} />)}
+            </div>
+            <div>
+              <div style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 600 }}>Anh Trai Say Hi · Concert 5</div>
+              <div style={{ fontSize: 11.5, opacity: 0.75, marginTop: 3, ...num }}>Khu {zone} · gắn CCCD ···· 4102</div>
+              <div style={{ fontSize: 10.5, opacity: 0.6, marginTop: 3 }}>vào cổng quét mặt · không sang tay ngoài app</div>
+            </div>
+          </div>
+        </div>
+        <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+      </>
+    );
+  },
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><div style={{ fontSize: 38 }}>🎤</div></div>
+      <H1 sub="Mai đã lưu kế hoạch vào hồ sơ nhà mình. Nếu đợt 3 hết trước khi anh bấm, Mai tự xếp anh vào danh sách chờ đợt 4.">Đã đặt lịch tranh vé</H1>
+      <KV rows={[["Nhắc", "19:55 thứ Sáu" + (a.d.t4 ? " · cả Vy" : "")], ["Tự mở trang", a.d.t2 === false ? "không" : "có · đúng 20:00"], ["CCCD điền sẵn", a.d.t3 === false ? "không" : "có"], ["Nếu hết vé", "vào danh sách chờ đợt 4", "green"]]} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
+    </>
+  ),
+];
+
+// 6 · SANG NHƯỢNG VÉ · ESCROW (6 bước)
+const flowResale = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Trong kênh ai bán cũng phải định danh. Đây là hồ sơ chị Ngân.">Người bán là ai</H1>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "4px 0 12px" }}>
+        <span style={{ width: 52, height: 52, borderRadius: 18, background: "#B85C7A", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>N</span>
+        <div>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: T.ink, display: "flex", alignItems: "center", gap: 5 }}>chị Ngân <BadgeCheck size={15} color={T.green} /></div>
+          <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>định danh CCCD · tham gia 2 năm</div>
+        </div>
+      </div>
+      <KV rows={[["Giao dịch trong kênh", "3 lần · không tranh chấp", "green"], ["Đánh giá", "5,0 · 3 lượt"], ["Cùng khu", "Thảo Điền · 2,1km"]]} />
+      <Foot><Btn wide onClick={a.next}>Xem vé</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Vé đang gắn CCCD chị Ngân, sẽ sang tên CCCD anh khi giao dịch xong.">2 vé khu B</H1>
+      <Thumb from="#4A3B6B" to="#1B1430" emoji="🎟️" h={90} />
+      <div style={{ marginTop: 10 }}><KV rows={[["Số vé", "2 vé liền nhau · B12-13"], ["Giá gốc", fmt(890000) + "/vé"], ["Chị Ngân bán", "đúng giá gốc · không chênh", "green"], ["Tổng", fmt(1780000)], ["Sang tên", "qua app · phí 0đ"]]} /></div>
+      <Foot><Btn wide onClick={a.next}>Hỏi chị Ngân</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Chat trong app để có lịch sử nếu sau này tranh chấp.">Nhắn nhanh</H1>
+      <div style={{ maxHeight: 210, overflowY: "auto" }}>
+        <Msg m={{ from: "o", name: "chị Ngân", text: "Vé còn nha anh, em bận đi công tác đột xuất nên bán lại đúng giá." }} />
+        {a.d.q1 && <Msg m={{ from: "vy", text: "Hai vé liền nhau đúng không chị?" }} />}
+        {a.d.q1 && <Msg m={{ from: "o", name: "chị Ngân", text: "Dạ B12 với B13, liền nhau. Anh cọc qua app là em sang tên liền." }} />}
+      </div>
+      {!a.d.q1 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <Btn kind="soft" onClick={() => a.set({ q1: true })}>Hai vé liền nhau không chị?</Btn>
+        </div>
+      )}
+      <Foot><Btn wide onClick={a.next}>Đặt cọc qua WinMoney</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Tiền nằm trong WinMoney, chị Ngân không lấy được cho tới khi vé về CCCD của anh.">Giữ tiền hộ hai bên</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: 13, fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
+        WinMoney giữ <b>1.780.000đ</b>. Vé sang tên xong, hệ thống mới giải ngân cho chị Ngân. Nếu 24 giờ không sang tên được, tiền tự về ví anh.
+      </div>
+      <div style={{ marginTop: 12 }}><KV rows={[["Số tiền giữ", fmt(1780000)], ["Phí giữ hộ", "0đ"], ["Hoàn tự động", "sau 24 giờ nếu lỗi", "green"]]} /></div>
+      <Foot><Btn wide onClick={a.next}>Quét mặt để đặt cọc</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai theo tới lúc vé về tên anh.">Đang sang tên</H1>
+      <Track speed={1200} steps={[{ t: "Đã cọc · WinMoney giữ tiền", s: fmt(1780000) }, { t: "Chị Ngân xác nhận nhả vé", s: "15:46" }, { t: "Đơn vị bán vé sang tên", s: "B12-13 → CCCD ···· 4102" }, { t: "Giải ngân cho chị Ngân", s: "15:48 · xong" }]} />
+      <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🎟️</div></div>
+      <H1 sub="Vé đã nằm trong hồ sơ nhà mình, vào cổng quét mặt anh và Vy.">Vé về tên anh rồi</H1>
+      <KV rows={[["Vé", "B12 · anh · B13 · Vy"], ["Đã trả", fmt(1780000)], ["Mã giao dịch", "m_esc_4TQ71B"], ["Lưu tại", "Hồ sơ · vé & sự kiện", "green"]]} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
+    </>
+  ),
+];
+
+// 7 · ĐĂNG KIỂM (6 bước) · ngoài hệ Masan, Mai vẫn làm
+const flowInspect = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Mai đọc từ ảnh giấy đăng kiểm anh chụp tháng 9 năm ngoái.">Xe của anh</H1>
+      <KV rows={[["Biển số", "51K-238.19"], ["Xe", "Mazda CX-5 · 2021"], ["Hạn đăng kiểm", "12/09/2026 · còn 37 ngày", "amber"], ["Quá hạn", "phạt 4–6 triệu · mất bảo hiểm", "amber"], ["Bảo hiểm TNDS", "còn hạn tới 03/2027", "green"]]} />
+      <Foot><Btn wide onClick={a.next}>Chọn trung tâm</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai lấy thời gian chờ trung bình từ bài của anh Tuấn trong kênh Vietnam Cars.">Đi đâu cho nhanh</H1>
+      <Choice value={a.d.center || "07v"} onPick={(v) => a.set({ center: v })}
+        items={[
+          { id: "07v", Icon: MapPin, t: "TT 50-07V · Bình Thạnh", s: "4,2km · chờ ~20 phút sáng thứ Ba", right: "4,2km" },
+          { id: "05s", Icon: MapPin, t: "TT 50-05S · Quận 7", s: "7,8km · chờ ~1 tiếng, đông", right: "7,8km", warn: true },
+          { id: "03v", Icon: MapPin, t: "TT 50-03V · Thủ Đức", s: "11km · vắng nhưng xa", right: "11km" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Chọn giờ</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mẹo trong kênh: sáng thứ Ba vắng nhất, tránh cuối tháng.">Sáng thứ Ba 12/08</H1>
+      <Slots value={a.d.slot || "07:30"} onPick={(v) => a.set({ slot: v })}
+        list={[{ t: "07:30", note: "vắng nhất" }, { t: "08:00", note: "vừa" }, { t: "08:30", note: "vừa" }, { t: "09:00", note: "đông" }, { t: "09:30", full: true }, { t: "10:00", note: "đông" }]} />
+      <div style={{ marginTop: 12, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>
+        Anh có họp 10:00 thứ Ba. Chọn 07:30 thì kịp về, Mai đã đối chiếu lịch.
+      </div>
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai kiểm trong hồ sơ nhà mình, thiếu gì Mai nói luôn.">Cần mang gì</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        {[["Đăng ký xe", "đã có ảnh trong hồ sơ", true], ["Bảo hiểm TNDS", "còn hạn tới 03/2027", true], ["CCCD của anh", "định danh sẵn trong app", true], ["Tiền phí ~340.000đ", "Mai nhắc mang tiền mặt, TT này chưa nhận chuyển khoản", false]].map(([t, s, ok]) => (
+          <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
+            <IconSq Icon={ok ? Check : CircleAlert} tint={ok ? T.greenBg : T.amberBg} color={ok ? T.green : T.amber} size={28} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink }}>{t}</div>
+              <div style={{ fontSize: 11.5, color: ok ? T.sub : T.amber, marginTop: 2 }}>{s}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Đặt lịch</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Trung tâm đăng kiểm không thuộc Masan, nên không có điểm WinX. Mai vẫn làm vì đây là việc của anh.">Xác nhận</H1>
+      <KV rows={[["Trung tâm", a.d.center === "05s" ? "50-05S · Quận 7" : a.d.center === "03v" ? "50-03V · Thủ Đức" : "50-07V · Bình Thạnh"], ["Giờ", (a.d.slot || "07:30") + " · thứ Ba 12/08"], ["Xe", "51K-238.19"], ["Phí", "~340.000đ trả tại chỗ"], ["Điểm WinX", "không có · ngoài hệ"]]} />
+      <div style={{ marginTop: 12 }}>
+        <Toggle on={a.d.rm !== false} onTap={(v) => a.set({ rm: v })} t="Nhắc hai lần" s="19:00 thứ Hai soạn giấy tờ · 06:45 thứ Ba trước khi đi" />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Chốt lịch</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🚗</div></div>
+      <H1 sub="Mai đã vào lịch anh và cập nhật hồ sơ xe. Xong đăng kiểm, anh chụp giấy mới, Mai tự đọc và đặt hạn 2028.">Đặt xong</H1>
+      <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px" }}>
+        <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.4 }}>LỊCH CỦA ANH</div>
+        <div style={{ fontSize: 14, fontWeight: 650, color: T.ink, marginTop: 4, ...num }}>{a.d.slot || "07:30"} thứ Ba 12/08 · Đăng kiểm 51K-238.19</div>
+        <div style={{ fontSize: 11.5, color: T.sub, marginTop: 3 }}>{a.d.center === "05s" ? "50-05S Quận 7" : a.d.center === "03v" ? "50-03V Thủ Đức" : "50-07V Bình Thạnh"} · nhắc trước 1 ngày</div>
+      </div>
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
+    </>
+  ),
+];
+
+// 8 · CUỘC GỌI GIẢ (6 bước)
+const flowCall = (finish) => [
+  (a) => (
+    <AutoNext ms={1900} onDone={a.next}>
+      <div style={{ textAlign: "center", padding: "10px 0 4px" }}>
+        <div style={{ fontSize: 10.5, fontWeight: 750, letterSpacing: 0.8, color: T.faint, marginBottom: 14 }}>VÍ DỤ · TÍNH NĂNG CHẶN GIẢ MẠO</div>
+        <div style={{ width: 92, height: 92, borderRadius: 28, margin: "0 auto", background: "#F1EBE1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, position: "relative", overflow: "hidden" }}>
+          👧<div className="scan" />
+        </div>
+        <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, marginTop: 12 }}>Na · gọi video</div>
+        <div style={{ fontSize: 13, color: T.sub, marginTop: 6 }}>Mai đang đối chiếu khuôn mặt và giọng…</div>
+      </div>
+    </AutoNext>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <div style={{ width: 92, height: 92, borderRadius: 28, margin: "0 auto", background: "#F1EBE1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, border: `3px solid ${T.red}`, filter: "grayscale(1)" }}>👧</div>
+        <div style={{ marginTop: 12 }}><Pill tone="red"><ShieldAlert size={11} /> Không phải Na thật</Pill></div>
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {[["Số gọi", "+84 39x xxx x21 · số lạ, không có trong nhà mình"], ["Khuôn mặt", "không khớp định danh của Na"], ["Vị trí Na", "đang ở lớp bơi theo lịch · 16:30 mới tan"]].map(([k, v]) => (
+          <div key={k} style={{ background: T.redBg, borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 750, color: T.red, letterSpacing: 0.3 }}>{k.toUpperCase()}</div>
+            <div style={{ fontSize: 13, color: T.ink, marginTop: 2 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Anh quyết</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai không tự cúp máy. Nếu thật là Na gọi từ máy bạn thì anh vẫn nghe được.">Nghe hay từ chối</H1>
+      <Choice value={a.d.act || "listen"} onPick={(v) => a.set({ act: v })}
+        items={[{ id: "reject", Icon: PhoneOff, t: "Từ chối cuộc gọi", s: "Mai chặn số này cho cả nhà" }, { id: "listen", Icon: Phone, t: "Nghe nhưng cẩn thận", s: "Mai ghi âm và cảnh báo trong lúc nghe" }]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      {a.d.act === "reject" ? (
+        <>
+          <H1 sub="Cuộc gọi bị chặn trước khi đổ chuông lần hai.">Đã từ chối</H1>
+          <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px", fontSize: 13, color: T.ink, lineHeight: 1.6 }}>
+            Mai giữ lại 6 giây đầu để anh nghe thử nếu muốn xác minh sau.
+          </div>
+        </>
+      ) : (
+        <>
+          <H1 sub="Mai bật cảnh báo trên màn hình trong suốt cuộc gọi.">Đang nghe · 0:24</H1>
+          <div style={{ background: T.redBg, border: `1px solid #F3C9C4`, borderRadius: 14, padding: "12px 13px" }}>
+            <div style={{ fontSize: 11, fontWeight: 750, color: T.red, letterSpacing: 0.3 }}>MAI ĐANG CẢNH BÁO</div>
+            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 5, lineHeight: 1.6 }}>Đừng đọc mã OTP · đừng chuyển tiền · hỏi một chuyện chỉ Na biết</div>
+          </div>
+          <div style={{ marginTop: 10 }}><Evidence Icon={Mic} color={T.red} src="Bản ghi · chỉ anh nghe được" time="0:24" text="“Ba ơi con làm mất điện thoại, ba chuyển giùm con 8.500.000đ vào số này…”" /></div>
+        </>
+      )}
+      <Foot><Btn wide onClick={a.next}>{a.d.act === "reject" ? "Xem Mai phân tích" : "Cúp máy"}</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai so giọng với 41 đoạn giọng Na trong két ký ức.">Mai phân tích</H1>
+      <KV rows={[["Giọng", "ghép máy · lệch ở âm đuôi", "amber"], ["Kịch bản", "mất điện thoại → xin chuyển tiền"], ["Số tiền yêu cầu", fmt(8500000), "amber"], ["Số nhận tiền", "đã xuất hiện 12 vụ tương tự", "amber"], ["Kết luận", "gần như chắc chắn giả mạo", "amber"]]} />
+      <Foot><Btn wide onClick={a.next}><Flag size={13} style={{ marginRight: 6, verticalAlign: -2 }} />Báo cáo số này</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><div style={{ fontSize: 38 }}>🛡️</div></div>
+      <H1 sub="Một người trong nhà bị thử là cả nhà được bảo vệ.">Đã chặn cho cả nhà</H1>
+      <KV rows={[["Chặn cho", "anh · Vy · Na · Bin"], ["Gửi cảnh báo", "kênh Nhà mình + 214k thành viên kênh"], ["Báo cơ quan", "đã gửi kèm bản ghi", "green"], ["Nhắc Na", "Mai dạy Na câu mật khẩu gia đình", "green"]]} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
+// ————— bài kênh: chi tiết + bình luận + hồ sơ người đăng —————
+const PostSheet = ({ post, onClose, onAuthor, onAct }) => {
+  const [rep, setRep] = useState("");
+  const [sent, setSent] = useState([]);
+  const [up, setUp] = useState(false);
+  return (
+    <Sheet onClose={onClose} tall>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <button onClick={onClose} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}><X size={15} color={T.sub} /></button>
+        <span style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>{post.ch.toUpperCase()}</span>
+      </div>
+      {post.hero && <Thumb {...post.hero} h={140} />}
+      <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3, lineHeight: 1.3, marginTop: post.hero ? 12 : 0 }}>{post.title}</div>
+      {post.body && <div style={{ fontSize: 14, color: T.sub, marginTop: 7, lineHeight: 1.6 }}>{post.body}</div>}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, paddingBottom: 12, borderBottom: `1px solid ${T.hair}` }}>
+        <button onClick={() => { setUp(!up); ding(); }} className="btn" style={{ background: up ? T.brandSoft : "#F1EBE1", color: up ? T.brand : T.sub, display: "flex", alignItems: "center", gap: 5 }}>
+          <ArrowBigUp size={16} fill={up ? T.brand : "none"} className={up ? "pop" : ""} /> {post.up + (up ? 1 : 0)}
+        </button>
+        <button onClick={onAuthor} className="btn press" style={{ background: "none", color: T.brandInk, textDecoration: "underline", padding: 0, fontSize: 12.5 }}>{post.who}</button>
+        <span style={{ fontSize: 11.5, color: T.faint, ...num }}>· {post.when}</span>
+      </div>
+      {post.act && <div style={{ marginTop: 12 }}><MaiBanner text={post.act.text} cta={post.act.cta} onTap={onAct} /></div>}
+      <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6, margin: "14px 0 8px" }}>BÌNH LUẬN</div>
+      {post.comments.map((c, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${T.hair}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 11, background: c.bg, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{c.who[0].toUpperCase()}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 650, color: T.ink }}>{c.who}</span>
+              {c.ver && <BadgeCheck size={12} color={T.green} />}
+              <span style={{ fontSize: 11, color: T.faint, marginLeft: "auto", ...num }}>{c.when}</span>
+            </div>
+            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 3, lineHeight: 1.5 }}>{c.text}</div>
+          </div>
+        </div>
+      ))}
+      {sent.map((s, i) => (
+        <div key={"s" + i} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${T.hair}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 11, background: T.dark, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>A</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 650, color: T.ink, display: "flex", alignItems: "center", gap: 5 }}>anh <BadgeCheck size={12} color={T.green} /></div>
+            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 3 }}>{s}</div>
+          </div>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+        <input value={rep} onChange={(e) => setRep(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && rep.trim()) { setSent([...sent, rep.trim()]); setRep(""); ding(); } }}
+          placeholder="Viết bình luận…" style={{ flex: 1, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "11px 15px", fontSize: 14, fontFamily: FONT, outline: "none", background: T.bg, color: T.ink, minWidth: 0 }} />
+        <button onClick={() => { if (rep.trim()) { setSent([...sent, rep.trim()]); setRep(""); ding(); } }} className="btn" style={{ background: rep.trim() ? T.brand : "#E4DCCE", color: "#FFFDF9", borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowUp size={16} strokeWidth={2.6} />
+        </button>
+      </div>
+      <div style={{ fontSize: 11, color: T.faint, marginTop: 9 }}>Bình luận gắn định danh của anh · kênh không có nick ảo</div>
+    </Sheet>
+  );
+};
+
+const ProfileSheet = ({ p, onClose }) => (
+  <Sheet onClose={onClose}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+      <button onClick={onClose} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}><X size={15} color={T.sub} /></button>
+      <span style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>HỒ SƠ NGƯỜI ĐĂNG</span>
+    </div>
+    <div style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: 12 }}>
+      <span style={{ width: 52, height: 52, borderRadius: 18, background: p.bg, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>{p.who[0].toUpperCase()}</span>
+      <div>
+        <div style={{ fontSize: 15.5, fontWeight: 700, color: T.ink, display: "flex", alignItems: "center", gap: 5 }}>{p.who} <BadgeCheck size={15} color={T.green} /></div>
+        <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>{p.sub}</div>
+      </div>
+    </div>
+    <KV rows={p.rows} />
+    <div style={{ fontSize: 11.5, color: T.faint, marginTop: 12, lineHeight: 1.5 }}>Mọi người trong kênh đều định danh CCCD. Không có nick ảo, không cày phiếu, không bán hàng nặc danh.</div>
+    <Foot><Btn kind="soft" wide onClick={onClose}>Đóng</Btn></Foot>
+  </Sheet>
+);
+
+// ————— hồ sơ nhà mình + chi tiết từng giấy tờ —————
+const FILES = [
+  { id: "dk", Icon: Car, t: "Đăng kiểm ô tô", v: "hạn 12/09", tone: "amber", warn: "Quá hạn: phạt tới 6.000.000đ",
+    detail: { h: "Đăng kiểm 51K-238.19", s: "Mai đọc từ ảnh giấy anh chụp 09/2025.", rows: [["Xe", "Mazda CX-5 · 2021"], ["Hạn", "12/09/2026 · còn 37 ngày", "amber"], ["Lần trước", "12/09/2025 · TT 50-07V"], ["Chu kỳ", "12 tháng"], ["Nguồn", "ảnh giấy đăng kiểm"]], cta: "Đặt lịch đăng kiểm", flow: "inspect" } },
+  { id: "hc", Icon: BadgeCheck, t: "Hộ chiếu Na", v: "hết hạn 03/2027",
+    detail: { h: "Hộ chiếu · Nguyễn Thị Na", s: "Còn 7 tháng. Trường hay xin bản sao đầu năm học.", rows: [["Số", "C·····719"], ["Hết hạn", "03/2027"], ["Cấp tại", "PA08 TP.HCM"], ["Bản sao", "2 bản trong hồ sơ"], ["Nguồn", "ảnh anh chụp 01/2026"]], cta: "Nhắc gia hạn trước 6 tháng", done: "Mai sẽ nhắc 09/2026" } },
+  { id: "tc", Icon: Syringe, t: "Tiêm chủng Bin & Na", v: "đủ mũi ✓", tone: "green",
+    detail: { h: "Sổ tiêm chủng", s: "Mai gom từ sổ giấy anh chụp và tin nhắn trạm y tế.", rows: [["Bin", "đủ mũi theo tuổi 9"], ["Na", "đủ mũi theo tuổi 12"], ["HPV Na", "khuyến nghị 12–14 tuổi", "amber"], ["Mũi gần nhất", "cúm · 11/2025"], ["Nguồn", "sổ giấy + SMS trạm y tế"]], cta: "Hỏi Mai về mũi HPV", ask: "Na 12 tuổi rồi, mũi HPV nên tiêm khi nào và ở đâu?" } },
+  { id: "hp", Icon: GraduationCap, t: "Học phí quý 3", v: "đã trả ✓", tone: "green",
+    detail: { h: "Học phí quý 3 · hai bé", s: "Đã trả đủ, biên lai lưu trong hồ sơ.", rows: [["Bin · TH Lê Lợi", fmt(4200000) + " ✓", "green"], ["Na · THCS Trần Phú", fmt(5100000) + " ✓", "green"], ["Ngày trả", "02/07 · WinMoney"], ["Quý 4", "Mai nhắc 25/09"], ["Biên lai", "2 bản trong hồ sơ"]], cta: "Xem biên lai" } },
+  { id: "ve", Icon: Ticket, t: "Vé & sự kiện", v: "1 kế hoạch",
+    detail: { h: "Vé & sự kiện", s: "Vé gắn CCCD, vào cổng quét mặt.", rows: [["Concert 5", "đang canh đợt 3 · 20:00 thứ Sáu", "amber"], ["Họp phụ huynh Na", "19:00 · 15/08"], ["Giỗ Ông", "thứ Bảy 09/08"], ["Dã ngoại Na", "thứ Sáu 08/08"]], cta: "Xem kênh Anh Trai Say Hi", goto: "atsh" } },
+  { id: "dien", Icon: Zap, t: "Điện tháng 7", v: fmt(1240000) + " ✓", tone: "green",
+    detail: { h: "Điện · tháng 7", s: "Mai đọc từ email EVN và trả tự động khi anh cho phép.", rows: [["Số tiền", fmt(1240000) + " ✓", "green"], ["Kỳ", "01/07–31/07"], ["So tháng 6", "+8% · trời nóng"], ["Tự động trả", "đang bật"], ["Kỳ tới", "Mai trả ngày 12/08"]], cta: "Tắt tự động trả" } },
+];
+
+const FileSheet = ({ f, onClose, onFlow, onGoto, onAsk }) => {
+  const [done, setDone] = useState(false);
+  const d = f.detail;
+  return (
+    <Sheet onClose={onClose} tall>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <button onClick={onClose} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}><ChevronLeft size={15} color={T.sub} /></button>
+        <span style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>HỒ SƠ NHÀ MÌNH</span>
+      </div>
+      <div style={{ display: "flex", gap: 11, alignItems: "center", marginBottom: 12 }}>
+        <IconSq Icon={f.Icon} tint={f.tone === "amber" ? T.amberBg : f.tone === "green" ? T.greenBg : "#F1EBE1"} color={f.tone === "amber" ? T.amber : f.tone === "green" ? T.green : T.sub} size={42} />
+        <div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, color: T.ink, letterSpacing: -0.2 }}>{d.h}</div>
+          <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{d.s}</div>
+        </div>
+      </div>
+      <KV rows={d.rows} />
+      {f.detail.cta && (
+        <Foot>
+          {done ? (
+            <div style={{ flex: 1, background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 12, padding: "12px 14px", fontSize: 13, color: "#14603C", fontWeight: 650 }}>{d.done || "Đã ghi nhận"}</div>
+          ) : (
+            <Btn wide onClick={() => {
+              ding();
+              if (d.flow) { onFlow(d.flow); return; }
+              if (d.goto) { onGoto(d.goto); return; }
+              if (d.ask) { onAsk(d.ask); return; }
+              setDone(true);
+            }}>{d.cta}</Btn>
+          )}
+        </Foot>
+      )}
+    </Sheet>
+  );
+};
+
+// ————— dữ liệu bài kênh —————
+const POSTS = {
+  cars: [
+    { id: "c1", ch: "Vietnam Cars", up: 214, title: "Đăng kiểm Q2: sáng thứ Ba vắng nhất, 20 phút là xong", body: "Trung tâm 50-07V, tới trước 7:30. Tránh cuối tháng, cuối tháng xe tải dồn về đông lắm.", hero: { from: "#3A4A6B", to: "#141C30", emoji: "🚗" }, who: "anh Tuấn", when: "2 giờ trước", bg: "#3A4A6B",
+      act: { text: "Xe anh hạn 12/09 · trống sáng thứ Ba 12/08, 7:30", cta: "Đặt lịch", flow: "inspect" },
+      comments: [{ who: "chú Bình", when: "1 giờ", text: "Xác nhận, tuần trước em đi 7:20 xong lúc 7:45.", ver: true, bg: "#4A5568" }, { who: "anh Khoa", when: "48 phút", text: "50-05S đông kinh khủng, chờ hơn tiếng.", ver: true, bg: "#7A5CB8" }, { who: "chị Hà", when: "20 phút", text: "Nhớ mang bảo hiểm TNDS còn hạn nha mọi người.", ver: true, bg: "#B85C7A" }],
+      profile: { who: "anh Tuấn", bg: "#3A4A6B", sub: "định danh CCCD · tham gia 3 năm", rows: [["Bài đăng", "128 bài"], ["Được ủng hộ", "14,2k"], ["Chuyên", "đăng kiểm, bảo dưỡng"], ["Xe", "Mazda 3 · 2019"], ["Giao dịch mua bán", "9 lần · không tranh chấp", "green"]] } },
+    { id: "c2", ch: "Vietnam Cars", up: 89, title: "Pass cảm biến áp suất lốp, còn bảo hành 8 tháng · 450.000đ", body: "Mua dư một bộ, chưa bóc seal. Ưu tiên anh em Thảo Điền qua lấy.", thumb: { from: "#4A5568", to: "#1F2733", emoji: "🛞" }, who: "chú Bình", when: "5 giờ trước", bg: "#4A5568",
+      act: { text: "Người bán định danh ✓ · WinMoney giữ tiền tới khi anh nhận hàng", cta: "Mua", flow: "resale" },
+      comments: [{ who: "anh Dũng", when: "3 giờ", text: "Còn không chú? Cháu ở Bình Thạnh.", ver: true, bg: "#2C9E8F" }, { who: "chú Bình", when: "2 giờ", text: "Còn nha, qua app đặt cọc là chú giữ cho.", ver: true, bg: "#4A5568" }],
+      profile: { who: "chú Bình", bg: "#4A5568", sub: "định danh CCCD · tham gia 2 năm", rows: [["Bài đăng", "41 bài"], ["Mua bán", "17 lần · 5,0 sao", "green"], ["Khu vực", "Thảo Điền"], ["Trả hàng", "0 lần"]] } },
+    { id: "c3", ch: "Vietnam Cars", up: 41, title: "Xăng E10 có hại xe đời 2015 không các bác?", who: "anh Khoa", when: "5 giờ trước", bg: "#7A5CB8",
+      comments: [{ who: "anh Tuấn", when: "4 giờ", text: "Xe từ 2010 trở lên dùng E10 bình thường, hãng xác nhận rồi.", ver: true, bg: "#3A4A6B" }, { who: "chú Sáu", when: "2 giờ", text: "Em chạy 2 năm E10 chưa thấy gì.", ver: true, bg: "#2C9E8F" }],
+      profile: { who: "anh Khoa", bg: "#7A5CB8", sub: "định danh CCCD · tham gia 1 năm", rows: [["Bài đăng", "23 bài"], ["Được ủng hộ", "1,1k"], ["Xe", "Toyota Vios · 2015"]] } },
+  ],
+  com: [
+    { id: "m1", ch: "Cơm tối 30 phút", up: 462, title: "Bò kho nồi áp suất 30 phút, 6 nguyên liệu", body: "Bí quyết: gia vị bò kho Chin-su pha sẵn + 15 phút áp suất. Con nít húp sạch nồi.", hero: { from: "#8A4630", to: "#3A1B12", emoji: "🍲" }, who: "mẹ Su", when: "hôm nay", bg: "#B4531F",
+      act: { text: "Nhà 4 người · WinMart+ Thảo Điền · Supra giao 18:00", cta: "Đặt 186k", flow: "cart" },
+      comments: [{ who: "chị Trang", when: "2 giờ", text: "Làm tối qua, chồng em ăn ba bát cơm.", ver: true, bg: "#B85C7A" }, { who: "anh Phú", when: "1 giờ", text: "Cho thêm chút sả nữa là thơm hết bếp.", ver: true, bg: "#2C9E8F" }, { who: "mẹ Su", when: "40 phút", text: "Đúng rồi ạ, sả đập dập chứ đừng cắt nhỏ.", ver: true, bg: "#B4531F" }],
+      profile: { who: "mẹ Su", bg: "#B4531F", sub: "định danh CCCD · tham gia 2 năm", rows: [["Bài đăng", "212 công thức"], ["Được ủng hộ", "38,4k"], ["Chuyên", "cơm tối nhanh cho nhà có con nhỏ"], ["Được đặt lại", "1.204 lần qua WinMart+", "green"]] } },
+    { id: "m2", ch: "Cơm tối 30 phút", up: 175, title: "Canh chua cá lóc kiểu miền Tây, 25 phút", body: "Cá lóc đồng, me chín, bạc hà. Đừng cho dứa nhiều quá.", thumb: { from: "#3E8E63", to: "#1B4530", emoji: "🥘" }, who: "cô Sáu Cà Mau", when: "hôm qua", bg: "#3E8E63",
+      comments: [{ who: "chị Ngân", when: "20 giờ", text: "Cô Sáu ơi cá lóc mua ở đâu tươi ạ?", ver: true, bg: "#B85C7A" }, { who: "cô Sáu Cà Mau", when: "18 giờ", text: "Ra WinMart+ mua cá đồng, sáng nào cũng có.", ver: true, bg: "#3E8E63" }],
+      profile: { who: "cô Sáu Cà Mau", bg: "#3E8E63", sub: "định danh CCCD · Cà Mau", rows: [["Bài đăng", "96 công thức"], ["Được ủng hộ", "12,8k"], ["Chuyên", "món miền Tây"]] } },
+  ],
+  atsh: [
+    { id: "a1", ch: "Anh Trai Say Hi", up: 2140, title: "Tập cuối tối nay 20:00 · nhà ai xem chung điểm danh", body: "Năm ngoái coi một mình, năm nay rủ được cả nhà. Ai ở HCM tính đi concert luôn không?", hero: { from: "#7B2FA8", to: "#1A0B2E", emoji: "🎤" }, who: "bé Ngọc", when: "1 giờ trước", bg: "#7B2FA8",
+      act: { text: "Nhà 4 người xem chung 20:00 · combo snack WinMart+ · Supra giao trước 19:30", cta: "Đặt", flow: "cart" },
+      comments: [{ who: "chị Trang", when: "50 phút", text: "Nhà em coi chung, tối nay đặt gà rán với bắp rang.", ver: true, bg: "#B85C7A" }, { who: "anh Khoa", when: "35 phút", text: "Điểm danh. Ai đi concert lập nhóm đi chung xe không?", ver: true, bg: "#7A5CB8" }, { who: "bé Ngọc", when: "12 phút", text: "Em lập rồi nha, ai muốn vào thì nhắn em.", ver: true, bg: "#7B2FA8" }],
+      profile: { who: "bé Ngọc", bg: "#7B2FA8", sub: "định danh CCCD · 22 tuổi · TP.HCM", rows: [["Bài đăng", "84 bài"], ["Được ủng hộ", "31,2k"], ["Đã đi", "3 concert · vé chính chủ", "green"], ["Bình chọn", "1 phiếu mỗi tập · không cày"]] } },
+    { id: "a2", ch: "Anh Trai Say Hi", up: 876, title: "Vé concert đợt 3 mở bán 20:00 thứ Sáu, khu B còn nhiều", body: "Đợt 2 hết trong 7 phút. Nhớ đăng nhập sẵn trước 5 phút, điền sẵn CCCD.", hero: { from: "#1E3A8A", to: "#0B1533", emoji: "🎫" }, who: "anh Khoa", when: "3 giờ trước", bg: "#1E3A8A",
+      act: { text: "Mai canh giờ mở bán và điền sẵn CCCD cả nhà", cta: "Để Mai canh", flow: "ticket" },
+      comments: [{ who: "chị Ngân", when: "2 giờ", text: "Đợt 2 em bấm chậm 20 giây là hết.", ver: true, bg: "#B85C7A" }, { who: "bé Ngọc", when: "1 giờ", text: "Vé gắn CCCD nên phe vé hết đường ôm rồi, mừng.", ver: true, bg: "#7B2FA8" }],
+      profile: { who: "anh Khoa", bg: "#1E3A8A", sub: "định danh CCCD · quản trị viên kênh", rows: [["Bài đăng", "156 bài"], ["Được ủng hộ", "42,7k"], ["Vai trò", "quản trị · kiểm tin vé giả"], ["Đã chặn", "38 tin vé giả", "green"]] } },
+    { id: "a3", ch: "Anh Trai Say Hi", up: 312, title: "Sang lại 2 vé khu B đúng giá gốc, bận việc đột xuất", body: "B12-13 liền nhau. Em bán đúng giá, không chênh một đồng.", thumb: { from: "#4A3B6B", to: "#1B1430", emoji: "🎟️" }, who: "chị Ngân", when: "40 phút trước", bg: "#B85C7A",
+      act: { text: "Người bán định danh ✓ · WinMoney giữ tiền tới khi vé sang tên xong", cta: "Mua", flow: "resale" },
+      comments: [{ who: "anh Khoa", when: "30 phút", text: "Quản trị xác nhận vé thật, gắn CCCD chị Ngân.", ver: true, bg: "#1E3A8A" }, { who: "bé Ngọc", when: "18 phút", text: "Anh nào lấy nhanh đi, giá gốc khó gặp lắm.", ver: true, bg: "#7B2FA8" }],
+      profile: { who: "chị Ngân", bg: "#B85C7A", sub: "định danh CCCD · tham gia 2 năm", rows: [["Bài đăng", "37 bài"], ["Giao dịch", "3 lần · 5,0 sao", "green"], ["Khu vực", "Thảo Điền · 2,1km"], ["Tranh chấp", "0 lần"]] } },
+    { id: "a4", ch: "Anh Trai Say Hi", up: 1204, title: "Bình chọn tập cuối: mỗi CCCD một phiếu", body: "Không cày phiếu ảo, không mua vote. Ai cũng thật thì kết quả mới thật.", who: "ban quản trị kênh", when: "hôm nay", bg: "#2C2822",
+      comments: [{ who: "chị Trang", when: "4 giờ", text: "Cuối cùng cũng có chỗ bình chọn tử tế.", ver: true, bg: "#B85C7A" }, { who: "anh Khoa", when: "3 giờ", text: "Kênh khác một người cày được 300 phiếu, vô nghĩa.", ver: true, bg: "#1E3A8A" }],
+      profile: { who: "ban quản trị kênh", bg: "#2C2822", sub: "kênh chính chủ · xác thực bởi nhà sản xuất", rows: [["Thành viên", "214.318 người"], ["Đều định danh", "100%", "green"], ["Bình chọn", "1 CCCD 1 phiếu"], ["Tin vé giả bị chặn", "38 tin", "green"]] } },
+  ],
+};
+
+
+// ————————————————————————————————————————————————————————————
+// MAI ĐI CÙNG ANH · bốn cửa vào, một két
+// Cửa 1 bàn phím m.ai (chạy trong Zalo/WhatsApp/mail, không cần ai cho phép)
+// Cửa 2 share sheet hệ điều hành · Cửa 3 loa m.ai · Cửa 4 đồng hồ/tai nghe/xe
+// ————————————————————————————————————————————————————————————
+
+const FakeApp = ({ name, color, children }) => (
+  <div style={{ border: `1px solid ${T.hair}`, borderRadius: 16, overflow: "hidden", background: "#F2F3F5" }}>
+    <div style={{ background: color, padding: "9px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+      <ChevronLeft size={15} color="#fff" />
+      <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{name}</span>
+      <span style={{ fontSize: 10.5, color: "rgba(255,255,255,.75)", marginLeft: "auto" }}>app khác · không phải m.ai</span>
+    </div>
+    <div style={{ padding: 11 }}>{children}</div>
+  </div>
+);
+const OtherBubble = ({ who, text, time }) => (
+  <div style={{ marginBottom: 8 }}>
+    <div style={{ fontSize: 10.5, color: "#6E7480", fontWeight: 650, marginBottom: 3 }}>{who}</div>
+    <div style={{ background: "#fff", borderRadius: 12, borderTopLeftRadius: 4, padding: "9px 11px", fontSize: 13.5, color: "#1A1D22", lineHeight: 1.5, display: "inline-block", maxWidth: "94%" }}>{text}</div>
+    <div style={{ fontSize: 10, color: "#9AA0AA", marginTop: 3, ...num }}>{time}</div>
+  </div>
+);
+const MineBubble = ({ text, seen }) => (
+  <div style={{ textAlign: "right", marginBottom: 8 }}>
+    <div style={{ background: "#D6E4FF", borderRadius: 12, borderTopRightRadius: 4, padding: "9px 11px", fontSize: 13.5, color: "#1A1D22", lineHeight: 1.5, display: "inline-block", maxWidth: "94%", textAlign: "left" }}>{text}</div>
+    {seen && <div style={{ fontSize: 10, color: "#9AA0AA", marginTop: 3 }}>{seen}</div>}
+  </div>
+);
+const KbRow = ({ hint, onM, glow }) => (
+  <div style={{ background: "#fff", borderTop: "1px solid #E2E4E8", padding: "8px 9px", display: "flex", alignItems: "center", gap: 7 }}>
+    <button onClick={onM} className="btn" style={{ background: glow ? T.brand : "#F1EBE1", color: glow ? "#FFFDF9" : T.brand, width: 32, height: 32, padding: 0, borderRadius: 10, fontWeight: 800, fontSize: 13, boxShadow: glow ? `0 0 0 4px ${T.brandSoft}` : "none", flexShrink: 0 }}>m.</button>
+    <div style={{ flex: 1, background: "#F2F3F5", borderRadius: 999, padding: "8px 12px", fontSize: 13, color: hint.startsWith("Nhập") ? "#9AA0AA" : "#1A1D22", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{hint}</div>
+    <span style={{ width: 30, height: 30, borderRadius: 999, background: "#0068FF", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><ArrowUp size={14} color="#fff" strokeWidth={2.6} /></span>
+  </div>
+);
+
+// CỬA 1 · BÀN PHÍM m.ai TRONG APP KHÁC (7 bước)
+const flowKeyboard = (finish, app) => {
+  const isW = app === "WhatsApp";
+  const color = isW ? "#075E54" : "#0068FF";
+  const who = isW ? "Mrs. Chen · lớp tiếng Anh" : "Cô Lan · GV lớp bơi";
+  const ask = isW ? "Hi, did you settle Bin's swim fee? I need to close the list today." : "Anh ơi khoản bơi của Bin đã đóng chưa ạ? Cô chốt danh sách chiều nay.";
+  const short = isW ? "Paid at 15:43 today, receipt attached." : "Dạ em đóng rồi lúc 15:43 ạ, em gửi biên lai cô xem.";
+  const long = isW ? "Hi, I paid 850,000đ at 15:43 today via WinMoney. Transaction m_pay_8K2F91QD. Receipt attached." : "Dạ em đã chuyển 850.000đ lúc 15:43 hôm nay qua WinMoney, mã giao dịch m_pay_8K2F91QD. Em gửi kèm biên lai ạ.";
+  return [
+    (a) => (
+      <>
+        <H1 sub={"Đây là " + app + " của anh, không phải m.ai. Mai vào đây bằng bàn phím, không cần " + (isW ? "Meta" : "VNG") + " cho phép."}>Anh đang ở trong {app}</H1>
+        <FakeApp name={who} color={color}>
+          <OtherBubble who={who} text={ask} time="15:49" />
+          <div style={{ margin: "0 -11px -11px" }}><KbRow hint="Nhập tin nhắn…" glow onM={a.next} /></div>
+        </FakeApp>
+        <div style={{ fontSize: 12, color: T.sub, marginTop: 10, lineHeight: 1.5 }}>Chạm phím <b style={{ color: T.brand }}>m.</b> ở góc bàn phím.</div>
+        <Foot><Btn wide onClick={a.next}>Chạm phím m.</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <H1 sub={"Mai chỉ đọc đoạn hội thoại đang mở lúc anh chạm phím. Mai không đọc toàn bộ " + app + " của anh."}>Mai thấy gì liên quan</H1>
+        <FakeApp name={who} color={color}>
+          <OtherBubble who={who} text={ask} time="15:49" />
+          <div style={{ background: T.brandSoft, border: `1px solid #F0DCCD`, borderRadius: 12, padding: 10, margin: "0 -2px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+              <Mark size={22} /><span style={{ fontSize: 11, fontWeight: 750, color: T.brandInk }}>MAI · TỪ KÉT CỦA ANH</span>
+            </div>
+            {[["Biên lai học bơi", "15:43 hôm nay · 850.000đ"], ["Mã giao dịch", "m_pay_8K2F91QD"], ["Kỳ tháng 7", "đã trả 02/07"]].map(([k, v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                <span style={{ color: T.sub }}>{k}</span><span style={{ color: T.ink, fontWeight: 650, ...num }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </FakeApp>
+        <Foot><Btn wide onClick={a.next}>Mai soạn giúp câu trả lời</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <H1 sub="Anh chọn giọng nào, Mai chèn thẳng vào ô nhập của app.">Trả lời thế nào</H1>
+        <Choice value={a.d.tone || "short"} onPick={(v) => a.set({ tone: v })}
+          items={[{ id: "short", emoji: "⚡", t: "Ngắn gọn", s: short }, { id: "long", emoji: "🧾", t: "Đầy đủ có mã giao dịch", s: long }]} />
+        <div style={{ marginTop: 10 }}><Toggle on={a.d.img !== false} onTap={(v) => a.set({ img: v })} t="Kèm ảnh biên lai" s="lấy từ két, không cần đi tìm trong thư viện ảnh" /></div>
+        <Foot><Btn wide onClick={a.next}>Xem trước trong {app}</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <H1 sub="Chữ nằm trong ô nhập của app, anh sửa được trước khi gửi. Mai không tự gửi thay anh.">Mai đã chèn vào ô nhập</H1>
+        <FakeApp name={who} color={color}>
+          <OtherBubble who={who} text={ask} time="15:49" />
+          {a.d.img !== false && (
+            <div style={{ display: "flex", gap: 7, alignItems: "center", background: "#fff", borderRadius: 10, padding: 7, marginBottom: 8, border: "1px solid #E2E4E8" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 8, background: T.greenBg, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><FileText size={15} color={T.green} /></span>
+              <div style={{ fontSize: 11.5, color: "#1A1D22" }}>bien-lai-hoc-boi-Bin.pdf<div style={{ fontSize: 10, color: "#9AA0AA" }}>đính kèm từ két</div></div>
+            </div>
+          )}
+          <div style={{ margin: "0 -11px -11px" }}><KbRow hint={a.d.tone === "long" ? long : short} onM={() => {}} /></div>
+        </FakeApp>
+        <Foot><Btn wide onClick={a.next}>Gửi trong {app}</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <H1 sub="Cô nhận được ngay trong app cô đang dùng. Cô không cần cài m.ai.">Đã gửi</H1>
+        <FakeApp name={who} color={color}>
+          <OtherBubble who={who} text={ask} time="15:49" />
+          <MineBubble text={a.d.tone === "long" ? long : short} seen="15:50 · đã xem" />
+          <OtherBubble who={who} text={isW ? "Got it, thank you! Bin is on the list." : "Dạ cô nhận được rồi, cảm ơn anh nhiều ạ." } time="15:51" />
+        </FakeApp>
+        <Foot><Btn wide onClick={a.next}>Mai ghi lại gì?</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <H1 sub="Một cuộc trao đổi ở app khác vẫn về đúng một két.">Mai ghi vào két</H1>
+        <KV rows={[["Việc", "đã trả lời " + who.split(" · ")[0] + " trong " + app], ["Gắn với", "Học bơi Bin · tháng 8"], ["Lưu tại", "Két ký ức · hồ sơ Bin", "green"], ["Mai đọc được", "chỉ đoạn chat anh đang mở"], ["Mai không đọc", app + " của anh · tin của người khác"]]} />
+        <Foot><Btn wide onClick={a.next}>Vậy cửa này là gì</Btn></Foot>
+      </>
+    ),
+    (a) => (
+      <>
+        <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>⌨️</div></div>
+        <H1 sub="Bàn phím là cấp hệ điều hành. Nó chạy trong mọi app có ô nhập chữ, và không app nào chặn được.">Bàn phím m.ai</H1>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+          {["Zalo", "WhatsApp", "Messenger", "Gmail", "Telegram", "Notes", "trình duyệt"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
+        </div>
+        <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
+          Anh không phải rời app đang dùng. Mai đi theo anh, còn két vẫn nằm một chỗ.
+        </div>
+        <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
+      </>
+    ),
+  ];
+};
+
+// CỬA 2 · SHARE SHEET (6 bước)
+const flowShare = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Anh đang đọc mail trong Gmail. Không cần copy, không cần gõ lại.">Hoá đơn điện trong Gmail</H1>
+      <FakeApp name="Gmail" color="#C5221F">
+        <div style={{ background: "#fff", borderRadius: 12, padding: 11 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1D22" }}>EVN HCMC · Thông báo tiền điện kỳ 8/2026</div>
+          <div style={{ fontSize: 11, color: "#9AA0AA", margin: "3px 0 7px", ...num }}>evnhcmc@evn.com.vn · 15:52</div>
+          <div style={{ fontSize: 12.5, color: "#1A1D22", lineHeight: 1.6 }}>Kỳ 01/08–31/08. Số tiền: <b>1.310.000đ</b>. Hạn thanh toán: 12/08/2026. Mã KH: PE1600238190.</div>
+        </div>
+      </FakeApp>
+      <Foot><Btn wide onClick={a.next}>Bấm Chia sẻ trong Gmail</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Cửa này là của hệ điều hành. Mọi app đều share được, không cần app đó hợp tác với mình.">Chia sẻ tới…</H1>
+      <div style={{ background: "#EDEEF1", borderRadius: 18, padding: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          {[["Zalo", "#0068FF", "Z"], ["Messages", "#34C759", "💬"], ["Drive", "#F4B400", "▲"], ["m.ai", T.brand, "m."]].map(([n, c, g]) => (
+            <button key={n} onClick={n === "m.ai" ? a.next : undefined} className="btn press" style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", opacity: n === "m.ai" ? 1 : 0.55 }}>
+              <span style={{ width: 52, height: 52, borderRadius: 15, background: c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, boxShadow: n === "m.ai" ? `0 0 0 4px ${T.brandSoft}` : "none" }}>{g}</span>
+              <div style={{ fontSize: 10.5, color: T.ink, marginTop: 5, fontWeight: n === "m.ai" ? 700 : 500 }}>{n}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Chọn m.ai</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai đọc ra từng ô, anh soát lại trước khi đồng ý.">Mai đọc được gì</H1>
+      <KV rows={[["Loại", "Hoá đơn điện"], ["Kỳ", "01/08–31/08"], ["Số tiền", fmt(1310000)], ["Hạn", "12/08 · còn 6 ngày", "amber"], ["Mã khách hàng", "PE1600238190"], ["So kỳ trước", "+5,6% · " + fmt(1240000)]]} />
+      <Foot><Btn wide onClick={a.next}>Đúng rồi</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai không tự trả nếu anh chưa cho phép loại hoá đơn này.">Làm gì với nó</H1>
+      <Choice value={a.d.act || "auto"} onPick={(v) => a.set({ act: v })}
+        items={[
+          { id: "now", Icon: Wallet, t: "Trả luôn bây giờ", s: "WinMoney · biên lai vào két", right: fmt(1310000) },
+          { id: "auto", Icon: Bell, t: "Trả tự động ngày 10/08", s: "Mai trả trước hạn 2 ngày, báo anh sau" },
+          { id: "file", Icon: FolderClosed, t: "Chỉ lưu hồ sơ", s: "anh tự trả, Mai chỉ nhắc" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+    </>
+  ),
+  (a) => a.d.act === "file"
+    ? (<>
+        <H1 sub="Mai không trả, chỉ nhắc.">Đã lưu vào két</H1>
+        <KV rows={[["Nhắc", "09/08 · trước hạn 3 ngày"], ["Nguồn", "Gmail · anh chia sẻ 15:52"], ["Lưu tại", "Két ký ức · điện", "green"]]} />
+        <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+      </>)
+    : <FaceStep label={a.d.act === "now" ? "Nhìn vào máy để trả 1.310.000đ" : "Cho phép Mai trả tự động kỳ điện"} sub="WinMoney · TCB ····4102 · hạn mức 2.000.000đ/lần" onDone={a.next} />,
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>📤</div></div>
+      <H1 sub="Mail, ảnh, tin nhắn, link, PDF: cái gì share được là Mai nhận được. Đây là cửa vào không ai chặn.">Share sheet</H1>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+        {["Gmail", "WhatsApp", "Zalo", "ảnh chụp giấy", "Safari", "PDF", "voice note"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
+      </div>
+      <KV rows={[[a.d.act === "now" ? "Đã trả" : a.d.act === "file" ? "Đã lưu" : "Đã hẹn trả", a.d.act === "now" ? fmt(1310000) + " · 15:53" : a.d.act === "file" ? "nhắc 09/08" : "tự động 10/08", "green"], ["Nguồn", "Gmail · anh chia sẻ"], ["Lưu tại", "Két ký ức · điện"]]} />
+      <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
+// CỬA 3 · LOA m.ai CHO BÀ (6 bước)
+const flowSpeaker = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Bà 78 tuổi, ở Cà Mau, không dùng smartphone, không gõ chữ. Loa m.ai đặt ở bàn thờ nhà Bà.">Loa trong nhà Bà</H1>
+      <div style={{ background: T.dark, borderRadius: 18, padding: 16, color: "#FFFDF9" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ fontSize: 30 }}>🔊</span>
+          <div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 600 }}>Loa m.ai · nhà Bà</div>
+            <div style={{ fontSize: 11.5, opacity: 0.7, ...num }}>Cà Mau · đang nghe · 15:44</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 2.5, height: 26, marginTop: 14 }}>
+          {Array.from({ length: 32 }).map((_, i) => <div key={i} style={{ flex: 1, height: 5 + ((i * 37) % 20), borderRadius: 2, background: "#E8825A", opacity: 0.35 + ((i * 13) % 7) / 10 }} />)}
+        </div>
+        <div style={{ fontSize: 13.5, fontStyle: "italic", color: "#FBE3B6", marginTop: 12, lineHeight: 1.6 }}>“Mai ơi, nhắc thằng Bin bữa nay uống thuốc ho nha con.”</div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Mai làm gì tiếp</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Giọng Bà đã định danh trong két nhà mình, nên Mai biết ai đang nói mà không cần đăng nhập.">Mai nhận ra Bà</H1>
+      <KV rows={[["Người nói", "Bà · giọng đã định danh", "green"], ["Nghe được", "tiếng Cà Mau · rõ 96%"], ["Nội dung", "nhắc Bin uống thuốc ho"], ["Bin là ai", "cháu · 9 tuổi · ở TP.HCM"], ["Bà không cần", "app · mật khẩu · gõ chữ"]]} />
+      <Foot><Btn wide onClick={a.next}>Mai hỏi lại Bà</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai hỏi lại bằng giọng qua loa, Bà trả lời bằng miệng. Không có màn hình nào ở giữa.">Hỏi cho rõ giờ</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ background: T.brandSoft, border: "1px solid #F0DCCD", borderRadius: 14, padding: "10px 12px", display: "flex", gap: 9, alignItems: "flex-start" }}>
+          <Mark size={24} /><div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5 }}>“Dạ Bà, con nhắc Bin uống thuốc lúc mấy giờ ạ?”</div>
+        </div>
+        <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "10px 12px", fontSize: 13.5, color: T.ink, fontStyle: "italic" }}>“Sau cơm chiều đó con.”</div>
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, margin: "14px 0 8px" }}>Mai hiểu “sau cơm chiều” là</div>
+      <Slots value={a.d.at || "18:30"} onPick={(v) => a.set({ at: v })} list={[{ t: "18:00", note: "sớm" }, { t: "18:30", note: "nhà mình hay ăn" }, { t: "19:00", note: "muộn" }]} />
+      <Foot><Btn wide onClick={a.next}>Chốt</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Việc từ loa của Bà hiện lên trong nhóm Nhà mình, ghi rõ nguồn là ai nói.">Vào Nhà mình như vậy</H1>
+      <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: 12 }}>
+        <div style={{ display: "flex", gap: 9 }}>
+          <Mark size={26} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.55 }}>Bà nhắc Bin uống thuốc ho sau cơm chiều. Mai đặt nhắc {a.d.at || "18:30"} cho anh và Vy.</div>
+            <div style={{ marginTop: 7 }}><Pill tone="brand">Loa m.ai · Bà nói · 15:44</Pill></div>
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 10, lineHeight: 1.55 }}>Bà không thấy chat của cả nhà. Bà chỉ nói và được nghe trả lời. Két thì vẫn là một.</div>
+      <Foot><Btn wide onClick={a.next}>Xem chạy thật</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai đi vòng tròn: từ miệng Bà tới tay Vy rồi quay lại tai Bà.">Vòng khép lại</H1>
+      <Track speed={1150} steps={[
+        { t: "Nhắc Vy lúc " + (a.d.at || "18:30"), s: "điện thoại Vy · rung" },
+        { t: "Vy cho Bin uống thuốc", s: "18:34 · Vy chạm Xong" },
+        { t: "Mai báo lại Bà qua loa", s: "“Dạ Bin uống thuốc rồi Bà ơi”" },
+        { t: "Ghi vào két", s: "sức khoẻ Bin · thuốc ho ngày 3" },
+      ]} />
+      <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🔊</div></div>
+      <H1 sub="Cửa nào phù hợp với người đó thì dùng cửa đó. Bà dùng giọng, anh dùng app, Vy dùng điện thoại, Bin sau này dùng đồng hồ.">Bà cũng dùng chung một Mai</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
+        Bà không cài app, không có smartphone, không nhớ mật khẩu. Vẫn nói được với Mai và vẫn nằm trong két của nhà mình.
+      </div>
+      <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
+// CỬA 4 · ĐỒNG HỒ · TAI NGHE · XE (6 bước, một mạch liên tục)
+const flowDevices = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="16:15 · anh vẫn đang họp, điện thoại trong túi. Mai không đổ chuông, chỉ rung nhẹ ở tay.">Đồng hồ</H1>
+      <div style={{ background: T.dark, borderRadius: 24, padding: 16, color: "#FFFDF9", maxWidth: 220, margin: "0 auto" }}>
+        <div style={{ fontSize: 10.5, opacity: 0.6, ...num }}>16:22</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8 }}>
+          <Mark size={20} /><span style={{ fontSize: 11, fontWeight: 700 }}>Mai</span>
+        </div>
+        <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>Vy đã đón Bin ✓ cổng sau, 16:22.</div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Trả lời từ đồng hồ</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Ba nút, một cú xoay tay. Không rút điện thoại ra giữa cuộc họp.">Trả lời nhanh</H1>
+      <Choice value={a.d.wr || "ok"} onPick={(v) => a.set({ wr: v })}
+        items={[{ id: "ok", emoji: "👍", t: "Gửi 👍 vào Nhà mình" }, { id: "call", emoji: "📞", t: "Gọi Vy sau khi họp", s: "Mai nhắc lúc 17:02" }, { id: "later", emoji: "🕘", t: "Xem sau" }]} />
+      <Foot><Btn wide onClick={a.next}>Tai nghe · trên đường về</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="17:10 · anh ra khỏi toà nhà, đeo tai nghe. Mai đọc chứ không hiện chữ.">Tai nghe</H1>
+      <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: 13 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 9 }}>
+          <span style={{ fontSize: 22 }}>🎧</span><span style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Mai đọc · 38 giây</span>
+        </div>
+        <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.65 }}>“Hôm nay xong ba việc rồi anh. Bin đã được đón, học bơi đã trả trước hạn, đơn của Na đã gửi cô Hồng. Tối nay tập cuối 20:00, giỏ bò kho Supra giao 18:00. Còn một việc chưa chốt: đăng kiểm xe, còn 37 ngày.”</div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Lên xe</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="17:24 · Mai nhận tín hiệu xe qua CarPlay. Việc đúng ngữ cảnh mới nói, không thì im.">Trong xe</H1>
+      <div style={{ background: "#1C2536", borderRadius: 18, padding: 15, color: "#FFFDF9" }}>
+        <div style={{ fontSize: 10.5, opacity: 0.6, letterSpacing: 0.6, fontWeight: 700 }}>MÀN HÌNH XE</div>
+        <div style={{ fontSize: 14.5, marginTop: 8, lineHeight: 1.55 }}>Xe 51K-238.19 · đăng kiểm còn 37 ngày. Sáng thứ Ba 12/08 trống lúc 7:30, cách nhà 4,2km.</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <span className="btn" style={{ background: "#FFFDF9", color: "#1C2536" }}>Đặt lịch</span>
+          <span className="btn" style={{ background: "rgba(255,255,255,.14)", color: "#FFFDF9" }}>Để sau</span>
+        </div>
+      </div>
+      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 10, lineHeight: 1.55 }}>Nói “Mai ơi đặt lịch” là xong, tay không rời vô lăng.</div>
+      <Foot><Btn wide onClick={a.next}>Đặt bằng giọng</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Bốn thiết bị, bốn cách nói, cùng một việc và cùng một két.">Một mạch trong ngày</H1>
+      <Track speed={950} steps={[
+        { t: "Đồng hồ · 16:22", s: a.d.wr === "call" ? "hẹn gọi Vy 17:02" : a.d.wr === "later" ? "xem sau" : "gửi 👍 vào Nhà mình" },
+        { t: "Tai nghe · 17:10", s: "đọc tóm tắt 3 việc đã xong" },
+        { t: "Xe · 17:24", s: "đặt đăng kiểm 7:30 thứ Ba" },
+        { t: "Két ký ức", s: "cả ba đều ghi về một chỗ" },
+      ]} />
+      <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><div style={{ fontSize: 38 }}>🧿</div></div>
+      <H1 sub="Điện thoại, loa, đồng hồ, tai nghe, xe, và app của hãng khác qua API. Mỗi thiết bị là một cánh cửa, két vẫn là một và là của anh.">Cửa nào cũng vào được</H1>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+        {["điện thoại", "loa m.ai", "đồng hồ", "tai nghe", "xe", "TV", "camera", "gia dụng · API"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
+      </div>
+      <div style={{ background: T.bg, border: `1px dashed ${T.hair}`, borderRadius: 14, padding: "11px 13px", fontSize: 12.5, color: T.sub, lineHeight: 1.6 }}>
+        Mỗi nguồn một công tắc riêng. Anh tắt nguồn nào, Mai thôi đọc nguồn đó. Két mã hoá theo từng người.
+      </div>
+      <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
+const SURFACES = [
+  { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
+  { id: "wa", n: "WhatsApp", g: "W", c: "#25D366", flow: "kb", app: "WhatsApp" },
+  { id: "gmail", n: "Gmail", g: "M", c: "#C5221F", flow: "share" },
+  { id: "loa", n: "Loa m.ai", g: "🔊", c: T.dark, flow: "speaker" },
+  { id: "watch", n: "Đồng hồ", g: "⌚", c: "#3A4A6B", flow: "dev" },
+  { id: "buds", n: "Tai nghe", g: "🎧", c: "#6E665C", flow: "dev" },
+  { id: "car", n: "Xe", g: "🚗", c: "#1C2536", flow: "dev" },
+];
+
+// ————————————————————————————————————————————————————————————
+// APP
+// ————————————————————————————————————————————————————————————
+export default function MaiV18() {
+  const [intro, setIntro] = useState(true);
+  const [screen, setScreen] = useState("family");
+  const [flow, setFlow] = useState(null);          // luồng đang mở
+  const [post, setPost] = useState(null);          // bài đang mở
+  const [prof, setProf] = useState(null);          // hồ sơ người đăng
+  const [file, setFile] = useState(null);          // giấy tờ đang mở
+  const [files, setFiles] = useState(false);       // danh sách hồ sơ
+  const [done, setDone] = useState({});
+  const [evt, setEvt] = useState(0);
+  const [undone, setUndone] = useState(false);
+  const [cam, setCam] = useState(0);
+  const [camUndone, setCamUndone] = useState(false);
+  const [alertBar, setAlertBar] = useState(false);
+  const [hot, setHot] = useState(false);
+  const [seenMai, setSeenMai] = useState(false);
+  const [mic, setMic] = useState(0);
+  const [surfApp, setSurfApp] = useState("Zalo");
+  const [famMsgs, setFamMsgs] = useState([]);
+  const [ongMsgs, setOngMsgs] = useState([]);
+  const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm mic nói." }]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [hist, setHist] = useState([]);
+  const [tick, setTick] = useState(0);
+  const bump = () => setTick((t) => t + 1);
+  const endRef = useRef(null);
+  const vyReplied = useRef(false);
+  const recRef = useRef(null);
+
+  useEffect(() => { if (tick === 0) return; endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [tick]);
+  useEffect(() => { setInput(""); }, [screen]);
+  useEffect(() => {
+    if (intro) return;
+    const t = setTimeout(() => { setAlertBar(true); }, 700);
+    return () => { clearTimeout(t); };
+  }, [intro]);
+
+  const firstDone = useRef(false);
+  const complete = (k) => {
+    setDone((d) => ({ ...d, [k]: true }));
+    ding(true); bump();
+    if (k === "pick") setAlertBar(false);
+    if (!firstDone.current) {
+      firstDone.current = true;
+      setTimeout(() => { setEvt(1); bump(); }, 2200);
+      setTimeout(() => { setEvt(2); bump(); }, 3400);
+    }
+  };
+  const allDone = done.pay && done.form && done.pick;
+
+  const snap = () => {
+    if (cam !== 0) return;
+    setCam(1); bump();
+    setTimeout(() => { setCam(2); ding(true); bump(); }, 1300);
+  };
+
+  const parse = (raw) => {
+    const mm = raw.match(/```json([\s\S]*?)```/);
+    let action = null, text = raw;
+    if (mm) { try { action = JSON.parse(mm[1]).action || null; } catch (e) {} text = raw.replace(mm[0], "").trim(); }
+    const s = text.match(/\(([^)]{3,28})\)\s*$/);
+    if (s) text = text.replace(s[0], "").trim();
+    return { text, action, src: s ? s[1] : null };
+  };
+  const stream = (text, src, action) => {
+    const id = Date.now() + Math.random();
+    setMaiMsgs((x) => [...x, { id, from: "mai", text: "", streaming: true }]);
+    const words = text.split(" ");
+    let i = 0;
+    const step = () => {
+      i += 1;
+      const partial = words.slice(0, i).join(" "), last = i >= words.length;
+      setMaiMsgs((x) => x.map((m) => (m.id === id ? { ...m, text: partial, streaming: !last, src: last ? src : null, extra: last && action ? <div style={{ marginTop: 9 }}><AuthBtn label={action.label} onDone={() => ding(true)} /></div> : null } : m)));
+      bump();
+      if (!last) setTimeout(step, 32 + Math.random() * 36);
+    };
+    setTimeout(step, 90);
+  };
+  const askMai = async (q) => {
+    setScreen("mai");
+    setMaiMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]);
+    setBusy(true); bump();
+    const h = [...hist, { role: "user", content: q }];
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, system: MAI_SYSTEM, messages: h }),
+      });
+      const data = await res.json();
+      const raw = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      setHist([...h, { role: "assistant", content: raw }]);
+      const { text, action, src } = parse(raw || "Mai đây anh.");
+      stream(text, src, action);
+    } catch (e) {
+      stream("Mạng chập chờn, Mai trả lời anh lại liền.", null, null);
+    }
+    setBusy(false); bump();
+  };
+  const startMic = () => {
+    if (mic === 1) { try { recRef.current && recRef.current.stop(); } catch (e) {} setMic(0); return; }
+    try {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { setMaiMsgs((x) => [...x, { id: Date.now(), from: "mai", text: "Trình duyệt này chưa cho Mai nghe, anh gõ giúp Mai nha." }]); bump(); return; }
+      const r = new SR();
+      r.lang = "vi-VN"; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = (e) => { setMic(0); const t = e.results?.[0]?.[0]?.transcript || ""; if (t) askMai(t); };
+      r.onerror = () => { setMic(0); setMaiMsgs((x) => [...x, { id: Date.now(), from: "mai", text: "Mai chưa nghe được, anh thử lại hoặc gõ giúp Mai nha." }]); bump(); };
+      r.onend = () => { setMic(0); };
+      recRef.current = r; setMic(1); r.start();
+    } catch (e) { setMic(0); }
+  };
+  const sendFam = () => {
+    const q = input.trim(); if (!q) return;
+    setInput(""); setFamMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
+    if (!vyReplied.current) {
+      vyReplied.current = true;
+      setTimeout(() => { setFamMsgs((x) => [...x, { id: Date.now(), from: "w", name: "Vy", text: "Dạ để em lo, anh yên tâm 👍" }]); bump(); }, 1400);
+    }
+  };
+  const sendOng = () => {
+    const q = input.trim(); if (!q) return;
+    setInput(""); setOngMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
+  };
+  const sendMai = () => { const q = input.trim(); if (!q || busy) return; setInput(""); askMai(q); };
+
+  // đăng ký luồng
+  const FLOWS = {
+    pay: () => flowPay(() => complete("pay")),
+    pickup: () => flowPickup(() => complete("pick")),
+    form: () => flowForm(() => complete("form")),
+    cart: () => flowCart(() => setDone((d) => ({ ...d, cart: true }))),
+    ticket: () => flowTicket(() => setDone((d) => ({ ...d, ticket: true }))),
+    resale: () => flowResale(() => setDone((d) => ({ ...d, resale: true }))),
+    inspect: () => flowInspect(() => setDone((d) => ({ ...d, inspect: true }))),
+    call: () => flowCall(() => setDone((d) => ({ ...d, call: true }))),
+    kb: () => flowKeyboard(() => setDone((d) => ({ ...d, kb: true })), surfApp),
+    share: () => flowShare(() => setDone((d) => ({ ...d, share: true }))),
+    speaker: () => flowSpeaker(() => setDone((d) => ({ ...d, speaker: true }))),
+    dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
+  };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe" };
+  const openFlow = (id) => { setPost(null); setFile(null); setFlow(id); ding(); };
+
+  const ChatRow = ({ Icon, tint, color, letter, title, sub, time, unread, verified, onTap }) => (
+    <div onClick={onTap} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderBottom: `1px solid ${T.hair}`, cursor: "pointer", background: T.surf }}>
+      {Icon ? <IconSq Icon={Icon} tint={tint} color={color} size={40} /> : <span style={{ width: 40, height: 40, borderRadius: 14, background: tint, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, flexShrink: 0 }}>{letter}</span>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>{title}</span>
+          {verified && <ShieldCheck size={13} color={T.green} />}
+          <span style={{ fontSize: 11, color: T.faint, marginLeft: "auto", ...num }}>{time}</span>
+        </div>
+        <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>
+      </div>
+      {unread && <span className="pop" style={{ width: 19, height: 19, borderRadius: 10, background: T.brand, color: "#FFFDF9", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{unread}</span>}
+    </div>
+  );
+
+  const inputBar = (onSend, ph, withCam, withMic) => (
+    <div style={{ padding: "10px 12px calc(10px + env(safe-area-inset-bottom))", background: T.surf, borderTop: `1px solid ${T.hair}`, display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+      {withCam && <HBtn Icon={Camera} onTap={snap} />}
+      {withMic && (
+        <button onClick={startMic} className="btn" style={{ border: `1px solid ${mic ? "transparent" : T.hair}`, background: mic ? `linear-gradient(145deg,#E8825A,${T.brand})` : T.surf, borderRadius: mic ? "46% 54% 52% 48%" : 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: mic ? `0 0 0 5px ${T.brandSoft}` : "none" }}>
+          <Mic size={16} color={mic ? "#FFFDF9" : T.sub} className={mic ? "blob" : ""} />
+        </button>
+      )}
+      <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSend()} placeholder={mic ? "Mai đang nghe anh nói…" : ph}
+        style={{ flex: 1, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "11px 16px", fontSize: 14.5, fontFamily: FONT, outline: "none", background: T.bg, color: T.ink, minWidth: 0 }} />
+      <button onClick={onSend} className="btn" style={{ background: input.trim() ? T.brand : "#E4DCCE", color: "#FFFDF9", borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transform: input.trim() ? "scale(1)" : "scale(.9)" }}>
+        <ArrowUp size={17} strokeWidth={2.6} />
+      </button>
+    </div>
+  );
+
+  const channel = (key, title, members) => (
+    <>
+      <Head back={() => setScreen("home")} title={title} sub={<span style={{ fontSize: 12, color: T.faint, ...num }}>{members}</span>} />
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px" }}>
+        {POSTS[key].map((p) => (
+          <React.Fragment key={p.id}>
+            <Post up={p.up} title={p.title} body={p.body} hero={p.hero} thumb={p.thumb} comments={p.comments.length}
+              meta={{ who: p.who, when: p.when }} onTap={() => { setPost(p); ding(); }} onAuthor={() => { setProf(p.profile); ding(); }} />
+            {p.act && <MaiBanner text={p.act.text} cta={p.act.cta} done={!!done[p.act.flow]} doneText={{ cart: "Đã đặt · Supra giao 18:00 · +186 điểm WinX", ticket: "Mai đang canh · nhắc 19:55 thứ Sáu", resale: "Vé đã về tên anh · B12-13", inspect: "TT 50-07V · 7:30 thứ Ba 12/08" }[p.act.flow]} onTap={() => openFlow(p.act.flow)} />}
+          </React.Fragment>
+        ))}
+        <div style={{ padding: "12px 2px 4px", fontSize: 11.5, color: T.faint, lineHeight: 1.55 }}>Kênh mở · mọi người đăng đều định danh CCCD · chạm tên người đăng để xem hồ sơ</div>
+      </div>
+    </>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#171310", display: "flex", justifyContent: "center", fontFamily: FONT }}>
+      <style>{`
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        ::-webkit-scrollbar{display:none}
+        .phoneH{height:100vh;height:100dvh;max-height:940px}
+        .btn{border:none;border-radius:11px;padding:9px 14px;font-weight:650;font-size:13px;font-family:${FONT};cursor:pointer;white-space:nowrap;transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease}
+        .btn:active{transform:scale(.94)}
+        .press{transition:transform .16s cubic-bezier(.34,1.56,.64,1)}
+        .press:active{transform:scale(.985)}
+        .dim{position:absolute;inset:0;background:rgba(36,31,26,.42);z-index:40;animation:fi .18s ease-out}
+        .sheet{position:absolute;left:0;right:0;bottom:0;z-index:50;background:${T.surf};border-radius:22px 22px 0 0;padding:14px 20px calc(24px + env(safe-area-inset-bottom));animation:up .38s cubic-bezier(.22,1.2,.36,1);box-shadow:0 -10px 40px rgba(36,31,26,.18)}
+        .scan{position:absolute;left:10%;right:10%;height:30%;top:0;background:linear-gradient(180deg,transparent,rgba(194,85,47,.5),transparent);animation:sc 1.1s ease-in-out infinite}
+        .rise{animation:rise .34s cubic-bezier(.22,1.2,.36,1) both}
+        .drop{animation:drop .42s cubic-bezier(.22,1.4,.36,1) both}
+        .spin-soft{animation:pu .6s ease-in-out infinite}
+        .wordmark{animation:wm .5s cubic-bezier(.22,1.2,.36,1) both}
+        .pop{animation:pop .45s cubic-bezier(.34,1.7,.5,1) both}
+        .shim{background:linear-gradient(90deg,${T.hair} 8%,${T.brandSoft} 22%,${T.hair} 36%);background-size:280% 100%;animation:shim 1.25s linear infinite;border-radius:6px}
+        .caret{display:inline-block;width:2px;height:1em;background:${T.brand};margin-left:2px;vertical-align:-2px;animation:blink .9s steps(1) infinite}
+        .blob{animation:blob 1.6s ease-in-out infinite}
+        .breathe{animation:breathe 3.2s ease-in-out infinite}
+        .sweep{position:relative;overflow:hidden}
+        .sweep::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(27,122,78,.16),transparent);animation:sweep .7s ease-out 1 both}
+        .confetti{position:absolute;width:7px;height:7px;border-radius:2px;animation:conf .9s cubic-bezier(.2,.7,.4,1) both}
+        @keyframes fi{from{opacity:0}to{opacity:1}}
+        @keyframes up{from{transform:translateY(30px);opacity:.5}to{transform:none;opacity:1}}
+        @keyframes drop{from{transform:translateY(-20px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+        @keyframes sc{0%,100%{transform:translateY(-8%)}50%{transform:translateY(200%)}}
+        @keyframes rise{from{transform:translateY(9px) scale(.985);opacity:0}to{transform:none;opacity:1}}
+        @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+        @keyframes pu{0%,100%{opacity:.5}50%{opacity:1}}
+        @keyframes wm{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+        @keyframes shim{from{background-position:140% 0}to{background-position:-140% 0}}
+        @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+        @keyframes blob{0%,100%{border-radius:46% 54% 52% 48%;transform:scale(1)}33%{border-radius:58% 42% 44% 56%;transform:scale(1.1)}66%{border-radius:44% 56% 60% 40%;transform:scale(1.04)}}
+        @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
+        @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+        @keyframes conf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+        @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important}}
+      `}</style>
+
+      <div className="phoneH" style={{ width: "100%", maxWidth: 430, background: T.bg, position: "relative", overflow: "hidden" }}>
+        <Boundary>
+          <div key={screen} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", opacity: intro ? 0 : 1, transform: intro ? "scale(.985)" : "none", transition: "opacity .45s ease-out, transform .45s ease-out" }}>
+
+            {screen === "home" && (
+              <>
+                <Head title="m.ai" sub={<ShieldCheck size={15} color={T.green} strokeWidth={2.2} />} right={<HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} />} />
+                <div className="rise" style={{ flex: 1, overflowY: "auto" }}>
+                  <div onClick={() => setScreen("mai")} className="press" style={{ padding: "16px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}`, display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
+                    <Mark size={38} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh,</div>
+                      <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "hôm nay sạch việc rồi · Mai canh tiếp" : "còn 2 việc trước 17:00 · Mai lo phần còn lại"}</div>
+                    </div>
+                    <ChevronRight size={16} color={T.faint} />
+                  </div>
+                  <div style={{ padding: "13px 14px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 10 }}>
+                      <span style={{ fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI ĐI CÙNG ANH</span>
+                      <span style={{ fontSize: 11.5, color: T.faint }}>· chạm để xem Mai làm việc trong app khác</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 9, overflowX: "auto", paddingBottom: 2 }}>
+                      {SURFACES.map((sf) => (
+                        <button key={sf.id} onClick={() => { if (sf.app) setSurfApp(sf.app); openFlow(sf.flow); }} className="btn press"
+                          style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 58 }}>
+                          <span style={{ width: 48, height: 48, borderRadius: 15, background: sf.c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: sf.g.length > 1 ? 21 : 19, fontWeight: 800, boxShadow: "0 2px 8px rgba(60,45,30,.16)" }}>{sf.g}</span>
+                          <div style={{ fontSize: 10.5, color: T.sub, marginTop: 5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
+                          {done[sf.flow] && <div style={{ fontSize: 9.5, color: T.green, fontWeight: 700 }}>đã xem ✓</div>}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: T.sub, marginTop: 10, lineHeight: 1.5 }}>Bàn phím m.ai chạy trong mọi app · share sheet nhận mọi thứ · loa cho người không dùng điện thoại. Một két duy nhất.</div>
+                  </div>
+                  <ChatRow Icon={MessageCircle} tint={T.brandSoft} color={T.brand} title="Mai" sub="Hỏi gì cũng được · gõ hoặc nói" time="15:44" unread={seenMai ? null : "1"} onTap={() => { setSeenMai(true); setScreen("mai"); }} />
+                  <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>NHÓM</div>
+                  <ChatRow letter="🏠" tint="#8A5FBF" title="Nhà mình" verified sub={allDone ? "Mai: xong sớm trước hạn 🎉" : "Vy: đừng lo vụ đón Bin nha"} time="15:38" onTap={() => setScreen("family")} />
+                  <ChatRow letter="👴" tint="#2C9E8F" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
+                  <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>KÊNH</div>
+                  <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
+                  <ChatRow Icon={Car} tint={T.amberBg} color={T.amber} title="Vietnam Cars" sub="Đăng kiểm Q2: sáng thứ Ba vắng nhất · ▲214" time="15:10" onTap={() => setScreen("cars")} />
+                  <ChatRow Icon={Hash} tint={T.greenBg} color={T.green} title="Cơm tối 30 phút" sub="Bò kho nồi áp suất · ▲462" time="14:30" onTap={() => setScreen("com")} />
+                  <div onClick={() => { setFiles(true); ding(); }} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                    <IconSq Icon={FolderClosed} size={40} tint="#F1EBE1" />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Hồ sơ nhà mình</div>
+                      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>6 mục · 1 việc cần để ý</div>
+                    </div>
+                    <Pill tone="amber">đăng kiểm 37 ngày</Pill>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {screen === "family" && (
+              <>
+                <Head back={() => setScreen("home")} title="Nhà mình"
+                  sub={<><ShieldCheck size={15} color={T.green} strokeWidth={2.2} /><span style={{ fontSize: 12, color: T.faint, ...num }}>15:42</span></>}
+                  right={<><HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} /><HBtn Icon={Phone} onTap={() => openFlow("call")} ml /></>} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
+                  <Msg m={{ from: "w", name: "Vy", text: "Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha" }} />
+                  <CardBox style={{ margin: "8px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "11px 14px", borderBottom: `1px solid ${T.hair}` }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 750, letterSpacing: 0.6, color: T.sub }}>TRƯỚC 17:00</span>
+                      <span style={{ fontSize: 11.5, color: T.faint, marginLeft: "auto" }}>chỉ mình anh thấy</span>
+                    </div>
+                    <Row Icon={Banknote} iconTint={T.amberBg} iconColor={T.amber} title="Học bơi · Bin" amount={fmt(850000)}
+                      meta="Cô nhắc lần 2 · 14/32 đã đóng" metaTone="amber" pill={<Pill tone="amber">hạn 17:00</Pill>} cta="Trả"
+                      done={done.pay ? "Đã trả" : null} doneMeta="Trả 15:43 · biên lai đã gửi riêng cô Lan" onTap={() => openFlow("pay")} />
+                    <Row Icon={Car} iconTint={T.amberBg} iconColor={T.amber} hot={hot} title="Đón Bin 16:30 · còn 48 phút"
+                      quote="em đón được, anh họp đi 👍" quoteWho="Vy · 15:38" meta="Họp của anh kéo tới 17:00" metaTone="amber" cta="Xử"
+                      done={done.pick ? "Đã chốt" : null} doneMeta="Vy đón 16:20 · đã vào lịch 2 người" onTap={() => openFlow("pickup")} />
+                    <Row Icon={FileText} title="Đơn dã ngoại · Na" meta="Email THCS Trần Phú · hạn thứ Sáu" cta="Ký"
+                      done={done.form ? "Đã gửi" : null} doneMeta="Cô Hồng đã nhận · lưu hồ sơ Na" onTap={() => openFlow("form")} last />
+                  </CardBox>
+                  {allDone && (
+                    <>
+                      <Burst />
+                      <div className="pop" style={{ margin: "10px 0 4px", background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 18, padding: "13px 15px" }}>
+                        <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 600, color: "#14603C", letterSpacing: -0.2 }}>Xong sớm trước hạn 🎉</div>
+                        <div style={{ fontSize: 13.5, color: "#2C6B4C", lineHeight: 1.5, marginTop: 4, ...num }}>15:46 · Hôm nay Mai đỡ cho anh: 1 vụ suýt trễ đóng tiền · 1 vụ suýt không ai đón Bin.</div>
+                      </div>
+                    </>
+                  )}
+                  {evt >= 1 && <Msg m={{ type: "ext", src: "Zalo · Vy chuyển tiếp · nhóm 3A", time: "15:44", text: "Cô Lan: Chiều mai lớp nghỉ, giáo viên họp." }} />}
+                  {evt >= 2 && <Msg m={{ type: "act", done: undone, text: undone ? "Đã giữ lịch cũ" : "Dời bơi Bin sang thứ Năm 17:00 · đã báo Vy · đã xem ✓", undo: () => { setUndone(true); ding(); }, undoLabel: "Giữ lịch cũ" }} />}
+                  {cam === 1 && <div className="rise" style={{ display: "flex", gap: 7, alignItems: "center", padding: "6px 2px", fontSize: 12.5, color: T.sub }}><Camera size={13} /> Mai đang đọc giấy báo…</div>}
+                  {cam === 2 && (
+                    <>
+                      <Msg m={{ type: "ext", color: "#7A5CB8", Icon: Camera, src: "Ảnh giấy báo · từ cặp sách Na", time: "15:47", text: "THCS Trần Phú: Họp phụ huynh 19:00 thứ Bảy 15/08, phòng A2." }} />
+                      <Msg m={{ type: "act", done: camUndone, text: camUndone ? "Đã xóa khỏi lịch" : "Đã vào lịch anh & Vy · nhắc trước 1 ngày", undo: () => { setCamUndone(true); ding(); }, undoLabel: "Xóa khỏi lịch" }} />
+                    </>
+                  )}
+                  {famMsgs.map((m) => <Msg key={m.id} m={m} />)}
+                  <div ref={endRef} />
+                </div>
+                {inputBar(sendFam, "Nhắn cả nhà…", true, false)}
+              </>
+            )}
+
+            {screen === "ongba" && (
+              <>
+                <Head back={() => setScreen("home")} title="Ông bà & cô chú" sub={<><ShieldCheck size={15} color={T.green} strokeWidth={2.2} /><span style={{ fontSize: 12, color: T.faint }}>8 người thật</span></>} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
+                  <Msg m={{ from: "w", name: "Bà", text: "Cuối tuần về ăn giỗ nha các con 🙏" }} />
+                  <Msg m={{ from: "w", name: "Cô Út", text: "Dạ con đặt xe rồi má ơi" }} />
+                  <MaiBanner thumb={{ from: "#1E6B4F", to: "#0C3A28", emoji: "🍵" }} text="Giỗ Ông thứ Bảy · Bà thích trà sen · hộp quà Phúc Long 165.000đ" cta="Xem"
+                    done={!!done.tea} doneText="Hộp trà sen Phúc Long · Supra giao thứ Sáu" onTap={() => { setDone((d) => ({ ...d, tea: true })); ding(true); }} />
+                  {ongMsgs.map((m) => <Msg key={m.id} m={m} />)}
+                  <div ref={endRef} />
+                </div>
+                {inputBar(sendOng, "Nhắn cả nhà lớn…", false, false)}
+              </>
+            )}
+
+            {screen === "mai" && (
+              <>
+                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh và Mai</span>} />
+                <div style={{ display: "flex", gap: 9, padding: "12px 14px 4px", overflowX: "auto", flexShrink: 0 }}>
+                  {[["🚗", "Hạn đăng kiểm xe?", "còn 37 ngày"], ["🍲", "Tối nay nấu gì nhanh?", "30 phút là xong"], ["🎤", "Tối nay nhà mình xem gì?", "tập cuối 20:00"]].map(([e, q, hint]) => (
+                    <button key={q} onClick={() => !busy && askMai(q)} className="btn press" style={{ background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "11px 13px", textAlign: "left", minWidth: 152, boxShadow: "0 1px 2px rgba(60,45,30,.04)" }}>
+                      <div style={{ fontSize: 19, marginBottom: 5 }}>{e}</div>
+                      <div style={{ fontSize: 13, fontWeight: 650, lineHeight: 1.3, whiteSpace: "normal" }}>{q}</div>
+                      <div style={{ fontSize: 11.5, color: T.faint, marginTop: 3, whiteSpace: "normal" }}>{hint}</div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ flex: 1, overflowY: "auto", padding: "8px 14px 6px" }}>
+                  {maiMsgs.map((m) => <Msg key={m.id} m={m} />)}
+                  {busy && <Thinking />}
+                  <div ref={endRef} />
+                </div>
+                {inputBar(sendMai, "Hỏi Mai bất cứ điều gì… (chạy thật)", false, true)}
+              </>
+            )}
+
+            {screen === "atsh" && channel("atsh", "Anh Trai Say Hi", "214k thành viên · mặt thật")}
+            {screen === "cars" && channel("cars", "Vietnam Cars", "12,4k thành viên · mặt thật")}
+            {screen === "com" && channel("com", "Cơm tối 30 phút", "8,1k thành viên")}
+          </div>
+
+          {alertBar && !intro && screen === "family" && !done.pick && (
+            <button className="drop" onClick={() => { setAlertBar(false); setHot(true); ding(); setTimeout(() => openFlow("pickup"), 420); }}
+              style={{ position: "absolute", top: 10, left: 12, right: 12, zIndex: 45, border: "1px solid #F0D8B0", background: "#FFF8EC", borderRadius: 18, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", boxShadow: "0 8px 26px rgba(181,71,8,.16)", fontFamily: FONT }}>
+              <TriangleAlert size={16} color={T.amber} />
+              <span style={{ fontSize: 13, fontWeight: 650, color: T.ink, flex: 1, textAlign: "left", ...num }}>Còn 48 phút · chưa chốt ai đón Bin</span>
+              <ChevronRight size={15} color={T.amber} />
+            </button>
+          )}
+
+          {files && (
+            <Sheet onClose={() => setFiles(false)} tall>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <button onClick={() => setFiles(false)} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}><X size={15} color={T.sub} /></button>
+                <span style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>HỒ SƠ NHÀ MÌNH</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: T.sub, marginBottom: 10, lineHeight: 1.5 }}>Két ký ức · mọi cửa đều ghi về đây: bàn phím trong Zalo, share sheet, loa nhà Bà, đồng hồ, xe. Chạm từng mục để xem nguồn.</div>
+              {FILES.map((f) => (
+                <div key={f.id} onClick={() => { setFile(f); ding(); }} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                  <IconSq Icon={f.Icon} tint={f.tone === "amber" ? T.amberBg : f.tone === "green" ? T.greenBg : "#F1EBE1"} color={f.tone === "amber" ? T.amber : f.tone === "green" ? T.green : T.sub} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 650, fontSize: 14, color: T.ink }}>{f.t}</div>
+                    {f.warn && <div style={{ fontSize: 11.5, color: T.amber, fontWeight: 650, marginTop: 2 }}>{f.warn}</div>}
+                  </div>
+                  <span style={{ fontSize: 12.5, color: f.tone === "amber" ? T.amber : T.sub, fontWeight: 600, ...num }}>{f.v}</span>
+                  <ChevronRight size={15} color={T.faint} />
+                </div>
+              ))}
+            </Sheet>
+          )}
+
+          {file && <FileSheet f={file} onClose={() => setFile(null)} onFlow={(id) => { setFile(null); openFlow(id); }} onGoto={(s) => { setFile(null); setFiles(false); setScreen(s); }} onAsk={(q) => { setFile(null); setFiles(false); askMai(q); }} />}
+          {post && <PostSheet post={post} onClose={() => setPost(null)} onAuthor={() => { setProf(post.profile); }} onAct={() => post.act && openFlow(post.act.flow)} />}
+          {prof && <ProfileSheet p={prof} onClose={() => setProf(null)} />}
+          {flow && <Wizard title={TITLES[flow]} steps={FLOWS[flow]()} onClose={() => setFlow(null)} />}
+          {intro && <Intro onDone={() => setIntro(false)} />}
+        </Boundary>
+      </div>
+    </div>
+  );
+}
+
+// ————————————————————————————————————————————————————————————
+// MOUNT (added for standalone web build)
+// ————————————————————————————————————————————————————————————
+import { createRoot } from "react-dom/client";
+createRoot(document.getElementById("root")).render(<MaiV18 />);

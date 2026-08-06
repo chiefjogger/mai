@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#F7F4ED" />
+<title>m.ai · v18</title>
+<meta name="description" content="m.ai — trợ lý gia đình. Demo v18." />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #F7F4ED; -webkit-font-smoothing: antialiased; }
+  #root { height: 100%; }
+  #boot {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #F7F4ED; color: #6E665C; z-index: 9999;
+    font: 500 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    transition: opacity .35s ease;
+  }
+  #boot.gone { opacity: 0; pointer-events: none; }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.3.1?external=react",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?external=react",
+    "three": "https://esm.sh/three@0.160.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.395.0?external=react"
+  }
+}
+</script>
+</head>
+<body>
+<div id="root"></div>
+<div id="boot">Đang tải m.ai…</div>
+
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script>
+  // Babel Standalone transpiles app.jsx in the browser, so no build step is needed.
+  Babel.transformScriptTags();
+  window.addEventListener("error", function (e) {
+    var b = document.getElementById("boot");
+    if (b && !b.classList.contains("gone")) b.textContent = "Không tải được: " + (e.message || "lỗi không rõ");
+  });
+  new MutationObserver(function (_, obs) {
+    if (document.getElementById("root").childNodes.length) {
+      document.getElementById("boot").classList.add("gone");
+      obs.disconnect();
+    }
+  }).observe(document.getElementById("root"), { childList: true });
+</script>
+<script type="text/babel" data-type="module" data-presets="react" src="./app.jsx"></script>
+</body>
+</html>
