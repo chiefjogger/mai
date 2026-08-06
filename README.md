@@ -6,7 +6,7 @@ Interactive prototype of **Mai**, a Vietnamese family assistant. A single-screen
 
 ## What changed in v19
 
-**Mai answers locally.** v18 posted to `api.anthropic.com` with no credentials, which failed on CORS from a browser and fell back to a canned "network is flaky" line. That call is gone. `brain.js` holds **123 scripted intents** matched by an ASCII-folding scorer, so every question answers instantly, offline, and identically on every run.
+**Mai answers locally.** v18 posted to `api.anthropic.com` with no credentials, which failed on CORS from a browser and fell back to a canned "network is flaky" line. That call is gone. `brain.js` holds **136 scripted intents** matched by an ASCII-folding scorer, so every question answers instantly, offline, and identically on every run.
 
 **Nothing dead-ends.** Every reply carries follow-up chips, and every chip is verified to match a real intent — the test that guards this is described below. Most replies also carry a button that opens the relevant wizard, and when a wizard finishes, Mai returns to the chat to report the result. You can walk the entire demo without typing a character.
 
@@ -39,18 +39,16 @@ Unmatched input rotates through six fallbacks, each of which still offers somewh
 
 ## Verifying the corpus
 
-Chips are the primary tap path, so a chip that falls through to a fallback is the worst bug this demo can have. Paste this into the browser console on the live page:
+Open **[check.html](check.html)** ([live](https://chiefjogger.github.io/mai/check.html)). It asserts four things and prints the result:
 
-```js
-const m = await import('./brain.js');
-const bad = [];
-for (const it of m.MAI_INTENTS) for (const c of it.chips || []) if (!m.matchMai(c, {last:null})) bad.push(it.id + " :: " + c);
-for (const f of m.FALLBACKS) for (const c of f.chips || []) if (!m.matchMai(c, {last:null})) bad.push("fallback :: " + c);
-for (const c of m.GREETING_CHIPS) if (!m.matchMai(c, {last:null})) bad.push("greeting :: " + c);
-console.log(bad.length ? bad : "all chips resolve");
-```
+| Check | Why it exists |
+| --- | --- |
+| Every chip resolves to some intent | Chips are the primary tap path. A chip that hits a fallback is the worst bug this demo can have. Found 25 on the first run. |
+| Named questions resolve to the *right* intent | Stricter, and it caught more. "Bảo hiểm xe còn hạn không?" resolved happily — to the đăng kiểm deadline. A chip that answers confidently with the wrong topic is worse than one that fails. |
+| No duplicate intent ids | Two intents with one id means the loser is unreachable and nobody notices. |
+| No match phrase contains punctuation | `fold()` reduces punctuation to spaces, so a phrase written `"14/32"` or `"16:30"` can never match anything. Four were dead on arrival. |
 
-It currently prints `all chips resolve`. It found 25 broken chips on the first run, which is why it exists.
+It currently prints `routing 23/23` with none of the other three failing. When adding intents, add a routing row for the question you expect the new intent to own.
 
 ## Design notes
 
@@ -80,7 +78,8 @@ Then open http://localhost:4173.
 | --- | --- |
 | `index.html` | Page shell, import map, Babel Standalone loader |
 | `app.jsx` | UI — components, SVG scenes, data-viz, twelve wizard flows |
-| `brain.js` | 123 intents, six fallbacks, the fold-and-score matcher |
+| `brain.js` | 136 intents, six fallbacks, the fold-and-score matcher |
+| `check.html` | Corpus assertions: chip resolution, routing, duplicate ids, dead phrases |
 | `.nojekyll` | Serve the directory as-is on GitHub Pages |
 
 ## Known limits

@@ -1,0 +1,69 @@
+<meta charset="utf-8">
+<title>brain check</title>
+<pre id="o">running…</pre>
+<script type="module">
+import { matchMai, MAI_INTENTS, FALLBACKS, GREETING_CHIPS } from "./brain.js";
+
+// Câu hỏi phải về đúng ý định, không phải về "một ý định nào đó".
+// Chip khớp nhầm còn tệ hơn chip rơi vào câu đỡ, vì nó trông như đã đúng.
+const EXPECT = [
+  ["Số dư còn bao nhiêu?", "money_balance"],
+  ["Ví còn lại bao nhiêu tiền?", "money_balance"],
+  ["Trả xong còn lại bao nhiêu?", "money_after_paying"],
+  ["Bao nhiêu tiền tất cả?", "owe_this_week|owe_breakdown|owe_before_weekend"],
+  ["Giỏ hàng bao nhiêu?", "shop_cart_total"],
+  ["Bảo hiểm xe còn hạn không?", "bao_hiem_xe"],
+  ["Xe còn hạn đăng kiểm không?", "dangkiem_when"],
+  ["Phí đăng kiểm bao nhiêu?", "dangkiem_fee"],
+  ["Đăng kiểm cần mang giấy gì?", "dangkiem_papers"],
+  ["Mua quà gì cho Bà?", "shop_tea_ba"],
+  ["Trà sen cho Bà bao nhiêu?", "shop_tea_ba|shop_tea_price"],
+  ["Lịch học bơi của Bin thế nào?", "swim_schedule"],
+  ["Bin học bơi hôm nào?", "swim_schedule"],
+  ["Học bơi của Bin bao nhiêu?", "pay_swim_amount"],
+  ["Họp phụ huynh Na khi nào?", "na_parent_meeting"],
+  ["Hộ chiếu Na còn hạn không?", "passport_na"],
+  ["Mấy giờ rồi?", "time_now"],
+  ["Ai đón Bin chiều nay?", "pickup_who"],
+  ["Hôm nay còn việc gì gấp?", "urgent_now"],
+  ["Tôi nợ gì tuần này?", "owe_this_week"],
+  ["Thứ Sáu tối tôi rảnh không?", "friday_evening_free"],
+  ["Có cuộc gọi lạ nào không?", "any_strange_calls"],
+  ["Chiều mai lớp có nghỉ không?", "swim_cancel_tomorrow"],
+];
+
+const lines = [];
+let fail = 0;
+for (const [q, want] of EXPECT) {
+  const h = matchMai(q, { last: null });
+  const got = h ? h.id : "FALLBACK";
+  const ok = want.split("|").includes(got);
+  if (!ok) fail++;
+  lines.push((ok ? "  ok  " : "  FAIL") + "  " + got.padEnd(24) + (ok ? "" : "want " + want + "  ") + q);
+}
+
+// mọi chip phải dẫn tới một ý định thật
+const broken = [];
+for (const it of MAI_INTENTS) for (const c of it.chips || []) if (!matchMai(c, { last: null })) broken.push(it.id + " :: " + c);
+for (const f of FALLBACKS) for (const c of f.chips || []) if (!matchMai(c, { last: null })) broken.push("fallback :: " + c);
+for (const c of GREETING_CHIPS) if (!matchMai(c, { last: null })) broken.push("greeting :: " + c);
+
+// id trùng, và cụm khớp chết vì fold() nuốt dấu chấm câu
+const ids = MAI_INTENTS.map((i) => i.id);
+const dup = ids.filter((v, i) => ids.indexOf(v) !== i);
+const dead = [];
+for (const it of MAI_INTENTS) for (const p of it.k) if (/[^a-z0-9 ]/.test(p)) dead.push(it.id + " :: " + p);
+
+const out = [
+  "intents      " + MAI_INTENTS.length,
+  "duplicate id " + (dup.length ? dup.join(", ") : "none"),
+  "broken chips " + (broken.length ? "\n  " + broken.join("\n  ") : "none"),
+  "dead phrases " + (dead.length ? "\n  " + dead.join("\n  ") : "none"),
+  "",
+  "routing " + (EXPECT.length - fail) + "/" + EXPECT.length,
+  ...lines,
+].join("\n");
+document.getElementById("o").textContent = out;
+window.__pass = fail === 0 && !broken.length && !dup.length && !dead.length;
+window.__out = out;
+</script>

@@ -3200,7 +3200,7 @@ export default function MaiV18() {
                   {cam === 1 && <div className="rise" style={{ display: "flex", gap: 7, alignItems: "center", padding: "6px 2px", fontSize: 12.5, color: T.sub }}><Camera size={13} /> Mai đang đọc giấy báo…</div>}
                   {cam === 2 && (
                     <>
-                      <Msg m={{ type: "ext", color: "#7A5CB8", Icon: Camera, src: "Ảnh giấy báo · từ cặp sách Na", time: "15:47", text: "THCS Trần Phú: Họp phụ huynh 19:00 thứ Bảy 15/08, phòng A2." }} />
+                      <Msg m={{ type: "ext", color: "#7A5CB8", Icon: Camera, src: "Ảnh giấy báo · từ cặp sách Na", time: "15:47", text: "THCS Trần Phú: Họp phụ huynh 19:00 thứ Sáu 15/08, phòng A2." }} />
                       <Msg m={{ type: "act", done: camUndone, text: camUndone ? "Đã xóa khỏi lịch" : "Đã vào lịch anh & Vy · nhắc trước 1 ngày", undo: () => { setCamUndone(true); ding(); }, undoLabel: "Xóa khỏi lịch" }} />
                     </>
                   )}
