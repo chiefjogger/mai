@@ -12,9 +12,12 @@ permissions:
   pages: write
   id-token: write
 
+# Queue overlapping runs instead of cancelling. With cancel-in-progress the
+# newer run kills the older one mid-deploy and deploy-pages reports
+# "Deployment cancelled", which is not a build failure but looks like one.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
