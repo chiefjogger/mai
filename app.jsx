@@ -105,7 +105,7 @@ const Intro = ({ onDone }) => {
       const mat = new THREE.PointsMaterial({ color: c0.clone(), size: base, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true });
       const pts = new THREE.Points(geo, mat);
       scene.add(pts);
-      const CONV = 1.3, PULSE = 1.72, END = 2.15, DUR = 1;
+      const CONV = 0.62, PULSE = 0.82, END = 1.05, DUR = 1;
       const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
       const cl = (x) => Math.max(0, Math.min(1, x));
       let raf = 0, fin = false, shown = false;
@@ -128,7 +128,7 @@ const Intro = ({ onDone }) => {
         attr.needsUpdate = true;
         pts.rotation.z = 0.35 * (1 - cl(t / CONV));
         cam.position.z = Z0 - (Z0 - Z1) * cl(t / PULSE);
-        if (!shown && t > 1.02) { shown = true; setLabel(true); }
+        if (!shown && t > 0.3) { shown = true; setLabel(true); }
         if (t > CONV && t <= PULSE) {
           const k = cl((t - CONV) / (PULSE - CONV));
           mat.color.copy(c0).lerp(c1, k);
@@ -158,7 +158,7 @@ const Intro = ({ onDone }) => {
       {label && (
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: FONT }}>
           <div className="wordmark" style={{ fontFamily: DISPLAY, fontSize: 40, fontWeight: 600, letterSpacing: -1.4, lineHeight: 1, color: "#FBF7F1" }}>m.ai</div>
-          <div className="wordmark" style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1, color: "#B9A997", marginTop: 13, animationDelay: ".08s" }}>một Mai · lo hết</div>
+          <div className="wordmark" style={{ fontSize: 15, fontWeight: 500, lineHeight: 1, color: "#B9A997", marginTop: 13, animationDelay: ".08s" }}>xem thử một buổi chiều</div>
         </div>
       )}
     </div>
@@ -1286,8 +1286,8 @@ const Head = ({ back, title, right, sub }) => (
 const Chip = ({ children, onTap, i = 0 }) => (
   <button onClick={onTap} className="btn chip" style={{
     animationDelay: i * 45 + "ms", background: T.surf, color: T.ink,
-    border: `1px solid ${T.hair}`, borderRadius: 999, padding: "9px 14px",
-    fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+    border: `1px solid ${T.hair}`, borderRadius: 999, padding: "11px 16px",
+    fontSize: 14.5, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
     boxShadow: "0 1px 2px rgba(60,45,30,.05)",
   }}>{children}</button>
 );
@@ -2906,6 +2906,72 @@ const flowWallet = (finish, spent, bal) => [
   ),
 ];
 
+// ————————————————————————————————————————————————————————————
+// TẤM BÌA · màn đầu tiên cho người lạ mở link
+// Ba người dùng thử đều tưởng mình mở nhầm máy người khác rồi không dám
+// chạm gì. Tấm bìa nói trước ba điều: nhà ai, xem hay dùng, tiền thật hay
+// xem thử. Một tấm, không lật, không chấm tròn, không vuốt.
+// ————————————————————————————————————————————————————————————
+const CAST = [
+  { n: "anh Hải", r: "bố" },
+  { n: "chị Vy", r: "mẹ" },
+  { n: "Bin", r: "con trai" },
+  { n: "Na", r: "con gái" },
+];
+const Cover = ({ onClose }) => (
+  <div className="rise" style={{ position: "absolute", inset: 0, zIndex: 80, background: T.bg, fontFamily: FONT, display: "flex", flexDirection: "column" }}>
+    <button onClick={onClose} className="btn press" style={{ position: "absolute", top: 18, right: 14, zIndex: 2, height: 40, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px", borderRadius: 999, border: `1px solid ${T.hair}`, background: T.surf, fontSize: 15 }}>
+      <span style={{ fontSize: 15, fontWeight: 700, color: T.sub }}>Bỏ qua</span>
+      <X size={16} color={T.faint} />
+    </button>
+
+    <div style={{ flex: 1, overflowY: "auto", padding: "26px 22px 8px" }}>
+      <div style={{ height: 30, display: "flex", alignItems: "center", gap: 9 }}>
+        <Logo size={24} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 600, color: T.ink }}>m.ai</span>
+      </div>
+
+      <div style={{ fontFamily: DISPLAY, fontSize: 34, fontWeight: 600, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink, marginTop: 22 }}>Ghé xem nhà anh Hải</div>
+      <div style={{ fontSize: 17, lineHeight: 1.55, color: T.sub, marginTop: 10, maxWidth: 340 }}>Mình ngồi xem một buổi chiều của nhà người ta, như xem phim vậy.</div>
+
+      <div style={{ height: 1, background: T.hair, margin: "22px 0 18px" }} />
+
+      {/* Năm ô mặt người: trả lời "Bin là đứa nào?" trước khi bác ấy kịp hỏi. */}
+      <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
+        {CAST.map((c) => (
+          <div key={c.n} style={{ flex: "1 1 0", minWidth: 0, textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Avatar name={c.n} size={48} /></div>
+            <div style={{ fontSize: 15, fontWeight: 650, color: T.ink, whiteSpace: "nowrap" }}>{c.n}</div>
+            <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>{c.r}</div>
+          </div>
+        ))}
+        <div style={{ flex: "1 1 0", minWidth: 0, textAlign: "center", marginLeft: 6 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+            <span style={{ width: 48, height: 48, borderRadius: 15, background: `linear-gradient(145deg, #E8825A, ${T.brand})`, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(194,85,47,.28)" }}><Logo size={26} /></span>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 650, color: T.ink, whiteSpace: "nowrap" }}>Mai</div>
+          <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>lo việc nhà</div>
+        </div>
+      </div>
+
+      {/* Câu quan trọng nhất tấm bìa: giải thích vì sao Mai gọi "anh". */}
+      <div style={{ fontSize: 16.5, lineHeight: 1.5, color: T.sub, marginTop: 14, maxWidth: 360 }}>Trong này Mai gọi “anh” là gọi anh Hải, không phải gọi người đang xem đâu.</div>
+
+      <div style={{ height: 1, background: T.hair, margin: "20px 0 18px" }} />
+
+      <div style={{ display: "inline-block", transform: "rotate(-6deg)", marginLeft: 2, marginBottom: 12 }}>
+        <div className="pop" style={{ padding: "8px 14px", border: `2.5px solid ${T.brandInk}`, borderRadius: 8, background: T.brandSoft, fontSize: 18, fontWeight: 800, letterSpacing: 2.5, color: T.brandInk, animationDelay: "320ms" }}>XEM THỬ</div>
+      </div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink }}>Tiền trong này không phải tiền thật.</div>
+      <div style={{ fontSize: 16.5, lineHeight: 1.5, color: T.sub, marginTop: 6 }}>Bấm nút nào cũng không mất tiền của ai.</div>
+    </div>
+
+    <div style={{ flexShrink: 0, padding: "16px 22px calc(22px + env(safe-area-inset-bottom))", background: T.bg, borderTop: `1px solid ${T.hair}` }}>
+      <button onClick={onClose} className="btn press" style={{ width: "100%", height: 56, borderRadius: 14, background: T.brand, color: "#FFFDF9", fontSize: 18, fontWeight: 700, boxShadow: "var(--e-brand, 0 2px 10px rgba(194,85,47,.30))" }}>Vào xem thử</button>
+    </div>
+  </div>
+);
+
 const SURFACES = [
   { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
   { id: "wa", n: "WhatsApp", g: "W", c: "#25D366", flow: "kb", app: "WhatsApp" },
@@ -2921,6 +2987,9 @@ const SURFACES = [
 // ————————————————————————————————————————————————————————————
 export default function MaiV18() {
   const [intro, setIntro] = useState(true);
+  const [cover, setCover] = useState(true);
+  const [pointing, setPointing] = useState(false);
+  const [visitedFamily, setVisitedFamily] = useState(false);
   const [screen, setScreen] = useState("home");
   const [flow, setFlow] = useState(null);          // luồng đang mở
   const [post, setPost] = useState(null);          // bài đang mở
@@ -2937,12 +3006,13 @@ export default function MaiV18() {
   const [surfApp, setSurfApp] = useState("Zalo");
   const [famMsgs, setFamMsgs] = useState([]);
   const [ongMsgs, setOngMsgs] = useState([]);
-  const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm mic nói." }]);
+  const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm mic nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [chips, setChips] = useState(GREETING_CHIPS);
   const [tick, setTick] = useState(0);
   const bump = () => setTick((t) => t + 1);
+  const closeCover = () => { setCover(false); setTimeout(() => setPointing(true), 400); };
   const endRef = useRef(null);
   const vyReplied = useRef(false);
   const recRef = useRef(null);
@@ -3211,24 +3281,43 @@ export default function MaiV18() {
             {screen === "home" && (
               <>
                 <Head title="m.ai" sub={<ShieldCheck size={15} color={T.green} strokeWidth={2.2} />} right={<>
-                  <button onClick={() => openFlow("wallet")} className="btn press" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${T.hair}`, background: T.bg, borderRadius: 999, padding: "7px 10px 7px 11px", flexShrink: 0 }}>
-                    <Wallet size={13} color={T.brandInk} strokeWidth={2.2} />
-                    <span style={{ fontFamily: DISPLAY, fontSize: 13.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(bal)}</span>
-                    <ChevronRight size={13} color={T.faint} strokeWidth={2.4} />
-                  </button>
+                  {visitedFamily ? (
+                    <button onClick={() => openFlow("wallet")} className="btn press" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${T.hair}`, background: T.bg, borderRadius: 999, padding: "7px 10px 7px 11px", flexShrink: 0 }}>
+                      <Wallet size={13} color={T.brandInk} strokeWidth={2.2} />
+                      <span style={{ fontFamily: DISPLAY, fontSize: 13.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(bal)}</span>
+                      <ChevronRight size={13} color={T.faint} strokeWidth={2.4} />
+                    </button>
+                  ) : (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 999, padding: "7px 12px", flexShrink: 0 }}>
+                      <ShieldCheck size={15} color={T.green} strokeWidth={2.2} />
+                      <span style={{ fontSize: 15, fontWeight: 650, color: T.green }}>Bản xem thử</span>
+                    </span>
+                  )}
                   <HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} ml />
                 </>} />
-                <div className="rise" style={{ flex: 1, overflowY: "auto" }}>
+                {/* Dải nhắc: hai điều quan trọng nhất, không tắt được, không trôi. */}
+                <div onClick={() => setCover(true)} className="press" style={{ flexShrink: 0, height: 56, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", background: T.brandSoft, borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                  <Logo size={20} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15.5, fontWeight: 700, color: T.brandInk }}>Đây là nhà anh Hải, mình xem thôi.</div>
+                    <div style={{ fontSize: 15, color: T.brandInk, opacity: 0.82, marginTop: 2, lineHeight: 1.35 }}>Bấm gì cũng không mất tiền thật.</div>
+                  </div>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.brandInk }}>Xem lại</span>
+                    <ChevronRight size={15} color={T.brandInk} />
+                  </span>
+                </div>
+                <div className="rise" onPointerDownCapture={() => { if (pointing) setPointing(false); }} style={{ flex: 1, overflowY: "auto" }}>
                   {/* Cảnh mở màn: Mai đã gom việc sẵn, chạm ngay tại đây,
                       không bắt anh đi tìm trong nhóm. */}
                   <div style={{ padding: "15px 14px 13px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
                     <div onClick={() => setScreen("mai")} className="press" style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
                       <Mark size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh,</div>
-                        <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "còn 3 việc trước 17:00 · Mai lo phần còn lại"}</div>
+                        <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh Hải,</div>
+                        <div style={{ fontSize: 14.5, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "còn 3 việc trước 17:00 · Mai lo phần còn lại"}</div>
                       </div>
-                      {allDone ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
+                      {allDone || !visitedFamily ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
                     </div>
                   </div>
                   <div style={{ padding: "13px 14px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
@@ -3249,7 +3338,17 @@ export default function MaiV18() {
                   </div>
                   <ChatRow Icon={MessageCircle} tint={T.brandSoft} color={T.brand} title="Mai" sub="Hỏi gì cũng được · gõ hoặc nói" time="15:44" unread={seenMai ? null : "1"} onTap={() => { setSeenMai(true); setScreen("mai"); }} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>NHÓM</div>
-                  <ChatRow avatar="Nhà mình" letter="N" title="Nhà mình" verified sub={allDone ? "Mai: xong sớm trước hạn" : "Vy: đừng lo vụ đón Bin nha"} time="15:38" onTap={() => setScreen("family")} />
+                  {pointing && (
+                    <div style={{ display: "inline-flex", alignItems: "center", marginLeft: 14, marginBottom: 7, background: T.dark, color: "#FBF7F1", borderRadius: 12, padding: "9px 13px", boxShadow: "var(--e1, 0 2px 10px rgba(60,45,30,.14))", position: "relative" }}>
+                      <span style={{ fontSize: 16.5, fontWeight: 650 }}>Nhóm nhà anh Hải</span>
+                      <span style={{ fontSize: 16.5, opacity: 0.78 }}>&nbsp;· chạm thử</span>
+                      <span style={{ position: "absolute", bottom: -7, left: 18, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${T.dark}` }} />
+                    </div>
+                  )}
+                  <div style={{ position: "relative" }}>
+                    <ChatRow avatar="Nhà mình" letter="N" title="Nhà mình" verified sub={allDone ? "Mai: xong sớm trước hạn" : "Vy: đừng lo vụ đón Bin nha"} time="15:38" onTap={() => { setVisitedFamily(true); setPointing(false); setScreen("family"); }} />
+                    {pointing && <div className="sn-ring" style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: `inset 0 0 0 2px ${T.brand}` }} />}
+                  </div>
                   <ChatRow avatar="Ông bà cô chú" letter="Ô" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>KÊNH</div>
                   <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
@@ -3291,6 +3390,12 @@ export default function MaiV18() {
                   sub={<><ShieldCheck size={15} color={T.green} strokeWidth={2.2} /><span style={{ fontSize: 12, color: T.faint, ...num }}>15:42</span></>}
                   right={<><HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} /><HBtn Icon={Phone} onTap={() => openFlow("call")} ml /></>} />
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
+                  {/* Giống dòng ngày tháng trong Zalo — đọc lướt qua là hiểu đang xem nhà ai. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0 12px" }}>
+                    <span style={{ height: 1, flex: 1, background: T.hair }} />
+                    <span style={{ fontSize: 15, fontWeight: 600, color: T.sub, whiteSpace: "nowrap" }}>Nhà anh Hải · mình xem thôi</span>
+                    <span style={{ height: 1, flex: 1, background: T.hair }} />
+                  </div>
                   <Msg m={{ from: "w", name: "Vy", text: "Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha" }} />
                   <CardBox style={{ margin: "8px 0" }}>
                     {/* Sự gấp gáp nằm ngay trên thẻ việc, không cần một cái
@@ -3307,7 +3412,7 @@ export default function MaiV18() {
                       meta="Cô nhắc lần 2 · 14/32 đã đóng" metaTone="amber" pill={<Pill tone="amber">hạn 17:00</Pill>} cta="Trả"
                       done={done.pay ? "Đã trả" : null} doneMeta="Trả 15:43 · biên lai đã gửi riêng cô Lan" onTap={() => openFlow("pay")} />
                     <Row Icon={Car} iconTint={T.amberBg} iconColor={T.amber} title="Đón Bin 16:30 · còn 48 phút"
-                      quote="em đón được, anh họp đi 👍" quoteWho="Vy · 15:38" meta="Họp của anh kéo tới 17:00" metaTone="amber" cta="Xử"
+                      quote="em đón được, anh họp đi 👍" quoteWho="Vy · 15:38" meta="Họp của anh kéo tới 17:00" metaTone="amber" cta="Chốt"
                       done={done.pick ? "Đã chốt" : null} doneMeta="Vy đón 16:20 · đã vào lịch 2 người" onTap={() => openFlow("pickup")} />
                     <Row Icon={FileText} title="Đơn dã ngoại · Na" meta="Email THCS Trần Phú · hạn thứ Sáu" cta="Ký"
                       done={done.form ? "Đã gửi" : null} doneMeta="Cô Hồng đã nhận · lưu hồ sơ Na" onTap={() => openFlow("form")} last />
@@ -3363,7 +3468,7 @@ export default function MaiV18() {
 
             {screen === "mai" && (
               <>
-                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh và Mai · chạy trên máy</span>} />
+                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh Hải và Mai · chạy trên máy</span>} />
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
                   {maiMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   {busy && <Thinking />}
@@ -3406,6 +3511,7 @@ export default function MaiV18() {
           {post && <PostSheet post={post} onClose={() => setPost(null)} onAuthor={() => { setProf(post.profile); }} onAct={() => post.act && openFlow(post.act.flow)} />}
           {prof && <ProfileSheet p={prof} onClose={() => setProf(null)} />}
           {flow && <Wizard title={TITLES[flow]} steps={FLOWS[flow]()} onClose={() => setFlow(null)} />}
+          {cover && <Cover onClose={closeCover} />}
           {intro && <Intro onDone={() => setIntro(false)} />}
         </Boundary>
       </div>
