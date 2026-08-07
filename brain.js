@@ -501,7 +501,7 @@ const PACK_KIDS = [
   },
   {
     id: "remind_generic",
-    k: ["nhac toi", "dat nhac nho", "nho nhac toi", "nhac gium toi", "tao nhac nho", "nhac toi viec nay", "dat lich nhac"],
+    k: ["nhac toi", "dat nhac nho", "nho nhac toi", "nhac gium toi", "tao nhac nho", "nhac toi viec nay", "dat lich nhac", "nhac lich hoc them", "nhac lich hoc"],
     must: ["nhac"],
     not: ["don bin", "dang kiem", "hoc boi", "ve concert"],
     reply: "Anh cho Mai giờ với việc, Mai đặt nhắc cho cả anh và Vy. Hôm nay Mai đang giữ hai mốc rồi: hạn học bơi 17:00 và đón Bin 16:30.",
@@ -723,8 +723,8 @@ const PACK_DOCS = [
   {
     id: "lua_dao_chung",
     k: ["lua dao", "bi lua", "canh giac lua dao", "tranh lua dao", "lua dao qua dien thoai",
-        "dau hieu lua dao", "gia mao", "co lua dao khong"],
-    must: ["lua", "mao"],
+        "dau hieu lua dao", "gia mao", "co lua dao khong", "gia danh cong an", "goi gia danh", "cuoc goi gia danh", "chan cuoc goi gia"],
+    must: ["lua", "mao", "gia danh"],
     reply: "Ba dấu hiệu chung: giục gấp, đòi chuyển tiền ngay, và dặn đừng nói với ai trong nhà. Mai đối chiếu mặt, giọng và số máy trước khi chuông kịp đổ lần hai.",
     src: "chặn giả mạo",
     flow: "call",
@@ -834,8 +834,8 @@ const PACK_SHOP = [
   },
   {
     id: "shop_bokho_items",
-    k: ["bo kho can gi", "nguyen lieu bo kho", "mua gi nau bo kho", "bo kho mua gi", "can mua nhung gi", "nguyen lieu can mua", "trong gio co gi", "gio gom nhung gi"],
-    reply: "Bò nạm MEATDeli 500g, cà rốt, sả gừng, gói gia vị bò kho Chin-su và 2 ổ bánh mì. Đủ 6 món, Mai chia sẵn theo khẩu phần nhà 4 người.",
+    k: ["bo kho can gi", "nguyen lieu bo kho", "mua gi nau bo kho", "bo kho mua gi", "can mua nhung gi", "nguyen lieu can mua", "trong gio co gi", "gio gom nhung gi", "gom nhung mon gi", "co nhung mon gi", "gom mon gi", "gia tung mon"],
+    reply: "Bò nạm MEATDeli 500g, cà rốt, sả gừng, gói gia vị bò kho Chin-su và 2 ổ bánh mì. Đủ 5 món, Mai chia sẵn theo khẩu phần nhà 4 người.",
     src: "công thức mẹ Su",
     flow: "cart",
     cta: "Mở giỏ",
@@ -931,7 +931,7 @@ const PACK_SHOP = [
     id: "shop_compare_price",
     k: ["so gia", "cho nao re hon", "co re hon khong", "dat hay re", "so sanh gia", "mua ngoai cho re hon khong", "gia co tot khong", "mua ngoai re hon"],
     not: ["dang kiem"],
-    reply: "Bò nạm MEATDeli 139.000đ nhỉnh hơn chợ chừng 10.000đ nhưng có nguồn gốc và đổi trả được. Cả giỏ 186.000đ lại cộng 186 điểm nên coi như huề.",
+    reply: "Bò nạm MEATDeli 139.000đ nhỉnh hơn chợ chừng 10.000đ, đổi lại có nguồn gốc và đổi trả được. Điểm WinX chỉ đáng vài trăm đồng thôi, anh mua vì đỡ một chuyến chợ thì đúng hơn.",
     flow: "cart",
     cta: "Xem từng món",
     chips: ["Thịt bò MEATDeli giá sao?", "Đơn này được bao nhiêu điểm WinX?", "Giỏ hàng bao nhiêu tiền?"],
@@ -958,7 +958,7 @@ const PACK_SHOP = [
   // ————— nhãn hàng trong hệ —————
   {
     id: "shop_meatdeli",
-    k: ["thit mat", "meatdeli", "bo nam", "mua thit", "thit bo", "thit tuoi", "mua thit bo", "thit ngon"],
+    k: ["thit mat", "meatdeli", "bo nam", "mua thit", "thit bo", "thit tuoi", "thit lon", "thit lonn", "thit heo", "mua thit bo", "thit ngon"],
     reply: "Bò nạm MEATDeli 500g 139.000đ, thịt mát nên kho xong không bã. Quầy tươi WinMart+ Thảo Điền soạn rồi Supra giao trong ngày.",
     flow: "cart",
     cta: "Thêm vào giỏ",
@@ -1036,7 +1036,7 @@ const PACK_LIFE = [
   },
   {
     id: "mai_vs_assistant",
-    k: ["khac tro ly thuong", "khac gi chatgpt", "khac gi google", "khac gi siri", "khac gi cac tro ly khac", "mai khac gi", "tai sao dung mai", "co gi dac biet", "hon cho nao"],
+    k: ["khac tro ly thuong", "khac gi chatgpt", "khac gi google", "khac gi siri", "khac gi zalo", "khac gi shopee", "hon zalo cho nao", "giong zalo khong", "khac gi cac tro ly khac", "mai khac gi", "tai sao dung mai", "co gi dac biet", "hon cho nao"],
     reply: "Trợ lý thường trả lời xong là hết, Mai thì làm luôn rồi ghi lại vào hồ sơ nhà mình. Lần sau anh khỏi phải kể lại từ đầu.",
     chips: ["Mai làm được gì?", "Mai lưu những gì của nhà mình?", "Trả học bơi cho Bin"],
   },
@@ -1044,7 +1044,7 @@ const PACK_LIFE = [
   // ————— RIÊNG TƯ —————
   {
     id: "mai_reads_messages",
-    k: ["doc tin nhan", "mai co doc tin nhan cua anh khong", "co doc trom khong", "doc chat cua toi", "co nghe len khong", "co theo doi toi khong", "mai co doc het khong", "co doc zalo khong"],
+    k: ["doc tin nhan", "mai co doc tin nhan cua anh khong", "co doc trom khong", "sao mai biet het", "mai biet het vay", "ai doc duoc tin nhan", "doc chat cua toi", "co nghe len khong", "co theo doi toi khong", "mai co doc het khong", "co doc zalo khong"],
     w: 2,
     reply: "Mai chỉ đọc đúng thứ anh đưa vào: tin Vy chuyển tiếp, email anh chia sẻ, giấy tờ anh chụp. Zalo và hộp thư riêng của anh Mai không tự vào.",
     src: "quyền anh đã bật",
@@ -1092,10 +1092,8 @@ const PACK_LIFE = [
   {
     id: "thanks",
     k: ["cam on", "cam on mai", "cam on em", "cam on nhe", "thanks", "thank you", "tks", "gioi lam", "ngon lanh", "may qua co mai"],
-    reply: "Dạ, việc của Mai mà anh. Học bơi của Bin vẫn chưa đóng, hạn 17:00 hôm nay.",
-    flow: "pay",
-    cta: "Trả 850.000đ",
-    chips: ["Ai đón Bin chiều nay?", "Hôm nay còn việc gì gấp?", "Tối nay nhà mình xem gì?"],
+    reply: "Dạ, việc của Mai mà anh. Cần gì anh cứ gọi Mai.",
+    chips: ["Hôm nay còn việc gì gấp?", "Tối nay nhà mình xem gì?", "Mai làm được gì?"],
   },
   {
     id: "confirm_bare",
@@ -1233,19 +1231,19 @@ const PACK_LIFE = [
 export const FALLBACKS = [
   {
     reply: "Mai chưa chắc ý anh. Anh nói gọn lại một câu, hoặc chọn giúp Mai một việc dưới đây.",
-    chips: ["Trả học bơi cho Bin", "Ai đón Bin chiều nay?", "Hôm nay còn việc gì gấp?"],
+    chips: ["Hôm nay còn việc gì gấp?", "Mai làm được gì?", "Tối nay nấu gì nhanh?"],
   },
   {
-    reply: "Câu này Mai chưa nắm, nhưng việc trong nhà thì Mai nắm hết. Sát hạn nhất bây giờ là học bơi của Bin, 17:00 chiều nay.",
-    chips: ["Trả học bơi cho Bin", "Đơn dã ngoại của Na", "Số dư WinMoney còn bao nhiêu?"],
+    reply: "Câu này Mai chưa nắm, Mai nói thật để anh khỏi chờ. Việc trong nhà thì anh cứ hỏi, Mai nắm hết.",
+    chips: ["Mai làm được gì?", "Xe còn hạn đăng kiểm không?", "Tối nay nhà mình xem gì?"],
   },
   {
     reply: "Mai chưa hiểu ý anh. Hay để Mai mở hồ sơ nhà mình, anh nhìn một lượt xem có gì cần làm trước.",
     chips: ["Mở hồ sơ nhà mình", "Xe còn hạn đăng kiểm không?", "Hộ chiếu Na còn hạn không?"],
   },
   {
-    reply: "Chỗ này Mai chịu, nhưng đừng để lỡ giờ. Chiều nay còn hai mốc: 16:30 Bin tan lớp và 17:00 hạn đóng học bơi.",
-    chips: ["Ai đón Bin chiều nay?", "Trả học bơi cho Bin", "Tối nay nấu gì nhanh?"],
+    reply: "Chỗ này Mai chịu. Nhưng canh giờ với nhắc việc thì Mai giỏi, anh cứ giao.",
+    chips: ["Nhắc tôi uống thuốc lúc 20:00", "Ai đón Bin chiều nay?", "Có cuộc gọi lạ nào không?"],
   },
   {
     reply: "Việc này Mai chưa làm được, Mai nói thật để anh khỏi mất công chờ. Mấy việc dưới đây thì Mai đi tới cuối được.",
@@ -1413,7 +1411,7 @@ const PACK_GAPS2 = [
   },
   {
     id: "speaker_ba",
-    k: ["mo loa nha ba", "loa nha ba", "chieu qua loa nha ba", "loa cua ba", "phat qua loa nha ba", "mo loa"],
+    k: ["mo loa nha ba", "loa nha ba", "chieu qua loa nha ba", "loa cua ba", "phat qua loa nha ba", "mo loa", "loa m ai lam duoc gi", "loa lam duoc gi", "loa m ai la gi"],
     must: ["loa"],
     w: 2,
     reply: "Mai mở loa nhà Bà được, Bà nghe rõ mà không phải bấm gì. Anh muốn Mai phát tập cuối 20:00 hay gọi cho Bà trước ạ?",
@@ -1445,8 +1443,8 @@ const PACK_GAPS2 = [
   },
   {
     id: "cancel_undo",
-    k: ["huy di", "anh doi y", "lam lai gium anh", "huy giup anh", "dung lai", "bo di", "khong lam nua", "huy"],
-    must: ["huy", "doi y", "lam lai", "dung lai", "khong lam nua"],
+    k: ["huy di", "anh doi y", "lam lai gium anh", "huy giup anh", "dung lai", "bo di", "khong lam nua", "huy", "dung co mua", "khong mua nua", "thoi khong mua"],
+    must: ["huy", "doi y", "lam lai", "dung lai", "khong lam nua", "dung co mua", "khong mua nua"],
     w: 3,
     reply: "Mai dừng ở đây, chưa trừ đồng nào của anh cả. Anh muốn làm lại thì nói Mai một tiếng.",
     chips: ["Hôm nay còn việc gì gấp?", "Số dư còn bao nhiêu?", "Còn gì phải làm không?"],
@@ -1495,9 +1493,164 @@ const PACK_GAPS2 = [
   },
 ];
 
-export const MAI_INTENTS = [].concat(PACK_MONEY, PACK_KIDS, PACK_DOCS, PACK_SHOP, PACK_LIFE, PACK_GAPS, PACK_GAPS2);
+
+// ————— vá theo phản hồi ba người dùng thử (Phủ Lý 57 · Thái Nguyên 63 · Vinh 48) —————
+const PACK_AUNTY = [
+  {
+    id: "demo_whoami",
+    k: ["sao goi toi la anh", "sao cu goi toi la anh", "toi la ba noi ma", "toi la ba ngoai ma", "toi la co ma", "toi khong phai anh",
+        "bin la dua nao", "bin la ai", "na la ai", "vy la ai", "day la may cua ai", "nha ai day", "app cua ai day", "chau toi ten khac ma"],
+    w: 2,
+    reply: "Đây là bản demo kể chuyện một nhà: anh, Vy, bé Bin và bé Na. Khi dùng thật, Mai chào đúng tên mình và chỉ nhớ chuyện nhà mình thôi.",
+    src: "bản demo",
+    chips: ["Mai làm được gì?", "Ai đọc được tin nhắn của tôi?", "Bấm nhầm có mất tiền không?"],
+  },
+  {
+    id: "transfer_money",
+    k: ["chuyen tien", "chuyen khoan", "gui tien", "chuyen tien cho con", "gui tien cho con", "chuyen tien cho chau", "gui tien ve que",
+        "chuyen khoa cho chau", "chuyen khoa", "chuyen 2 trieu", "gui cho con gai"],
+    must: ["chuyen", "gui"],
+    not: ["gia danh", "lua dao", "bi lua", "chan cuoc goi"],
+    reply: "Mai chuyển được qua WinMoney cho người trong danh bạ đã định danh CCCD, không mất phí, quét mặt xong tiền mới đi. Anh nói tên người nhận và số tiền là Mai soạn sẵn.",
+    src: "ví WinMoney",
+    chips: ["Số dư còn bao nhiêu?", "Bấm nhầm có mất tiền không?", "Mai làm được gì?"],
+  },
+  {
+    id: "tap_safety",
+    k: ["bam nham co mat tien", "bam nham co bi tru tien", "bam vao day co bi mat tien", "bam vao co mat tien", "bam nham thi sao",
+        "lo bam nham", "so bam nham", "co bi mat tien khong", "bam nham mot phat"],
+    w: 2,
+    reply: "Không anh. Chưa quét mặt là chưa mất một đồng nào, và món nào lỡ tay đều hoàn được trong 24 giờ. Anh đặt trần cho Mai thì Mai không bao giờ tiêu quá mức đó mà không hỏi.",
+    src: "quy tắc ví",
+    flow: "wallet",
+    cta: "Đặt trần cho Mai",
+    chips: ["Đặt trần cho Mai tiêu tới đâu?", "Số dư còn bao nhiêu?", "Mai làm được gì?"],
+  },
+  {
+    id: "med_reminder",
+    k: ["nhac toi uong thuoc", "nhac uong thuoc", "thuoc huyet ap", "dat nhac uong thuoc", "nhac gio uong thuoc", "uong thuoc luc"],
+    reply: "Dạ, Mai nhắc lúc 20:00 mỗi tối, tới giờ Mai gọi cả trên loa. Thuốc huyết áp nên uống đều một giờ cố định, còn uống trước hay sau ăn thì anh hỏi bác sĩ giúp Mai.",
+    chips: ["Hôm nay còn việc gì gấp?", "Mai làm được gì?", "Có cuộc gọi lạ nào không?"],
+  },
+  {
+    id: "market_price",
+    k: ["gia thit heo", "gia thit lon", "thit heo bao nhieu", "thit lon hom nay", "gia vang", "gia vang hom nay", "gia rau", "gia ca hom nay", "gia xang"],
+    reply: "Giá chợ ngoài với giá vàng Mai chưa xem được, Mai nói thật. Trong WinMart+ thì ba rọi MEATDeli 500g đang 92.000đ, anh cần Mai bỏ vào giỏ không?",
+    flow: "cart",
+    cta: "Xem giỏ",
+    chips: ["Mua ngoài chợ có rẻ hơn không?", "Giỏ hàng bao nhiêu tiền?", "Tối nay nấu gì nhanh?"],
+  },
+  {
+    id: "ship_fee",
+    k: ["phi ship", "phi giao hang", "ship bao nhieu", "giao hang mat phi", "tien ship", "phi van chuyen", "mat phi giao khong"],
+    reply: "Đơn WinMart+ từ 100.000đ thì Supra giao không tính phí, dưới mức đó phí 15.000đ. Giỏ hôm nay 186.000đ nên miễn phí.",
+    src: "WinMart+ · Supra",
+    chips: ["Giỏ hàng bao nhiêu tiền?", "Khi nào giao?", "Đơn này được bao nhiêu điểm WinX?"],
+  },
+  {
+    id: "haggle",
+    k: ["dat qua", "giam gia duoc khong", "bot duoc khong", "giam duoc khong", "co khuyen mai khong", "co giam gia khong", "sao dat the", "bot chut di"],
+    reply: "Giá WinMart+ là giá niêm yết, Mai không mặc cả được, nhưng món nào đang khuyến mãi Mai luôn chọn trước. Anh muốn Mai đổi món nào rẻ hơn trong giỏ không?",
+    flow: "cart",
+    cta: "Xem giỏ",
+    chips: ["Mua ngoài chợ có rẻ hơn không?", "Giỏ hàng bao nhiêu tiền?", "Đơn này được bao nhiêu điểm WinX?"],
+  },
+  {
+    id: "winmoney_what",
+    k: ["winmoney la gi", "winmoney la cai gi", "winmoney co phai tien that", "winmoney", "vi winmoney la gi"],
+    reply: "WinMoney là ví tiền thật, nối thẳng tài khoản Techcombank của anh, trả ở WinMart+, Phúc Long hay chuyển cho người nhà đều được. Chưa quét mặt là chưa mất đồng nào.",
+    src: "ví WinMoney",
+    flow: "wallet",
+    cta: "Mở ví",
+    chips: ["Số dư còn bao nhiêu?", "Bấm nhầm có mất tiền không?", "Trả bằng gì thì rẻ nhất?"],
+  },
+  {
+    id: "font_bigger",
+    k: ["chu to len", "chu nho qua", "khong thay ro chu", "doc to len", "to chu len", "phong chu to", "chu be qua"],
+    reply: "Dạ, bản dùng thật chỉnh được cỡ chữ to lên và Mai đọc to mọi tin cho mình nghe được. Bản demo này Mai chưa gắn nút đó, Mai nói thật.",
+    src: "bản demo",
+    chips: ["Loa m.ai làm được gì?", "Mai làm được gì?", "Hôm nay còn việc gì gấp?"],
+  },
+  {
+    id: "data_delete",
+    k: ["xoa het thong tin", "xoa du lieu cua toi", "xoa tai khoan", "xoa het thong tin cua toi", "xoa het di", "xoa sach di"],
+    must: ["xoa"],
+    reply: "Két nhà mình nằm ngay trên máy anh, muốn xoá là xoá sạch tại chỗ, Mai không giữ bản nào ở nơi khác. Anh nói xoá là Mai xoá, không hỏi vòng vo.",
+    src: "két ký ức",
+    chips: ["Ai đọc được tin nhắn của tôi?", "Mai lưu những gì của nhà mình?", "Mai làm được gì?"],
+  },
+  {
+    id: "spend_cap",
+    k: ["dat tran", "dat tran cho mai", "tran chi tieu", "gioi han chi tieu", "mai duoc tieu bao nhieu", "mai tu tra bao nhieu",
+        "dat tran cho mai tieu toi dau", "gioi han cho mai", "mai tieu toi dau", "khong cho mai tu tra"],
+    w: 2,
+    reply: "Anh đặt trần thì dưới mức đó Mai tự trả rồi báo lại, trên mức đó Mai đứng lại hỏi anh. Người nhận lạ thì Mai hỏi kể cả khi dưới trần.",
+    src: "ví WinMoney",
+    flow: "wallet",
+    cta: "Đặt trần cho Mai",
+    chips: ["Bấm nhầm có mất tiền không?", "Số dư còn bao nhiêu?", "Tháng này Mai tiêu gì?"],
+  },
+  {
+    id: "wallet_spent",
+    k: ["thang nay mai tieu gi", "mai tieu gi", "da tra nhung gi", "chi tieu thang nay", "xem chi tieu", "mai tra ho nhung gi", "so chi tieu"],
+    reply: "Mọi khoản Mai trả hộ đều ghi trong ví, mở ra là thấy từng dòng kèm biên lai. Không có khoản nào Mai giấu anh cả.",
+    src: "ví WinMoney",
+    flow: "wallet",
+    cta: "Mở ví",
+    chips: ["Đặt trần cho Mai tiêu tới đâu?", "Số dư còn bao nhiêu?", "Sắp tới phải trả gì?"],
+  },
+  {
+    id: "upcoming_bills",
+    k: ["sap toi phai tra gi", "sap toi tra gi", "con phai tra gi", "khoan nao sap den han", "sap den han", "thang toi tra gi"],
+    reply: "Phí dã ngoại của Na 120.000đ hạn thứ Sáu, đăng kiểm 340.000đ ngày 12/09, điện tháng 8 khoảng 1.240.000đ đầu tháng sau. Cộng chừng 1.700.000đ trong năm tuần.",
+    src: "ví WinMoney",
+    flow: "wallet",
+    cta: "Mở ví",
+    chips: ["Số dư còn bao nhiêu?", "Đặt trần cho Mai tiêu tới đâu?", "Đơn dã ngoại của Na"],
+  },
+  {
+    id: "dangkiem_moto",
+    k: ["xe may co can dang kiem", "dang kiem xe may", "xe may khong can dang kiem", "xe may can dang kiem", "di xe may co can dang kiem"],
+    must: ["xe may"],
+    w: 2,
+    reply: "Xe máy thì không phải đăng kiểm định kỳ anh, chỉ ô tô mới cần. Mazda nhà mình hạn 12/09, Mai đang canh sẵn.",
+    src: "hồ sơ xe",
+    chips: ["Đặt lịch đăng kiểm xe", "Quá hạn đăng kiểm phạt bao nhiêu?", "Mai làm được gì?"],
+  },
+  {
+    id: "vs_shopee",
+    k: ["shopee re hon", "re hon shopee", "freeship", "sao khong mua shopee", "shopee"],
+    w: 2,
+    reply: "Đồ khô trên Shopee có khi rẻ hơn thật, Mai không cãi. Mai được cái đồ tươi giao trong 2 tiếng, tiền với giấy tờ cả nhà nằm một chỗ, không phải chờ sale.",
+    chips: ["Mua ngoài chợ có rẻ hơn không?", "Phí ship bao nhiêu?", "Mai làm được gì?"],
+  },
+  {
+    id: "livestream_fake",
+    k: ["mua hang tren livestream", "livestream", "mua phai hang gia", "hang gia", "hang that hang gia", "biet hang that"],
+    w: 2,
+    reply: "Trên kênh mặt thật của Mai, người bán định danh CCCD và tiền được giữ hộ tới khi hàng về đúng tên mình mới giải ngân. Livestream ngoài thì Mai chưa kiểm được, anh cẩn thận khoản chuyển cọc.",
+    src: "kênh mặt thật",
+    chips: ["Mua vé pass có bị lừa không?", "Có cuộc gọi lạ nào không?", "Mai làm được gì?"],
+  },
+  {
+    id: "send_media_call",
+    k: ["gui cai anh nay", "gui anh cho", "gui anh gium", "goi video", "goi video cho", "goi dien cho"],
+    must: ["gui anh", "gui cai anh", "goi video", "goi dien"],
+    reply: "Trong nhóm Nhà mình, anh chạm máy ảnh cạnh ô nhắn là gửi được ảnh, gọi video thì chạm ống nghe góc phải. Mai gửi kèm lời nhắn giúp anh được.",
+    chips: ["Mai làm được gì?", "Hôm nay còn việc gì gấp?", "Có cuộc gọi lạ nào không?"],
+  },
+]; 
+
+export const MAI_INTENTS = [].concat(PACK_MONEY, PACK_KIDS, PACK_DOCS, PACK_SHOP, PACK_LIFE, PACK_GAPS, PACK_GAPS2, PACK_AUNTY);
 
 // "Đăng kiểm xe?" → "dang kiem xe"
+// Viết tắt kiểu chợ: mở rộng theo TỪ sau khi gấp dấu, "186k" giữ nguyên.
+const ABBR = {
+  bnhieu: "bao nhieu", bnhiu: "bao nhieu", bn: "bao nhieu",
+  ko: "khong", kh: "khong", k: "khong", hok: "khong", hong: "khong",
+  dc: "duoc", đc: "duoc", ck: "chuyen khoan", j: "gi", ntn: "nhu the nao",
+  sdt: "so dien thoai", dt: "dien thoai", vs: "voi",
+};
 export const fold = (s) =>
   (s || "")
     .toLowerCase()
@@ -1506,7 +1659,10 @@ export const fold = (s) =>
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .split(" ")
+    .map((w) => ABBR[w] || w)
+    .join(" ");
 
 // So khớp theo ranh giới từ: "gio" không được dính vào "giong".
 const has = (padded, p) => padded.indexOf(" " + p + " ") !== -1;

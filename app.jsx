@@ -1929,7 +1929,7 @@ const flowCart = (finish) => {
     (a) => (
       <>
         <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang chạy</H1>
-        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Shipper Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Đã giao", s: "18:02 · để ở cửa" }]} />
+        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Shipper Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước 18:00", s: "Mai báo khi hàng tới cửa" }]} />
         <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
       </>
     ),
@@ -1938,7 +1938,7 @@ const flowCart = (finish) => {
       return (
         <>
           <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-          <H1 sub="Mai lưu công thức bò kho vào hồ sơ, lần sau chỉ cần nói đặt lại là xong.">Đã giao 18:02</H1>
+          <H1 sub="Supra giao trước 18:00, Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong.">Đơn đã chạy</H1>
           <KV rows={[["Tổng trả", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"], ["Lưu", "Công thức + giỏ hàng lặp lại"]]} />
           <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
         </>
@@ -2804,6 +2804,108 @@ const flowDevices = (finish) => [
   ),
 ];
 
+// 13 · VÍ WINMONEY (7 bước)
+// Ba người dùng thử đều sợ đúng một thứ: tiền tự đi mà không hỏi.
+// Luồng này kết ở chỗ đặt trần cho Mai, nên cái ví trả lời được nỗi sợ đó.
+const flowWallet = (finish, spent, bal) => [
+  (a) => (
+    <>
+      <H1 sub="Ví thật, nối thẳng Techcombank của anh. Mai không giữ tiền, Mai chỉ giữ sổ.">Ví WinMoney</H1>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "14px 15px", marginBottom: 11 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.5 }}>SỐ DƯ</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: T.ink, letterSpacing: -0.5, marginTop: 2, ...num }}>{fmt(bal)}</div>
+        </div>
+        <Spark points={[2480, 2480, 2315, 2315, bal / 1000]} w={72} h={30} color={T.brand} fill />
+      </div>
+      <KV rows={[["Nguồn tiền", "Techcombank ····4102"], ["Rút về tài khoản", "miễn phí · trong ngày"], ["Trả trong hệ", "WinMart+ · Phúc Long · MEATDeli"], ["Chuyển người nhà", "0đ phí · cần định danh CCCD"]]} />
+      <Foot><Btn wide onClick={a.next}>Mai đã tiêu gì</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mọi khoản Mai trả hộ đều nằm đây, không có dòng nào Mai giấu anh.">Tháng này</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        {spent.length === 0 && (
+          <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "14px 13px", fontSize: 13, color: T.sub, lineHeight: 1.55 }}>
+            Chưa có khoản nào trong phiên này. Anh cứ trả thử một việc rồi quay lại đây xem Mai ghi sổ.
+          </div>
+        )}
+        {spent.map((s) => (
+          <div key={s.t} style={{ display: "flex", alignItems: "center", gap: 11, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
+            <IconSq Icon={s.Icon} tint={T.brandSoft} color={T.brand} size={30} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink }}>{s.t}</div>
+              <div style={{ fontSize: 11.5, color: T.sub, marginTop: 2 }}>{s.s}</div>
+            </div>
+            <span style={{ fontFamily: DISPLAY, fontSize: 14.5, fontWeight: 600, color: T.ink, ...num }}>−{fmt(s.v)}</span>
+          </div>
+        ))}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xem một biên lai</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Biên lai nào cũng mở ra được nguồn gốc: ai đòi, đòi bao giờ, Mai trả lúc nào.">Biên lai học bơi</H1>
+      <Evidence src="Zalo · Vy chuyển tiếp · nhóm bơi TH Lê Lợi" time="07:42" Icon={MessageCircle}
+        text="Cô Lan: Nhắc lần 2, phụ huynh đóng học phí bơi tháng 8 trước 17:00 hôm nay giúp cô. Đã đóng 14/32." />
+      <div style={{ marginTop: 10 }}>
+        <KV rows={[["Số tiền", fmt(850000)], ["Trả lúc", "15:43 · hôm nay"], ["Nguồn", "WinMoney ····4102"], ["Biên lai gửi", "riêng cô Lan · không đăng nhóm", "green"], ["Mã", "m_pay_8K2F91QD"]]} />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Sắp tới phải trả gì</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai xếp theo hạn, khoản nào sát Mai nhắc trước ba ngày.">Sắp tới</H1>
+      <div style={{ display: "grid", gap: 8 }}>
+        {[["Phí dã ngoại Na", "hạn thứ Sáu · THCS Trần Phú", 120000, "amber"],
+          ["Đăng kiểm 51K-238.19", "12/09 · trả tại trung tâm", 340000, "gray"],
+          ["Điện tháng 8", "khoảng 10/09 · ước theo tháng 7", 1240000, "gray"]].map(([t, s, v, tone]) => (
+          <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: T.surf, border: `1px solid ${tone === "amber" ? "#F0D8B0" : T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink }}>{t}</div>
+              <div style={{ fontSize: 11.5, color: tone === "amber" ? T.amber : T.sub, marginTop: 2, fontWeight: tone === "amber" ? 650 : 400 }}>{s}</div>
+            </div>
+            <span style={{ fontFamily: DISPLAY, fontSize: 14.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(v)}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Cộng {fmt(1700000)} trong năm tuần tới. Số dư của anh còn {fmt(bal)}, Mai thấy dư.</div>
+      <Foot><Btn wide onClick={a.next}>Đặt trần cho Mai</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Dưới trần Mai tự trả rồi báo anh. Trên trần Mai đứng lại hỏi, kể cả khi anh đang họp.">Mai được tiêu tới đâu</H1>
+      <Slots value={a.d.cap || "500.000đ"} onPick={(v) => a.set({ cap: v })}
+        list={[{ t: "0đ", note: "hỏi mọi lần" }, { t: "200.000đ", note: "chặt" }, { t: "500.000đ", note: "vừa" }, { t: "1.000.000đ" }, { t: "2.000.000đ", note: "rộng" }, { t: "Không giới hạn", full: true }]} />
+      <div style={{ marginTop: 12 }}>
+        <Toggle on={a.d.big !== false} onTap={(v) => a.set({ big: v })} t="Khoản lạ luôn hỏi" s="Người nhận mới, hoặc số tiền gấp đôi thói quen, Mai hỏi dù dưới trần" />
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <Toggle on={a.d.tell !== false} onTap={(v) => a.set({ tell: v })} t="Báo Vy mỗi khoản trên 1 triệu" s="Hai người cùng biết, đỡ một lần hỏi nhau" />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xác nhận bằng mặt</Btn></Foot>
+    </>
+  ),
+  (a) => <FaceStep label="Đặt trần chi tiêu" sub={"Mai tự trả tối đa " + (a.d.cap || "500.000đ") + " mỗi lần"} onDone={a.next} />,
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "4px 0" }}><StrokeCheck size={34} /></div>
+      <H1 sub="Đổi lúc nào cũng được, anh mở ví là thấy. Mai không tự nới trần cho mình bao giờ.">Đặt xong</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
+        <div style={{ fontSize: 13.5, color: "#14603C", lineHeight: 1.6 }}>
+          Từ giờ Mai tự trả các khoản dưới <b style={{ ...num }}>{a.d.cap || "500.000đ"}</b> rồi báo anh sau. Khoản lớn hơn, hoặc người nhận lạ, Mai dừng lại hỏi anh trước.
+        </div>
+      </div>
+      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Học bơi 850.000đ hôm nay là khoản trên trần, nên Mai đã hỏi anh chứ không tự trả.</div>
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
 const SURFACES = [
   { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
   { id: "wa", n: "WhatsApp", g: "W", c: "#25D366", flow: "kb", app: "WhatsApp" },
@@ -2819,7 +2921,7 @@ const SURFACES = [
 // ————————————————————————————————————————————————————————————
 export default function MaiV18() {
   const [intro, setIntro] = useState(true);
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("family");
   const [flow, setFlow] = useState(null);          // luồng đang mở
   const [post, setPost] = useState(null);          // bài đang mở
   const [prof, setProf] = useState(null);          // hồ sơ người đăng
@@ -2862,6 +2964,12 @@ export default function MaiV18() {
   };
   const allDone = done.pay && done.form && done.pick;
   const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cart ? 186000 : 0) - (done.tea ? 165000 : 0);
+  const [teaArm, setTeaArm] = useState(0); // 0 nghỉ · 1 chờ chạm lần hai
+  const spent = [
+    done.pay && { t: "Học bơi tháng 8 · Bin", s: "15:43 · biên lai gửi riêng cô Lan", v: 850000, Icon: Banknote },
+    done.cart && { t: "Giỏ WinMart+ thứ Tư", s: "Supra giao trước 18:00", v: 186000, Icon: ShoppingCart },
+    done.tea && { t: "Hộp trà sen Phúc Long", s: "giỗ Ông thứ Bảy · giao thứ Sáu", v: 165000, Icon: Store },
+  ].filter(Boolean);
 
   const snap = () => {
     if (cam !== 0) return;
@@ -2961,8 +3069,9 @@ export default function MaiV18() {
     share: () => flowShare(() => setDone((d) => ({ ...d, share: true }))),
     speaker: () => flowSpeaker(() => setDone((d) => ({ ...d, speaker: true }))),
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
+    wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
   };
-  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe" };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
   const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
@@ -3102,10 +3211,11 @@ export default function MaiV18() {
             {screen === "home" && (
               <>
                 <Head title="m.ai" sub={<ShieldCheck size={15} color={T.green} strokeWidth={2.2} />} right={<>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${T.hair}`, background: T.bg, borderRadius: 999, padding: "7px 11px", flexShrink: 0 }}>
+                  <button onClick={() => openFlow("wallet")} className="btn press" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${T.hair}`, background: T.bg, borderRadius: 999, padding: "7px 10px 7px 11px", flexShrink: 0 }}>
                     <Wallet size={13} color={T.brandInk} strokeWidth={2.2} />
                     <span style={{ fontFamily: DISPLAY, fontSize: 13.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(bal)}</span>
-                  </span>
+                    <ChevronRight size={13} color={T.faint} strokeWidth={2.4} />
+                  </button>
                   <HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} ml />
                 </>} />
                 <div className="rise" style={{ flex: 1, overflowY: "auto" }}>
@@ -3116,41 +3226,9 @@ export default function MaiV18() {
                       <Mark size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh,</div>
-                        <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "Mai gom sẵn 3 việc gấp, anh chạm là xong"}</div>
+                        <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "còn 3 việc trước 17:00 · Mai lo phần còn lại"}</div>
                       </div>
                       {allDone ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
-                    </div>
-                    {!allDone && (
-                      <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
-                        {[["pay", "pay", "Trả học bơi", "Đã trả"], ["pickup", "pick", "Chốt đón Bin", "Đã chốt"], ["form", "form", "Ký đơn Na", "Đã gửi"]].map(([fl, dk, label, doneLabel]) => (
-                          <button key={fl} onClick={() => !done[dk] && openFlow(fl)} className="btn press" style={{ flex: 1, padding: "10px 4px", fontSize: 12.5, background: done[dk] ? T.greenBg : T.brand, color: done[dk] ? T.green : "#FFFDF9", boxShadow: done[dk] ? "none" : "0 2px 8px rgba(194,85,47,.28)" }}>
-                            {done[dk] ? "✓ " + doneLabel : label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* Đi chợ và trả tiền ngay cảnh một: WinMart+ · Phúc Long · WinMoney. */}
-                  <div style={{ padding: "13px 14px 11px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                      <span style={{ fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI ĐI CHỢ</span>
-                      <span style={{ fontSize: 11.5, color: T.faint }}>· trả bằng WinMoney, một chạm</span>
-                    </div>
-                    <div onClick={() => openFlow("cart")} className="press" style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 0", borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
-                      <Scene name="cart" small />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 650, fontSize: 14, color: T.ink }}>Giỏ WinMart+ thứ Tư</div>
-                        <div style={{ fontSize: 12, color: done.cart ? T.green : T.sub, marginTop: 2, fontWeight: done.cart ? 650 : 400 }}>{done.cart ? "Đã đặt · Supra giao 18:00 · +186 điểm WinX" : "12 món quen, Mai soạn theo bếp nhà mình"}</div>
-                      </div>
-                      {done.cart ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <span className="btn" style={{ background: T.brand, color: "#FFFDF9", display: "inline-flex", alignItems: "center", gap: 3, boxShadow: "0 2px 8px rgba(194,85,47,.28)", ...num }}>{fmt(186000)}<ChevronRight size={13} strokeWidth={2.6} /></span>}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 0 2px" }}>
-                      <Scene name="tea" small />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 650, fontSize: 14, color: T.ink }}>Hộp trà sen Phúc Long</div>
-                        <div style={{ fontSize: 12, color: done.tea ? T.green : T.sub, marginTop: 2, fontWeight: done.tea ? 650 : 400 }}>{done.tea ? "Đã đặt · Supra giao thứ Sáu, kịp giỗ Ông" : "Giỗ Ông thứ Bảy · Bà thích trà sen"}</div>
-                      </div>
-                      {done.tea ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <AuthBtn label={"Đặt " + fmt(165000)} onDone={() => { setDone((d) => ({ ...d, tea: true })); ding(true); }} />}
                     </div>
                   </div>
                   <div style={{ padding: "13px 14px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
@@ -3163,8 +3241,8 @@ export default function MaiV18() {
                         <button key={sf.id} onClick={() => { if (sf.app) setSurfApp(sf.app); openFlow(sf.flow); }} className="btn press"
                           style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 58 }}>
                           <span style={{ width: 48, height: 48, borderRadius: 15, background: sf.c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: sf.g.length > 1 ? 21 : 19, fontWeight: 800, boxShadow: "0 2px 8px rgba(60,45,30,.16)" }}>{sf.g}</span>
-                          <div style={{ fontSize: 10.5, color: T.sub, marginTop: 5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
-                          {done[sf.flow] && <div style={{ fontSize: 9.5, color: T.green, fontWeight: 700 }}>đã xem ✓</div>}
+                          <div style={{ fontSize: 11.5, color: T.sub, marginTop: 5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
+                          {done[sf.flow] && <div style={{ fontSize: 10.5, color: T.green, fontWeight: 700 }}>đã xem ✓</div>}
                         </button>
                       ))}
                     </div>
@@ -3177,9 +3255,27 @@ export default function MaiV18() {
                   <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
                   <ChatRow Icon={Car} tint={T.amberBg} color={T.amber} title="Vietnam Cars" sub="Đăng kiểm Q2: sáng thứ Ba vắng nhất · ▲214" time="15:10" onTap={() => setScreen("cars")} />
                   <ChatRow Icon={Hash} tint={T.greenBg} color={T.green} title="Cơm tối 30 phút" sub="Bò kho nồi áp suất · ▲462" time="14:30" onTap={() => setScreen("com")} />
-                  <div onClick={() => { setFiles(true); ding(); }} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                  {/* Ba việc Mai giữ hộ: tiền, chợ, giấy tờ. Mỗi dòng mở một luồng thật. */}
+                  <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI GIỮ HỘ ANH</div>
+                  <div onClick={() => openFlow("wallet")} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                    <IconSq Icon={Wallet} size={40} tint={T.brandSoft} color={T.brand} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Ví WinMoney</div>
+                      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2, ...num }}>{fmt(bal)} · {done.wallet ? "Mai tự trả dưới trần anh đặt" : "đặt trần cho Mai tiêu tới đâu"}</div>
+                    </div>
+                    {done.wallet ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Đã đặt trần</Pill> : <ChevronRight size={16} color={T.faint} />}
+                  </div>
+                  <div onClick={() => openFlow("cart")} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                    <IconSq Icon={ShoppingCart} size={40} tint={T.greenBg} color={T.green} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Đi chợ · WinMart+</div>
+                      <div style={{ fontSize: 12.5, color: done.cart ? T.green : T.sub, marginTop: 2, fontWeight: done.cart ? 650 : 400 }}>{done.cart ? "Đã đặt · Supra giao trước 18:00" : "Bò kho tối nay · 5 món · Supra giao"}</div>
+                    </div>
+                    {done.cart ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <span style={{ fontFamily: DISPLAY, fontSize: 14.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(186000)}</span>}
+                  </div>
+                  <div onClick={() => { setFiles(true); ding(); }} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
                     <IconSq Icon={FolderClosed} size={40} tint="#F1EBE1" />
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Hồ sơ nhà mình</div>
                       <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>6 mục · 1 việc cần để ý</div>
                     </div>

@@ -2,7 +2,10 @@
 <title>brain check</title>
 <pre id="o">running…</pre>
 <script type="module">
-import { matchMai, MAI_INTENTS, FALLBACKS, GREETING_CHIPS } from "./brain.js";
+// Nạp động kèm dấu phá cache: một lần chấm nhầm bản brain.js cũ trong bộ
+// nhớ đệm là cả bộ kiểm tra nói dối — báo đạt trong khi corpus đã đổi.
+const { matchMai, MAI_INTENTS, FALLBACKS, GREETING_CHIPS } =
+  await import("./brain.js?t=" + Date.now());
 
 // Câu hỏi phải về đúng ý định, không phải về "một ý định nào đó".
 // Chip khớp nhầm còn tệ hơn chip rơi vào câu đỡ, vì nó trông như đã đúng.
@@ -30,6 +33,31 @@ const EXPECT = [
   ["Thứ Sáu tối tôi rảnh không?", "friday_evening_free"],
   ["Có cuộc gọi lạ nào không?", "any_strange_calls"],
   ["Chiều mai lớp có nghỉ không?", "swim_cancel_tomorrow"],
+  ["Chuyển 2 triệu cho con gái ở Bình Dương", "transfer_money"],
+  ["Sao cứ gọi tôi là anh?", "demo_whoami"],
+  ["Bin là đứa nào?", "demo_whoami"],
+  ["Bấm nhầm có bị trừ tiền không?", "tap_safety"],
+  ["Nhắc tôi uống thuốc huyết áp lúc 8 giờ tối", "med_reminder"],
+  ["Giá thịt heo hôm nay bao nhiêu?", "market_price"],
+  ["phi ship bnhieu", "ship_fee"],
+  ["Thôi đắt quá, giảm được không?", "haggle"],
+  ["Khác gì Zalo?", "mai_vs_assistant"],
+  ["Xe máy có cần đăng kiểm không?", "dangkiem_moto"],
+  ["so du con bnhieu", "money_balance"],
+  ["WinMoney là cái gì?", "winmoney_what"],
+  ["Chữ nhỏ quá, to lên được không?", "font_bigger"],
+  ["Xóa hết thông tin của tôi đi", "data_delete"],
+  ["sao mai biet het vay", "mai_reads_messages"],
+  ["mẹ chồng hay bị gọi giả danh công an đòi ck, chặn được không", "lua_dao_chung"],
+  ["giỏ 186k gồm những món gì", "shop_bokho_items"],
+  ["gửi cái ảnh này cho con thảo giùm tôi", "send_media_call"],
+  ["gọi video cho con gái tôi đi", "send_media_call"],
+  ["nhắc lịch học thêm cho con được không", "remind_generic"],
+  ["shopee rẻ hơn mà còn freeship", "vs_shopee"],
+  ["mua hàng trên livestream có bị lừa không", "livestream_fake"],
+  ["Đặt trần cho Mai tiêu tới đâu?", "spend_cap"],
+  ["Tháng này Mai tiêu gì?", "wallet_spent"],
+  ["Sắp tới phải trả gì?", "upcoming_bills"],
 ];
 
 const lines = [];
