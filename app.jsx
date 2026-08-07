@@ -2819,7 +2819,7 @@ const SURFACES = [
 // ————————————————————————————————————————————————————————————
 export default function MaiV18() {
   const [intro, setIntro] = useState(true);
-  const [screen, setScreen] = useState("family");
+  const [screen, setScreen] = useState("home");
   const [flow, setFlow] = useState(null);          // luồng đang mở
   const [post, setPost] = useState(null);          // bài đang mở
   const [prof, setProf] = useState(null);          // hồ sơ người đăng
@@ -2830,8 +2830,6 @@ export default function MaiV18() {
   const [undone, setUndone] = useState(false);
   const [cam, setCam] = useState(0);
   const [camUndone, setCamUndone] = useState(false);
-  const [alertBar, setAlertBar] = useState(false);
-  const [hot, setHot] = useState(false);
   const [seenMai, setSeenMai] = useState(false);
   const [mic, setMic] = useState(0);
   const [surfApp, setSurfApp] = useState("Zalo");
@@ -2852,17 +2850,10 @@ export default function MaiV18() {
 
   useEffect(() => { if (tick === 0) return; endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [tick]);
   useEffect(() => { setInput(""); }, [screen]);
-  useEffect(() => {
-    if (intro) return;
-    const t = setTimeout(() => { setAlertBar(true); }, 700);
-    return () => { clearTimeout(t); };
-  }, [intro]);
-
   const firstDone = useRef(false);
   const complete = (k) => {
     setDone((d) => ({ ...d, [k]: true }));
     ding(true); bump();
-    if (k === "pick") setAlertBar(false);
     if (!firstDone.current) {
       firstDone.current = true;
       setTimeout(() => { setEvt(1); bump(); }, 2200);
@@ -2870,6 +2861,7 @@ export default function MaiV18() {
     }
   };
   const allDone = done.pay && done.form && done.pick;
+  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cart ? 186000 : 0) - (done.tea ? 165000 : 0);
 
   const snap = () => {
     if (cam !== 0) return;
@@ -3109,15 +3101,57 @@ export default function MaiV18() {
 
             {screen === "home" && (
               <>
-                <Head title="m.ai" sub={<ShieldCheck size={15} color={T.green} strokeWidth={2.2} />} right={<HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} />} />
+                <Head title="m.ai" sub={<ShieldCheck size={15} color={T.green} strokeWidth={2.2} />} right={<>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${T.hair}`, background: T.bg, borderRadius: 999, padding: "7px 11px", flexShrink: 0 }}>
+                    <Wallet size={13} color={T.brandInk} strokeWidth={2.2} />
+                    <span style={{ fontFamily: DISPLAY, fontSize: 13.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(bal)}</span>
+                  </span>
+                  <HBtn Icon={FolderClosed} onTap={() => { setFiles(true); ding(); }} ml />
+                </>} />
                 <div className="rise" style={{ flex: 1, overflowY: "auto" }}>
-                  <div onClick={() => setScreen("mai")} className="press" style={{ padding: "16px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}`, display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
-                    <Mark size={38} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh,</div>
-                      <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "hôm nay sạch việc rồi · Mai canh tiếp" : "còn 2 việc trước 17:00 · Mai lo phần còn lại"}</div>
+                  {/* Cảnh mở màn: Mai đã gom việc sẵn, chạm ngay tại đây,
+                      không bắt anh đi tìm trong nhóm. */}
+                  <div style={{ padding: "15px 14px 13px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
+                    <div onClick={() => setScreen("mai")} className="press" style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
+                      <Mark size={38} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh,</div>
+                        <div style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "Mai gom sẵn 3 việc gấp, anh chạm là xong"}</div>
+                      </div>
+                      {allDone ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
                     </div>
-                    <ChevronRight size={16} color={T.faint} />
+                    {!allDone && (
+                      <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
+                        {[["pay", "pay", "Trả học bơi", "Đã trả"], ["pickup", "pick", "Chốt đón Bin", "Đã chốt"], ["form", "form", "Ký đơn Na", "Đã gửi"]].map(([fl, dk, label, doneLabel]) => (
+                          <button key={fl} onClick={() => !done[dk] && openFlow(fl)} className="btn press" style={{ flex: 1, padding: "10px 4px", fontSize: 12.5, background: done[dk] ? T.greenBg : T.brand, color: done[dk] ? T.green : "#FFFDF9", boxShadow: done[dk] ? "none" : "0 2px 8px rgba(194,85,47,.28)" }}>
+                            {done[dk] ? "✓ " + doneLabel : label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Đi chợ và trả tiền ngay cảnh một: WinMart+ · Phúc Long · WinMoney. */}
+                  <div style={{ padding: "13px 14px 11px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                      <span style={{ fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI ĐI CHỢ</span>
+                      <span style={{ fontSize: 11.5, color: T.faint }}>· trả bằng WinMoney, một chạm</span>
+                    </div>
+                    <div onClick={() => openFlow("cart")} className="press" style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 0", borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
+                      <Scene name="cart" small />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 650, fontSize: 14, color: T.ink }}>Giỏ WinMart+ thứ Tư</div>
+                        <div style={{ fontSize: 12, color: done.cart ? T.green : T.sub, marginTop: 2, fontWeight: done.cart ? 650 : 400 }}>{done.cart ? "Đã đặt · Supra giao 18:00 · +186 điểm WinX" : "12 món quen, Mai soạn theo bếp nhà mình"}</div>
+                      </div>
+                      {done.cart ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <span className="btn" style={{ background: T.brand, color: "#FFFDF9", display: "inline-flex", alignItems: "center", gap: 3, boxShadow: "0 2px 8px rgba(194,85,47,.28)", ...num }}>{fmt(186000)}<ChevronRight size={13} strokeWidth={2.6} /></span>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 0 2px" }}>
+                      <Scene name="tea" small />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 650, fontSize: 14, color: T.ink }}>Hộp trà sen Phúc Long</div>
+                        <div style={{ fontSize: 12, color: done.tea ? T.green : T.sub, marginTop: 2, fontWeight: done.tea ? 650 : 400 }}>{done.tea ? "Đã đặt · Supra giao thứ Sáu, kịp giỗ Ông" : "Giỗ Ông thứ Bảy · Bà thích trà sen"}</div>
+                      </div>
+                      {done.tea ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <AuthBtn label={"Đặt " + fmt(165000)} onDone={() => { setDone((d) => ({ ...d, tea: true })); ding(true); }} />}
+                    </div>
                   </div>
                   <div style={{ padding: "13px 14px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 10 }}>
@@ -3134,7 +3168,6 @@ export default function MaiV18() {
                         </button>
                       ))}
                     </div>
-                    <div style={{ fontSize: 11.5, color: T.sub, marginTop: 10, lineHeight: 1.5 }}>Bàn phím m.ai chạy trong mọi app · share sheet nhận mọi thứ · loa cho người không dùng điện thoại. Một két duy nhất.</div>
                   </div>
                   <ChatRow Icon={MessageCircle} tint={T.brandSoft} color={T.brand} title="Mai" sub="Hỏi gì cũng được · gõ hoặc nói" time="15:44" unread={seenMai ? null : "1"} onTap={() => { setSeenMai(true); setScreen("mai"); }} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>NHÓM</div>
@@ -3164,14 +3197,20 @@ export default function MaiV18() {
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
                   <Msg m={{ from: "w", name: "Vy", text: "Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha" }} />
                   <CardBox style={{ margin: "8px 0" }}>
-                    <div style={{ display: "flex", alignItems: "center", padding: "11px 14px", borderBottom: `1px solid ${T.hair}` }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 750, letterSpacing: 0.6, color: T.sub }}>TRƯỚC 17:00</span>
-                      <span style={{ fontSize: 11.5, color: T.faint, marginLeft: "auto" }}>chỉ mình anh thấy</span>
+                    {/* Sự gấp gáp nằm ngay trên thẻ việc, không cần một cái
+                        băng nổi che mất đầu màn hình. */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: `1px solid ${T.hair}` }}>
+                      {!allDone && <Countdown minutes={78} total={480} size={34} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 750, letterSpacing: 0.6, color: T.sub }}>TRƯỚC 17:00</div>
+                        {!allDone && <div style={{ fontSize: 12, color: T.amber, fontWeight: 650, marginTop: 2, ...num }}>Chưa chốt ai đón Bin</div>}
+                      </div>
+                      <span style={{ fontSize: 11.5, color: T.faint }}>chỉ mình anh thấy</span>
                     </div>
                     <Row Icon={Banknote} iconTint={T.amberBg} iconColor={T.amber} title="Học bơi · Bin" amount={fmt(850000)}
                       meta="Cô nhắc lần 2 · 14/32 đã đóng" metaTone="amber" pill={<Pill tone="amber">hạn 17:00</Pill>} cta="Trả"
                       done={done.pay ? "Đã trả" : null} doneMeta="Trả 15:43 · biên lai đã gửi riêng cô Lan" onTap={() => openFlow("pay")} />
-                    <Row Icon={Car} iconTint={T.amberBg} iconColor={T.amber} hot={hot} title="Đón Bin 16:30 · còn 48 phút"
+                    <Row Icon={Car} iconTint={T.amberBg} iconColor={T.amber} title="Đón Bin 16:30 · còn 48 phút"
                       quote="em đón được, anh họp đi 👍" quoteWho="Vy · 15:38" meta="Họp của anh kéo tới 17:00" metaTone="amber" cta="Xử"
                       done={done.pick ? "Đã chốt" : null} doneMeta="Vy đón 16:20 · đã vào lịch 2 người" onTap={() => openFlow("pickup")} />
                     <Row Icon={FileText} title="Đơn dã ngoại · Na" meta="Email THCS Trần Phú · hạn thứ Sáu" cta="Ký"
@@ -3245,15 +3284,6 @@ export default function MaiV18() {
             {screen === "cars" && channel("cars", "Vietnam Cars", "12,4k thành viên · mặt thật")}
             {screen === "com" && channel("com", "Cơm tối 30 phút", "8,1k thành viên")}
           </div>
-
-          {alertBar && !intro && screen === "family" && !done.pick && (
-            <button className="drop" onClick={() => { setAlertBar(false); setHot(true); ding(); setTimeout(() => openFlow("pickup"), 420); }}
-              style={{ position: "absolute", top: 10, left: 12, right: 12, zIndex: 45, border: "1px solid #F0D8B0", background: "#FFF8EC", borderRadius: 18, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", boxShadow: "0 8px 26px rgba(181,71,8,.16)", fontFamily: FONT }}>
-              <TriangleAlert size={16} color={T.amber} />
-              <span style={{ fontSize: 13, fontWeight: 650, color: T.ink, flex: 1, textAlign: "left", ...num }}>Còn 48 phút · chưa chốt ai đón Bin</span>
-              <ChevronRight size={15} color={T.amber} />
-            </button>
-          )}
 
           {files && (
             <Sheet onClose={() => setFiles(false)} tall>
