@@ -1,6 +1,8 @@
 # m.ai · v19
 
-Interactive prototype of **Mai**, a Vietnamese family assistant. A single-screen phone demo covering twelve end-to-end flows, three community channels, a household document vault, and a conversational surface that answers from a local intent engine.
+Interactive prototype of **Mai**, a Vietnamese personal assistant that lives inside your messages — across home, work, and interest communities. A single-screen phone demo covering thirteen end-to-end flows, three community channels, a document vault, WinMoney payments with a spend ceiling, and a conversational surface that answers from a local intent engine.
+
+The demo narrates one specific afternoon — the household of anh Hải — but the product is not household-only. The opening cover says what Mai is first and names the scenario second, because three simulated rural users read the earlier framing as "this is someone else's phone" and stopped touching it.
 
 **Live:** https://chiefjogger.github.io/mai/
 

@@ -10,7 +10,8 @@ import {
 import { matchMai, pickFallback, GREETING_CHIPS } from "./brain.js";
 
 // ————————————————————————————————————————————————————————————
-// m.ai · v19 · tối giản bề mặt, sâu bên trong.
+// m.ai · v19 · trợ lý riêng nằm trong tin nhắn: việc nhà, việc cơ quan, hội nhóm.
+// Bản demo kể một buổi chiều của nhà anh Hải, nhưng sản phẩm không chỉ cho gia đình.
 // Mọi thứ chạm được đều mở một luồng 6–7 bước thật:
 // trả học bơi (7) · đón Bin (6) · đơn dã ngoại (7) · giỏ WinMart+ (7)
 // vé concert (7) · sang nhượng vé escrow (6) · đăng kiểm (6) · cuộc gọi giả (6)
@@ -2925,16 +2926,31 @@ const Cover = ({ onClose }) => (
       <X size={16} color={T.faint} />
     </button>
 
-    <div style={{ flex: 1, overflowY: "auto", padding: "26px 22px 8px" }}>
+    <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px 6px" }}>
       <div style={{ height: 30, display: "flex", alignItems: "center", gap: 9 }}>
         <Logo size={24} />
         <span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 600, color: T.ink }}>m.ai</span>
       </div>
 
-      <div style={{ fontFamily: DISPLAY, fontSize: 34, fontWeight: 600, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink, marginTop: 22 }}>Ghé xem nhà anh Hải</div>
-      <div style={{ fontSize: 17, lineHeight: 1.55, color: T.sub, marginTop: 10, maxWidth: 340 }}>Mình ngồi xem một buổi chiều của nhà người ta, như xem phim vậy.</div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 600, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink, marginTop: 16 }}>Trợ lý riêng, ngay trong tin nhắn</div>
+      <div style={{ fontSize: 17, lineHeight: 1.55, color: T.sub, marginTop: 9, maxWidth: 348 }}>Việc nhà, việc cơ quan, hội nhóm bạn bè. Mai nhớ hết, nhắc đúng lúc, rồi làm hộ mình.</div>
 
-      <div style={{ height: 1, background: T.hair, margin: "22px 0 18px" }} />
+      {/* Bốn ô này để người xem thấy Mai không chỉ lo việc nhà. */}
+      <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+        {[[Users, "Nhóm và hội nhóm"], [MessageCircle, "Zalo, email, loa, xe"], [Wallet, "Trả tiền, đi chợ"], [FolderClosed, "Nhớ giấy tờ, hạn việc"]].map(([Ic, label]) => (
+          <div key={label} style={{ flex: "1 1 0", minWidth: 0, textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+              <span style={{ width: 34, height: 34, borderRadius: 11, background: T.brandSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Ic size={17} color={T.brand} strokeWidth={2} /></span>
+            </div>
+            <div style={{ fontSize: 14, color: T.sub, lineHeight: 1.3 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ height: 1, background: T.hair, margin: "14px 0 12px" }} />
+
+      <div style={{ fontSize: 14, fontWeight: 750, letterSpacing: 0.7, color: T.faint }}>BẢN XEM THỬ NÀY</div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: T.ink, marginTop: 5, marginBottom: 13 }}>Một buổi chiều của nhà anh Hải</div>
 
       {/* Năm ô mặt người: trả lời "Bin là đứa nào?" trước khi bác ấy kịp hỏi. */}
       <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
@@ -2955,18 +2971,19 @@ const Cover = ({ onClose }) => (
       </div>
 
       {/* Câu quan trọng nhất tấm bìa: giải thích vì sao Mai gọi "anh". */}
-      <div style={{ fontSize: 16.5, lineHeight: 1.5, color: T.sub, marginTop: 14, maxWidth: 360 }}>Trong này Mai gọi “anh” là gọi anh Hải, không phải gọi người đang xem đâu.</div>
+      <div style={{ fontSize: 16.5, lineHeight: 1.5, color: T.sub, marginTop: 12, maxWidth: 360 }}>Trong này Mai gọi “anh” là gọi anh Hải, không phải gọi người đang xem đâu.</div>
 
-      <div style={{ height: 1, background: T.hair, margin: "20px 0 18px" }} />
+      <div style={{ height: 1, background: T.hair, margin: "14px 0 13px" }} />
 
-      <div style={{ display: "inline-block", transform: "rotate(-6deg)", marginLeft: 2, marginBottom: 12 }}>
-        <div className="pop" style={{ padding: "8px 14px", border: `2.5px solid ${T.brandInk}`, borderRadius: 8, background: T.brandSoft, fontSize: 18, fontWeight: 800, letterSpacing: 2.5, color: T.brandInk, animationDelay: "320ms" }}>XEM THỬ</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+        <div style={{ transform: "rotate(-6deg)", flexShrink: 0 }}>
+          <div className="pop" style={{ padding: "7px 12px", border: `2.5px solid ${T.brandInk}`, borderRadius: 8, background: T.brandSoft, fontSize: 16, fontWeight: 800, letterSpacing: 2, color: T.brandInk, animationDelay: "320ms" }}>XEM THỬ</div>
+        </div>
+        <div style={{ fontSize: 16.5, lineHeight: 1.45, color: T.ink, minWidth: 0 }}>Tiền trong này không phải tiền thật, bấm nút nào cũng không mất của ai.</div>
       </div>
-      <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink }}>Tiền trong này không phải tiền thật.</div>
-      <div style={{ fontSize: 16.5, lineHeight: 1.5, color: T.sub, marginTop: 6 }}>Bấm nút nào cũng không mất tiền của ai.</div>
     </div>
 
-    <div style={{ flexShrink: 0, padding: "16px 22px calc(22px + env(safe-area-inset-bottom))", background: T.bg, borderTop: `1px solid ${T.hair}` }}>
+    <div style={{ flexShrink: 0, padding: "13px 22px calc(18px + env(safe-area-inset-bottom))", background: T.bg, borderTop: `1px solid ${T.hair}` }}>
       <button onClick={onClose} className="btn press" style={{ width: "100%", height: 56, borderRadius: 14, background: T.brand, color: "#FFFDF9", fontSize: 18, fontWeight: 700, boxShadow: "var(--e-brand, 0 2px 10px rgba(194,85,47,.30))" }}>Vào xem thử</button>
     </div>
   </div>
