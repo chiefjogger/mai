@@ -2921,7 +2921,7 @@ const SURFACES = [
 // ————————————————————————————————————————————————————————————
 export default function MaiV18() {
   const [intro, setIntro] = useState(true);
-  const [screen, setScreen] = useState("family");
+  const [screen, setScreen] = useState("home");
   const [flow, setFlow] = useState(null);          // luồng đang mở
   const [post, setPost] = useState(null);          // bài đang mở
   const [prof, setProf] = useState(null);          // hồ sơ người đăng
