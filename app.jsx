@@ -39,7 +39,7 @@ class Boundary extends React.Component {
     if (this.state.err)
       return (
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: T.bg, fontFamily: FONT }}>
-          <div style={{ fontSize: 14, color: T.sub }}>Có lỗi nhỏ, Mai xin lỗi anh.</div>
+          <div style={{ fontSize: 14, color: T.sub }}>Chỗ này vừa bị lỗi, Mai xin lỗi anh. Không có khoản nào bị trừ đâu.</div>
           <button onClick={() => this.setState({ err: false })} style={{ border: "none", borderRadius: 11, padding: "10px 18px", background: T.brand, color: "#FFFDF9", fontWeight: 650, fontSize: 13, fontFamily: FONT, cursor: "pointer" }}>Thử lại</button>
         </div>
       );
@@ -1531,7 +1531,7 @@ const Slots = ({ list, value, onPick }) => (
         <button key={s.t} disabled={s.full} onClick={() => { onPick(s.t); ding(); }} className="btn press"
           style={{ background: on ? T.brand : s.full ? "#F1EBE1" : T.surf, color: on ? "#FFFDF9" : s.full ? T.faint : T.ink, border: `1.5px solid ${on ? T.brand : T.hair}`, borderRadius: 13, padding: "10px 4px", display: "block", textAlign: "center" }}>
           <div style={{ fontSize: 14, fontWeight: 700, ...num }}>{s.t}</div>
-          <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>{s.full ? "hết chỗ" : s.note}</div>
+          <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>{s.full ? (s.note || "hết chỗ") : s.note}</div>
         </button>
       );
     })}
@@ -1735,9 +1735,9 @@ const flowPickup = (finish) => [
       <H1 sub="Mai chỉ hỏi, không tự hứa thay ai.">Ai đón Bin?</H1>
       <Choice value={a.d.who || "vy"} onPick={(v) => a.set({ who: v })}
         items={[
-          { id: "vy", emoji: "👩", t: "Vy", s: "đã nhắn 15:38: em đón được" },
-          { id: "me", emoji: "🙋", t: "Anh rời họp sớm 20 phút", s: "kịp nếu đi 16:05", warn: true },
-          { id: "co", emoji: "🧑‍🍼", t: "Cô Hạnh · cô của Bin", s: "đã đón hộ 3 lần trước" },
+          { id: "vy", t: "Vy", s: "đã nhắn 15:38: em đón được" },
+          { id: "me", t: "Anh rời họp sớm 20 phút", s: "kịp nếu đi 16:05", warn: true },
+          { id: "co", t: "Cô Hạnh · cô của Bin", s: "đã đón hộ 3 lần trước" },
         ]} />
       <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
     </>
@@ -1747,13 +1747,13 @@ const flowPickup = (finish) => [
       <H1 sub={a.d.who === "me" ? "Anh cần rời họp trước 16:05." : a.d.who === "co" ? "Mai sẽ hỏi cô Hạnh trước khi chốt." : "Đây là tin Vy nhắn, Mai không viết thay Vy."}>Chốt giờ</H1>
       {(!a.d.who || a.d.who === "vy") && <Evidence src="Vy · Nhà mình" time="15:38 · đã xem 15:39" color="#8A5FBF" text="Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha 👍" />}
       <div style={{ marginTop: 12, fontSize: 12, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Có mặt ở cổng lúc</div>
-      <Slots value={a.d.at || "16:20"} onPick={(v) => a.set({ at: v })} list={[{ t: "16:20", note: "sớm 10 phút" }, { t: "16:30", note: "đúng giờ" }, { t: "16:45", note: "Bin chờ 15p" }]} />
+      <Slots value={a.d.at || "16:20"} onPick={(v) => a.set({ at: v })} list={[{ t: "16:20", note: "sớm 10 phút" }, { t: "16:30", note: "đúng giờ" }, { t: "16:45", note: "Bin chờ 15 phút" }]} />
       <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
     </>
   ),
   (a) => (
     <>
-      <H1 sub="Mai gửi tin riêng từng người, không spam nhóm.">Báo cho ai biết</H1>
+      <H1 sub="Mai gửi tin riêng từng người, không làm phiền cả nhóm.">Báo cho ai biết</H1>
       <div style={{ display: "grid", gap: 8 }}>
         <Toggle on={a.d.n1 !== false} onTap={(v) => a.set({ n1: v })} t="Vy" s="xác nhận lại giờ và điểm đón" />
         <Toggle on={a.d.n2 !== false} onTap={(v) => a.set({ n2: v })} t="Cô Hạnh · cô của Bin" s="để cô biết ai tới nhận bé" />
@@ -1774,7 +1774,7 @@ const flowPickup = (finish) => [
           </div>
         ))}
       </div>
-      <Foot><Btn wide onClick={a.next}>Chốt</Btn></Foot>
+      <Foot><Btn wide onClick={a.next}>Ghi vào lịch</Btn></Foot>
     </>
   ),
   (a) => (
@@ -1907,9 +1907,9 @@ const flowCart = (finish) => {
     },
     (a) => (
       <>
-        <H1 sub="Tập cuối Anh Trai Say Hi 20:00, Mai để mặc định giao sớm cho anh kịp nấu.">Supra giao lúc nào</H1>
+        <H1 sub="Tập cuối Anh Trai Say Hi 20:00, Mai chọn sẵn giờ giao sớm cho anh kịp nấu.">Supra giao lúc nào</H1>
         <Slots value={a.d.slot || "18:00"} onPick={(v) => a.set({ slot: v })}
-          list={[{ t: "17:30", note: "còn 2 tài" }, { t: "18:00", note: "trống" }, { t: "18:30", note: "trống" }, { t: "19:00", full: true }, { t: "19:30", note: "trống" }, { t: "20:00", note: "muộn" }]} />
+          list={[{ t: "17:30", note: "còn 2 tài xế" }, { t: "18:00", note: "trống" }, { t: "18:30", note: "trống" }, { t: "19:00", full: true }, { t: "19:30", note: "trống" }, { t: "20:00", note: "muộn" }]} />
         <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
       </>
     ),
@@ -1917,7 +1917,7 @@ const flowCart = (finish) => {
       const tt = total(a.d.items || CART0, a.d.ex || {});
       return (
         <>
-          <H1 sub="Điểm WinX chỉ cộng ở hàng trong hệ nhà mình.">Giao tới đâu, trả bằng gì</H1>
+          <H1 sub="Điểm WinX chỉ cộng khi mua hàng của Masan.">Giao tới đâu, trả bằng gì</H1>
           <KV rows={[["Địa chỉ", "Zeit River · T1.02.06"], ["Siêu thị", "WinMart+ Thảo Điền · 1,4km"], ["Giao bởi", "Supra · " + (a.d.slot || "18:00")], ["Tổng", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"]]} />
           <div style={{ marginTop: 12 }}>
             <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })} items={[{ id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư 2.480.000đ" }, { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không tích điểm WinX", warn: true }]} />
@@ -1929,8 +1929,8 @@ const flowCart = (finish) => {
     (a) => <FaceStep label={"Nhìn vào máy để trả " + fmt(total(a.d.items || CART0, a.d.ex || {}))} sub="WinMart+ · WinMoney" onDone={a.next} />,
     (a) => (
       <>
-        <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang chạy</H1>
-        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Shipper Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước 18:00", s: "Mai báo khi hàng tới cửa" }]} />
+        <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang giao</H1>
+        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Tài xế Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước 18:00", s: "Mai báo khi hàng tới cửa" }]} />
         <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
       </>
     ),
@@ -1939,7 +1939,7 @@ const flowCart = (finish) => {
       return (
         <>
           <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-          <H1 sub="Supra giao trước 18:00, Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong.">Đơn đã chạy</H1>
+          <H1 sub="Supra giao trước 18:00, Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong.">Đặt xong rồi</H1>
           <KV rows={[["Tổng trả", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"], ["Lưu", "Công thức + giỏ hàng lặp lại"]]} />
           <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
         </>
@@ -1990,7 +1990,7 @@ const flowTicket = (finish) => [
   },
   (a) => (
     <>
-      <H1 sub="20:00 thứ Sáu anh đang ăn cơm với nhà, để Mai lo phần tay nhanh.">Mai canh giúp anh</H1>
+      <H1 sub="20:00 thứ Sáu anh đang ăn cơm với nhà, để Mai canh giờ và bấm giúp anh.">Mai canh giúp anh</H1>
       <div style={{ display: "grid", gap: 8 }}>
         <Toggle on={a.d.t1 !== false} onTap={(v) => a.set({ t1: v })} t="Nhắc lúc 19:55" s="rung máy + báo trước 5 phút" />
         <Toggle on={a.d.t2 !== false} onTap={(v) => a.set({ t2: v })} t="Tự mở trang đặt vé đúng 20:00" s="Mai mở sẵn, anh chỉ bấm xác nhận" />
@@ -2069,7 +2069,7 @@ const flowResale = (finish) => [
   ),
   (a) => (
     <>
-      <H1 sub="Chat trong app để có lịch sử nếu sau này tranh chấp.">Nhắn nhanh</H1>
+      <H1 sub="Nhắn trong app để có lịch sử nếu sau này tranh chấp.">Nhắn nhanh</H1>
       <div style={{ maxHeight: 210, overflowY: "auto" }}>
         <Msg m={{ from: "o", name: "chị Ngân", text: "Vé còn nha anh, em bận đi công tác đột xuất nên bán lại đúng giá." }} />
         {a.d.q1 && <Msg m={{ from: "vy", text: "Hai vé liền nhau đúng không chị?" }} />}
@@ -2087,7 +2087,7 @@ const flowResale = (finish) => [
     <>
       <H1 sub="Tiền nằm trong WinMoney, chị Ngân không lấy được cho tới khi vé về CCCD của anh.">Giữ tiền hộ hai bên</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: 13, fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
-        WinMoney giữ <b>1.780.000đ</b>. Vé sang tên xong, hệ thống mới giải ngân cho chị Ngân. Nếu 24 giờ không sang tên được, tiền tự về ví anh.
+        WinMoney giữ <b>1.780.000đ</b>. Vé sang tên xong, WinMoney mới chuyển tiền cho chị Ngân. Nếu 24 giờ không sang tên được, tiền tự về ví anh.
       </div>
       <div style={{ marginTop: 12 }}><KV rows={[["Số tiền giữ", fmt(1780000)], ["Phí giữ hộ", "0đ"], ["Hoàn tự động", "sau 24 giờ nếu lỗi", "green"]]} /></div>
       <Foot><Btn wide onClick={a.next}>Quét mặt để đặt cọc</Btn></Foot>
@@ -2096,7 +2096,7 @@ const flowResale = (finish) => [
   (a) => (
     <>
       <H1 sub="Mai theo tới lúc vé về tên anh.">Đang sang tên</H1>
-      <Track speed={1200} steps={[{ t: "Đã cọc · WinMoney giữ tiền", s: fmt(1780000) }, { t: "Chị Ngân xác nhận nhả vé", s: "15:46" }, { t: "Đơn vị bán vé sang tên", s: "B12-13 → CCCD ···· 4102" }, { t: "Giải ngân cho chị Ngân", s: "15:48 · xong" }]} />
+      <Track speed={1200} steps={[{ t: "Đã cọc · WinMoney giữ tiền", s: fmt(1780000) }, { t: "Chị Ngân đồng ý nhường vé", s: "15:46" }, { t: "Đơn vị bán vé sang tên", s: "B12-13 → CCCD ···· 4102" }, { t: "Chuyển tiền cho chị Ngân", s: "15:48 · xong" }]} />
       <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
     </>
   ),
@@ -2154,7 +2154,7 @@ const flowInspect = (finish) => [
     <>
       <H1 sub="Mai kiểm trong hồ sơ nhà mình, thiếu gì Mai nói luôn.">Cần mang gì</H1>
       <div style={{ display: "grid", gap: 8 }}>
-        {[["Đăng ký xe", "đã có ảnh trong hồ sơ", true], ["Bảo hiểm TNDS", "còn hạn tới 03/2027", true], ["CCCD của anh", "định danh sẵn trong app", true], ["Tiền phí ~340.000đ", "Mai nhắc mang tiền mặt, TT này chưa nhận chuyển khoản", false]].map(([t, s, ok]) => (
+        {[["Đăng ký xe", "đã có ảnh trong hồ sơ", true], ["Bảo hiểm TNDS", "còn hạn tới 03/2027", true], ["CCCD của anh", "định danh sẵn trong app", true], ["Tiền phí khoảng 340.000đ", "Mai nhắc mang tiền mặt, trung tâm này chưa nhận chuyển khoản", false]].map(([t, s, ok]) => (
           <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
             <IconSq Icon={ok ? Check : CircleAlert} tint={ok ? T.greenBg : T.amberBg} color={ok ? T.green : T.amber} size={28} />
             <div style={{ flex: 1 }}>
@@ -2170,7 +2170,7 @@ const flowInspect = (finish) => [
   (a) => (
     <>
       <H1 sub="Trung tâm đăng kiểm không thuộc Masan, nên không có điểm WinX. Mai vẫn làm vì đây là việc của anh.">Xác nhận</H1>
-      <KV rows={[["Trung tâm", a.d.center === "05s" ? "50-05S · Quận 7" : a.d.center === "03v" ? "50-03V · Thủ Đức" : "50-07V · Bình Thạnh"], ["Giờ", (a.d.slot || "07:30") + " · thứ Ba 12/08"], ["Xe", "51K-238.19"], ["Phí", "~340.000đ trả tại chỗ"], ["Điểm WinX", "không có · ngoài hệ"]]} />
+      <KV rows={[["Trung tâm", a.d.center === "05s" ? "50-05S · Quận 7" : a.d.center === "03v" ? "50-03V · Thủ Đức" : "50-07V · Bình Thạnh"], ["Giờ", (a.d.slot || "07:30") + " · thứ Ba 12/08"], ["Xe", "51K-238.19"], ["Phí", "khoảng 340.000đ, trả tại chỗ"], ["Điểm WinX", "không có · không thuộc Masan"]]} />
       <div style={{ marginTop: 12 }}>
         <Toggle on={a.d.rm !== false} onTap={(v) => a.set({ rm: v })} t="Nhắc hai lần" s="19:00 thứ Hai soạn giấy tờ · 06:45 thứ Ba trước khi đi" />
       </div>
@@ -2244,7 +2244,7 @@ const flowCall = (finish) => [
           <H1 sub="Mai bật cảnh báo trên màn hình trong suốt cuộc gọi.">Đang nghe · 0:24</H1>
           <div style={{ background: T.redBg, border: `1px solid #F3C9C4`, borderRadius: 14, padding: "12px 13px" }}>
             <div style={{ fontSize: 11, fontWeight: 750, color: T.red, letterSpacing: 0.3 }}>MAI ĐANG CẢNH BÁO</div>
-            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 5, lineHeight: 1.6 }}>Đừng đọc mã OTP · đừng chuyển tiền · hỏi một chuyện chỉ Na biết</div>
+            <div style={{ fontSize: 13.5, color: T.ink, marginTop: 5, lineHeight: 1.6 }}>Đừng đọc mã OTP ngân hàng gửi về điện thoại · đừng chuyển tiền · hỏi một chuyện chỉ Na biết</div>
           </div>
           <div style={{ marginTop: 10 }}><Evidence Icon={Mic} color={T.red} src="Bản ghi · chỉ anh nghe được" time="0:24" text="“Ba ơi con làm mất điện thoại, ba chuyển giùm con 8.500.000đ vào số này…”" /></div>
         </>
@@ -2254,7 +2254,7 @@ const flowCall = (finish) => [
   ),
   (a) => (
     <>
-      <H1 sub="Mai so giọng với 41 đoạn giọng Na trong két ký ức.">Mai phân tích</H1>
+      <H1 sub="Mai so giọng với 41 đoạn giọng Na trong hồ sơ nhà mình.">Mai phân tích</H1>
       <KV rows={[["Giọng", "ghép máy · lệch ở âm đuôi", "amber"], ["Kịch bản", "mất điện thoại → xin chuyển tiền"], ["Số tiền yêu cầu", fmt(8500000), "amber"], ["Số nhận tiền", "đã xuất hiện 12 vụ tương tự", "amber"], ["Kết luận", "gần như chắc chắn giả mạo", "amber"]]} />
       <Foot><Btn wide onClick={a.next}><Flag size={13} style={{ marginRight: 6, verticalAlign: -2 }} />Báo cáo số này</Btn></Foot>
     </>
@@ -2321,7 +2321,7 @@ const PostSheet = ({ post, onClose, onAuthor, onAct }) => {
           <ArrowUp size={16} strokeWidth={2.6} />
         </button>
       </div>
-      <div style={{ fontSize: 11, color: T.faint, marginTop: 9 }}>Bình luận gắn định danh của anh · kênh không có nick ảo</div>
+      <div style={{ fontSize: 11, color: T.faint, marginTop: 9 }}>Bình luận gắn định danh của anh · kênh không có tài khoản ảo</div>
     </Sheet>
   );
 };
@@ -2340,7 +2340,7 @@ const ProfileSheet = ({ p, onClose }) => (
       </div>
     </div>
     <KV rows={p.rows} />
-    <div style={{ fontSize: 11.5, color: T.faint, marginTop: 12, lineHeight: 1.5 }}>Mọi người trong kênh đều định danh CCCD. Không có nick ảo, không cày phiếu, không bán hàng nặc danh.</div>
+    <div style={{ fontSize: 11.5, color: T.faint, marginTop: 12, lineHeight: 1.5 }}>Mọi người trong kênh đều định danh CCCD. Không có tài khoản ảo, không gian lận bình chọn, không bán hàng giấu tên.</div>
     <Foot><Btn kind="soft" wide onClick={onClose}>Đóng</Btn></Foot>
   </Sheet>
 );
@@ -2381,7 +2381,7 @@ const FileSheet = ({ f, onClose, onFlow, onGoto, onAsk }) => {
       {f.detail.cta && (
         <Foot>
           {done ? (
-            <div style={{ flex: 1, background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 12, padding: "12px 14px", fontSize: 13, color: "#14603C", fontWeight: 650 }}>{d.done || "Đã ghi nhận"}</div>
+            <div style={{ flex: 1, background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 12, padding: "12px 14px", fontSize: 13, color: "#14603C", fontWeight: 650 }}>{d.done || "Xong rồi anh"}</div>
           ) : (
             <Btn wide onClick={() => {
               ding();
@@ -2500,7 +2500,7 @@ const flowKeyboard = (finish, app) => {
     ),
     (a) => (
       <>
-        <H1 sub={"Mai chỉ đọc đoạn hội thoại đang mở lúc anh chạm phím. Mai không đọc toàn bộ " + app + " của anh."}>Mai thấy gì liên quan</H1>
+        <H1 sub={"Mai chỉ đọc đoạn tin nhắn đang mở lúc anh chạm phím. Mai không đọc toàn bộ " + app + " của anh."}>Mai thấy gì liên quan</H1>
         <FakeApp name={who} color={color}>
           <OtherBubble who={who} text={ask} time="15:49" />
           <div style={{ background: T.brandSoft, border: `1px solid #F0DCCD`, borderRadius: 12, padding: 10, margin: "0 -2px" }}>
@@ -2556,7 +2556,7 @@ const flowKeyboard = (finish, app) => {
     (a) => (
       <>
         <H1 sub="Một cuộc trao đổi ở app khác vẫn về đúng một két.">Mai ghi vào két</H1>
-        <KV rows={[["Việc", "đã trả lời " + who.split(" · ")[0] + " trong " + app], ["Gắn với", "Học bơi Bin · tháng 8"], ["Lưu tại", "Két ký ức · hồ sơ Bin", "green"], ["Mai đọc được", "chỉ đoạn chat anh đang mở"], ["Mai không đọc", app + " của anh · tin của người khác"]]} />
+        <KV rows={[["Việc", "đã trả lời " + who.split(" · ")[0] + " trong " + app], ["Gắn với", "Học bơi Bin · tháng 8"], ["Lưu tại", "Hồ sơ nhà mình · mục Bin", "green"], ["Mai đọc được", "chỉ đoạn tin nhắn anh đang mở"], ["Mai không đọc", app + " của anh · tin của người khác"]]} />
         <Foot><Btn wide onClick={a.next}>Vậy cửa này là gì</Btn></Foot>
       </>
     ),
@@ -2593,7 +2593,7 @@ const flowShare = (finish) => [
   ),
   (a) => (
     <>
-      <H1 sub="Cửa này là của hệ điều hành. Mọi app đều share được, không cần app đó hợp tác với mình.">Chia sẻ tới…</H1>
+      <H1 sub="Cửa này là của điện thoại chứ không của riêng app nào. App nào cũng chia sẻ được, không cần app đó hợp tác với mình.">Chia sẻ tới…</H1>
       <div style={{ background: "#EDEEF1", borderRadius: 18, padding: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
           {[["Zalo", "#0068FF", "Z"], ["Messages", "#34C759", "💬"], ["Drive", "#F4B400", "▲"], ["m.ai", T.brand, "m."]].map(([n, c, g]) => (
@@ -2629,18 +2629,18 @@ const flowShare = (finish) => [
   (a) => a.d.act === "file"
     ? (<>
         <H1 sub="Mai không trả, chỉ nhắc.">Đã lưu vào két</H1>
-        <KV rows={[["Nhắc", "09/08 · trước hạn 3 ngày"], ["Nguồn", "Gmail · anh chia sẻ 15:52"], ["Lưu tại", "Két ký ức · điện", "green"]]} />
+        <KV rows={[["Nhắc", "09/08 · trước hạn 3 ngày"], ["Nguồn", "Gmail · anh chia sẻ 15:52"], ["Lưu tại", "Hồ sơ nhà mình · điện", "green"]]} />
         <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
       </>)
     : <FaceStep label={a.d.act === "now" ? "Nhìn vào máy để trả 1.310.000đ" : "Cho phép Mai trả tự động kỳ điện"} sub="WinMoney · TCB ····4102 · hạn mức 2.000.000đ/lần" onDone={a.next} />,
   (a) => (
     <>
       <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-      <H1 sub="Mail, ảnh, tin nhắn, link, PDF: cái gì share được là Mai nhận được. Đây là cửa vào không ai chặn.">Share sheet</H1>
+      <H1 sub="Thư, ảnh, tin nhắn, đường dẫn, PDF: cái gì chia sẻ được là Mai nhận được. Đây là cửa vào không ai chặn được.">Cửa chia sẻ của điện thoại</H1>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
-        {["Gmail", "WhatsApp", "Zalo", "ảnh chụp giấy", "Safari", "PDF", "voice note"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
+        {["Gmail", "WhatsApp", "Zalo", "ảnh chụp giấy", "Safari", "PDF", "tin nhắn thoại"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
       </div>
-      <KV rows={[[a.d.act === "now" ? "Đã trả" : a.d.act === "file" ? "Đã lưu" : "Đã hẹn trả", a.d.act === "now" ? fmt(1310000) + " · 15:53" : a.d.act === "file" ? "nhắc 09/08" : "tự động 10/08", "green"], ["Nguồn", "Gmail · anh chia sẻ"], ["Lưu tại", "Két ký ức · điện"]]} />
+      <KV rows={[[a.d.act === "now" ? "Đã trả" : a.d.act === "file" ? "Đã lưu" : "Đã hẹn trả", a.d.act === "now" ? fmt(1310000) + " · 15:53" : a.d.act === "file" ? "nhắc 09/08" : "tự động 10/08", "green"], ["Nguồn", "Gmail · anh chia sẻ"], ["Lưu tại", "Hồ sơ nhà mình · điện"]]} />
       <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
     </>
   ),
@@ -2650,7 +2650,7 @@ const flowShare = (finish) => [
 const flowSpeaker = (finish) => [
   (a) => (
     <>
-      <H1 sub="Bà 78 tuổi, ở Cà Mau, không dùng smartphone, không gõ chữ. Loa m.ai đặt ở bàn thờ nhà Bà.">Loa trong nhà Bà</H1>
+      <H1 sub="Bà 78 tuổi, ở Cà Mau, không dùng điện thoại thông minh, không gõ chữ. Loa m.ai đặt ở bàn thờ nhà Bà.">Loa trong nhà Bà</H1>
       <div style={{ background: T.dark, borderRadius: 18, padding: 16, color: "#FFFDF9" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span style={{ fontSize: 30 }}>🔊</span>
@@ -2685,7 +2685,7 @@ const flowSpeaker = (finish) => [
       </div>
       <div style={{ fontSize: 12, fontWeight: 650, color: T.sub, margin: "14px 0 8px" }}>Mai hiểu “sau cơm chiều” là</div>
       <Slots value={a.d.at || "18:30"} onPick={(v) => a.set({ at: v })} list={[{ t: "18:00", note: "sớm" }, { t: "18:30", note: "nhà mình hay ăn" }, { t: "19:00", note: "muộn" }]} />
-      <Foot><Btn wide onClick={a.next}>Chốt</Btn></Foot>
+      <Foot><Btn wide onClick={a.next}>Chốt giờ này</Btn></Foot>
     </>
   ),
   (a) => (
@@ -2700,7 +2700,7 @@ const flowSpeaker = (finish) => [
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 10, lineHeight: 1.55 }}>Bà không thấy chat của cả nhà. Bà chỉ nói và được nghe trả lời. Két thì vẫn là một.</div>
+      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 10, lineHeight: 1.55 }}>Bà không thấy tin nhắn của cả nhà. Bà chỉ nói và được nghe trả lời. Hồ sơ thì vẫn là một.</div>
       <Foot><Btn wide onClick={a.next}>Xem chạy thật</Btn></Foot>
     </>
   ),
@@ -2721,7 +2721,7 @@ const flowSpeaker = (finish) => [
       <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
       <H1 sub="Cửa nào phù hợp với người đó thì dùng cửa đó. Bà dùng giọng, anh dùng app, Vy dùng điện thoại, Bin sau này dùng đồng hồ.">Bà cũng dùng chung một Mai</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14, padding: "11px 13px", fontSize: 13, color: "#14603C", lineHeight: 1.6 }}>
-        Bà không cài app, không có smartphone, không nhớ mật khẩu. Vẫn nói được với Mai và vẫn nằm trong két của nhà mình.
+        Bà không cài app, không có điện thoại thông minh, không nhớ mật khẩu. Vẫn nói được với Mai và vẫn nằm trong hồ sơ nhà mình.
       </div>
       <Foot><Btn wide onClick={() => { finish(); a.close(); }}>Xong</Btn></Foot>
     </>
@@ -2785,7 +2785,7 @@ const flowDevices = (finish) => [
         { t: "Đồng hồ · 16:22", s: a.d.wr === "call" ? "hẹn gọi Vy 17:02" : a.d.wr === "later" ? "xem sau" : "gửi 👍 vào Nhà mình" },
         { t: "Tai nghe · 17:10", s: "đọc tóm tắt 3 việc đã xong" },
         { t: "Xe · 17:24", s: "đặt đăng kiểm 7:30 thứ Ba" },
-        { t: "Két ký ức", s: "cả ba đều ghi về một chỗ" },
+        { t: "Hồ sơ nhà mình", s: "cả ba đều ghi về một chỗ" },
       ]} />
       <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
     </>
@@ -2793,9 +2793,9 @@ const flowDevices = (finish) => [
   (a) => (
     <>
       <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-      <H1 sub="Điện thoại, loa, đồng hồ, tai nghe, xe, và app của hãng khác qua API. Mỗi thiết bị là một cánh cửa, két vẫn là một và là của anh.">Cửa nào cũng vào được</H1>
+      <H1 sub="Điện thoại, loa, đồng hồ, tai nghe, xe, và app của hãng khác nối vào. Mỗi thiết bị là một cánh cửa, hồ sơ vẫn là một và là của anh.">Cửa nào cũng vào được</H1>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
-        {["điện thoại", "loa m.ai", "đồng hồ", "tai nghe", "xe", "TV", "camera", "gia dụng · API"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
+        {["điện thoại", "loa m.ai", "đồng hồ", "tai nghe", "xe", "TV", "camera", "gia dụng nối vào"].map((x) => <Pill key={x} tone="brand">{x}</Pill>)}
       </div>
       <div style={{ background: T.bg, border: `1px dashed ${T.hair}`, borderRadius: 14, padding: "11px 13px", fontSize: 12.5, color: T.sub, lineHeight: 1.6 }}>
         Mỗi nguồn một công tắc riêng. Anh tắt nguồn nào, Mai thôi đọc nguồn đó. Két mã hoá theo từng người.
@@ -2811,7 +2811,7 @@ const flowDevices = (finish) => [
 const flowWallet = (finish, spent, bal) => [
   (a) => (
     <>
-      <H1 sub="Ví thật, nối thẳng Techcombank của anh. Mai không giữ tiền, Mai chỉ giữ sổ.">Ví WinMoney</H1>
+      <H1 sub="Ví nối thẳng Techcombank của anh. Mai không giữ tiền, Mai chỉ giữ sổ.">Ví WinMoney</H1>
       <div style={{ display: "flex", alignItems: "center", gap: 14, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "14px 15px", marginBottom: 11 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.5 }}>SỐ DƯ</div>
@@ -2819,8 +2819,8 @@ const flowWallet = (finish, spent, bal) => [
         </div>
         <Spark points={[2480, 2480, 2315, 2315, bal / 1000]} w={72} h={30} color={T.brand} fill />
       </div>
-      <KV rows={[["Nguồn tiền", "Techcombank ····4102"], ["Rút về tài khoản", "miễn phí · trong ngày"], ["Trả trong hệ", "WinMart+ · Phúc Long · MEATDeli"], ["Chuyển người nhà", "0đ phí · cần định danh CCCD"]]} />
-      <Foot><Btn wide onClick={a.next}>Mai đã tiêu gì</Btn></Foot>
+      <KV rows={[["Nguồn tiền", "Techcombank ····4102"], ["Rút về tài khoản", "miễn phí · trong ngày"], ["Trả ở cửa hàng Masan", "WinMart+ · Phúc Long · MEATDeli"], ["Chuyển người nhà", "0đ phí · cần định danh CCCD"]]} />
+      <Foot><Btn wide onClick={a.next}>Mai đã trả hộ những gì</Btn></Foot>
     </>
   ),
   (a) => (
@@ -2829,7 +2829,7 @@ const flowWallet = (finish, spent, bal) => [
       <div style={{ display: "grid", gap: 8 }}>
         {spent.length === 0 && (
           <div style={{ background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "14px 13px", fontSize: 13, color: T.sub, lineHeight: 1.55 }}>
-            Chưa có khoản nào trong phiên này. Anh cứ trả thử một việc rồi quay lại đây xem Mai ghi sổ.
+            Từ lúc anh mở app tới giờ chưa có khoản nào. Anh cứ thử trả một việc rồi quay lại đây xem Mai ghi sổ.
           </div>
         )}
         {spent.map((s) => (
@@ -2873,22 +2873,22 @@ const flowWallet = (finish, spent, bal) => [
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Cộng {fmt(1700000)} trong năm tuần tới. Số dư của anh còn {fmt(bal)}, Mai thấy dư.</div>
+      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Cộng {fmt(1700000)} trong năm tuần tới. Số dư của anh còn {fmt(bal)}, Mai nhắc trước từng khoản.</div>
       <Foot><Btn wide onClick={a.next}>Đặt trần cho Mai</Btn></Foot>
     </>
   ),
   (a) => (
     <>
-      <H1 sub="Dưới trần Mai tự trả rồi báo anh. Trên trần Mai đứng lại hỏi, kể cả khi anh đang họp.">Mai được tiêu tới đâu</H1>
+      <H1 sub="Dưới trần Mai tự trả rồi báo anh. Trên trần Mai dừng lại hỏi, kể cả khi anh đang họp.">Mai được trả hộ tới đâu</H1>
       <Slots value={a.d.cap || "500.000đ"} onPick={(v) => a.set({ cap: v })}
-        list={[{ t: "0đ", note: "hỏi mọi lần" }, { t: "200.000đ", note: "chặt" }, { t: "500.000đ", note: "vừa" }, { t: "1.000.000đ" }, { t: "2.000.000đ", note: "rộng" }, { t: "Không giới hạn", full: true }]} />
+        list={[{ t: "0đ", note: "hỏi mọi lần" }, { t: "200.000đ", note: "chặt" }, { t: "500.000đ", note: "vừa" }, { t: "1.000.000đ" }, { t: "2.000.000đ", note: "rộng" }, { t: "Không giới hạn", full: true, note: "Mai không nhận" }]} />
       <div style={{ marginTop: 12 }}>
         <Toggle on={a.d.big !== false} onTap={(v) => a.set({ big: v })} t="Khoản lạ luôn hỏi" s="Người nhận mới, hoặc số tiền gấp đôi thói quen, Mai hỏi dù dưới trần" />
       </div>
       <div style={{ marginTop: 10 }}>
         <Toggle on={a.d.tell !== false} onTap={(v) => a.set({ tell: v })} t="Báo Vy mỗi khoản trên 1 triệu" s="Hai người cùng biết, đỡ một lần hỏi nhau" />
       </div>
-      <Foot><Btn wide onClick={a.next}>Xác nhận bằng mặt</Btn></Foot>
+      <Foot><Btn wide onClick={a.next}>Quét mặt để xác nhận</Btn></Foot>
     </>
   ),
   (a) => <FaceStep label="Đặt trần chi tiêu" sub={"Mai tự trả tối đa " + (a.d.cap || "500.000đ") + " mỗi lần"} onDone={a.next} />,
@@ -2966,7 +2966,7 @@ const Cover = ({ onClose }) => (
             <span style={{ width: 48, height: 48, borderRadius: 15, background: `linear-gradient(145deg, #E8825A, ${T.brand})`, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(194,85,47,.28)" }}><Logo size={26} /></span>
           </div>
           <div style={{ fontSize: 15, fontWeight: 650, color: T.ink, whiteSpace: "nowrap" }}>Mai</div>
-          <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>lo việc nhà</div>
+          <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>lo việc cho cả nhà</div>
         </div>
       </div>
 
@@ -3023,7 +3023,7 @@ export default function MaiV18() {
   const [surfApp, setSurfApp] = useState("Zalo");
   const [famMsgs, setFamMsgs] = useState([]);
   const [ongMsgs, setOngMsgs] = useState([]);
-  const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm mic nói." }]);
+  const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chiều anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm nút nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [chips, setChips] = useState(GREETING_CHIPS);
@@ -3096,7 +3096,7 @@ export default function MaiV18() {
     if (mic === 1) { try { recRef.current && recRef.current.stop(); } catch (e) {} setMic(0); return; }
     try {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) { setMaiMsgs((x) => [...x, { id: Date.now(), from: "mai", text: "Trình duyệt này chưa cho Mai nghe, anh gõ giúp Mai nha." }]); bump(); return; }
+      if (!SR) { setMaiMsgs((x) => [...x, { id: Date.now(), from: "mai", text: "Máy này chưa cho Mai nghe, anh gõ giúp Mai nha." }]); bump(); return; }
       const r = new SR();
       r.lang = "vi-VN"; r.interimResults = false; r.maxAlternatives = 1;
       r.onresult = (e) => { setMic(0); const t = e.results?.[0]?.[0]?.transcript || ""; if (t) askMai(t); };
@@ -3127,8 +3127,8 @@ export default function MaiV18() {
     form: ["Đơn đã gửi, cô Hồng nhận rồi. Mai lưu một bản vào hồ sơ của Na.", "email nhà trường", ["Na họp phụ huynh hôm nào?", "Tôi nợ gì tuần này?", "Hộ chiếu Na còn hạn không?"]],
     cart: ["Đặt xong, Supra giao trước 18:00. Giỏ này cộng 186 điểm WinX cho nhà mình.", "WinMart+ · Supra", ["Tối nay nấu gì nhanh?", "Điểm WinX được bao nhiêu?", "Mua quà gì cho Bà?"]],
     ticket: ["Mai canh vé đợt 3, 20:00 thứ Sáu. Tới giờ Mai bấm giúp, anh chỉ cần quét mặt duyệt.", "vé gắn CCCD", ["Tối nay nhà mình xem gì?", "Sang nhượng vé có an toàn không?", "Thứ Sáu tối tôi rảnh không?"]],
-    resale: ["Vé đã sang tên anh, ghế B12-13. Tiền chỉ rời ví khi vé về tới tên anh.", "escrow đã đóng", ["Vé concert đợt 3 khi nào mở?", "Tối nay nhà mình xem gì?", "Hôm nay còn việc gì gấp?"]],
-    inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong két.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
+    resale: ["Vé đã sang tên anh, ghế B12-13. Tiền chỉ rời ví khi vé về tới tên anh.", "giữ tiền tới khi nhận vé", ["Vé concert đợt 3 khi nào mở?", "Tối nay nhà mình xem gì?", "Hôm nay còn việc gì gấp?"]],
+    inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
   };
   const afterFlow = (id) => {
@@ -3316,7 +3316,7 @@ export default function MaiV18() {
                 <div onClick={() => setCover(true)} className="press" style={{ flexShrink: 0, height: 56, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", background: T.brandSoft, borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
                   <Logo size={20} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15.5, fontWeight: 700, color: T.brandInk }}>Đây là nhà anh Hải, mình xem thôi.</div>
+                    <div style={{ fontSize: 15.5, fontWeight: 700, color: T.brandInk }}>Đây là nhà anh Hải, mình xem thử.</div>
                     <div style={{ fontSize: 15, color: T.brandInk, opacity: 0.82, marginTop: 2, lineHeight: 1.35 }}>Bấm gì cũng không mất tiền thật.</div>
                   </div>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
@@ -3332,7 +3332,7 @@ export default function MaiV18() {
                       <Mark size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 600, color: T.ink, letterSpacing: -0.3 }}>Chiều anh Hải,</div>
-                        <div style={{ fontSize: 14.5, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "còn 3 việc trước 17:00 · Mai lo phần còn lại"}</div>
+                        <div style={{ fontSize: 14.5, color: T.sub, marginTop: 2 }}>{allDone ? "sạch việc rồi · Mai canh tiếp" : "2 việc gấp trước 17:00 · Mai lo phần còn lại"}</div>
                       </div>
                       {allDone || !visitedFamily ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
                     </div>
@@ -3372,12 +3372,12 @@ export default function MaiV18() {
                   <ChatRow Icon={Car} tint={T.amberBg} color={T.amber} title="Vietnam Cars" sub="Đăng kiểm Q2: sáng thứ Ba vắng nhất · ▲214" time="15:10" onTap={() => setScreen("cars")} />
                   <ChatRow Icon={Hash} tint={T.greenBg} color={T.green} title="Cơm tối 30 phút" sub="Bò kho nồi áp suất · ▲462" time="14:30" onTap={() => setScreen("com")} />
                   {/* Ba việc Mai giữ hộ: tiền, chợ, giấy tờ. Mỗi dòng mở một luồng thật. */}
-                  <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI GIỮ HỘ ANH</div>
+                  <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI LO GIÚP ANH</div>
                   <div onClick={() => openFlow("wallet")} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: T.surf, borderTop: `1px solid ${T.hair}`, cursor: "pointer" }}>
                     <IconSq Icon={Wallet} size={40} tint={T.brandSoft} color={T.brand} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Ví WinMoney</div>
-                      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2, ...num }}>{fmt(bal)} · {done.wallet ? "Mai tự trả dưới trần anh đặt" : "đặt trần cho Mai tiêu tới đâu"}</div>
+                      <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2, ...num }}>{fmt(bal)} · {done.wallet ? "Mai tự trả dưới trần anh đặt" : "đặt trần chi tiêu cho Mai"}</div>
                     </div>
                     {done.wallet ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Đã đặt trần</Pill> : <ChevronRight size={16} color={T.faint} />}
                   </div>
@@ -3410,7 +3410,7 @@ export default function MaiV18() {
                   {/* Giống dòng ngày tháng trong Zalo — đọc lướt qua là hiểu đang xem nhà ai. */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0 12px" }}>
                     <span style={{ height: 1, flex: 1, background: T.hair }} />
-                    <span style={{ fontSize: 15, fontWeight: 600, color: T.sub, whiteSpace: "nowrap" }}>Nhà anh Hải · mình xem thôi</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: T.sub, whiteSpace: "nowrap" }}>Nhà anh Hải · bản xem thử</span>
                     <span style={{ height: 1, flex: 1, background: T.hair }} />
                   </div>
                   <Msg m={{ from: "w", name: "Vy", text: "Anh ơi em thấy anh còn họp, đừng lo vụ đón Bin nha" }} />
@@ -3440,7 +3440,7 @@ export default function MaiV18() {
                       <div className="pop" style={{ position: "relative", margin: "12px 0 4px", background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 20, padding: "16px 16px 15px", boxShadow: "var(--e2)" }}>
                         <StrokeCheck size={30} color="#14603C" />
                         <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: "#14603C", letterSpacing: -0.4, marginTop: 9 }}>Xong sớm trước hạn</div>
-                        <div style={{ fontSize: 13.5, color: "#2C6B4C", lineHeight: 1.5, marginTop: 5, ...num }}>15:46 · hôm nay Mai đỡ cho anh một vụ suýt trễ đóng tiền và một vụ suýt không ai đón Bin.</div>
+                        <div style={{ fontSize: 13.5, color: "#2C6B4C", lineHeight: 1.5, marginTop: 5, ...num }}>15:46 · suýt trễ tiền học và suýt không ai đón Bin, giờ xong cả rồi.</div>
                         <div style={{ display: "flex", gap: 14, marginTop: 13, paddingTop: 12, borderTop: "1px solid #CFE7DA" }}>
                           {[["Đã trả", fmt(850000)], ["Đón Bin", "16:20 · Vy"], ["Đơn Na", "đã gửi"]].map(([k, v]) => (
                             <div key={k} style={{ flex: 1, minWidth: 0 }}>
@@ -3479,13 +3479,13 @@ export default function MaiV18() {
                   {ongMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   <div ref={endRef} />
                 </div>
-                {inputBar(sendOng, "Nhắn cả nhà lớn…", false, false)}
+                {inputBar(sendOng, "Nhắn ông bà cô chú…", false, false)}
               </>
             )}
 
             {screen === "mai" && (
               <>
-                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh Hải và Mai · chạy trên máy</span>} />
+                <Head back={() => setScreen("home")} title="Mai" sub={<span style={{ fontSize: 12, color: T.faint }}>chỉ anh Hải và Mai · không gửi ra ngoài</span>} />
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
                   {maiMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   {busy && <Thinking />}
@@ -3494,7 +3494,7 @@ export default function MaiV18() {
                 {/* thanh gợi ý xếp lại sau mỗi câu trả lời, nằm ngay trên
                     ngón cái, để anh đi hết demo mà không cần gõ */}
                 <ChipRail items={chips} seed={chips.join("|")} onPick={(c) => !busy && askMai(c)} />
-                {inputBar(sendMai, "Hỏi Mai bất cứ điều gì…", false, true)}
+                {inputBar(sendMai, "Hỏi Mai gì cũng được…", false, true)}
               </>
             )}
 
@@ -3509,7 +3509,7 @@ export default function MaiV18() {
                 <button onClick={() => setFiles(false)} className="btn" style={{ background: "#F1EBE1", padding: 7, borderRadius: 999, display: "flex" }}><X size={15} color={T.sub} /></button>
                 <span style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.6 }}>HỒ SƠ NHÀ MÌNH</span>
               </div>
-              <div style={{ fontSize: 12.5, color: T.sub, marginBottom: 10, lineHeight: 1.5 }}>Két ký ức · mọi cửa đều ghi về đây: bàn phím trong Zalo, share sheet, loa nhà Bà, đồng hồ, xe. Chạm từng mục để xem nguồn.</div>
+              <div style={{ fontSize: 12.5, color: T.sub, marginBottom: 10, lineHeight: 1.5 }}>Mọi cửa đều ghi về đây: bàn phím trong Zalo, nút chia sẻ của điện thoại, loa nhà Bà, đồng hồ, xe. Chạm từng mục để xem nguồn.</div>
               {FILES.map((f) => (
                 <div key={f.id} onClick={() => { setFile(f); ding(); }} className="press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${T.hair}`, cursor: "pointer" }}>
                   <IconSq Icon={f.Icon} tint={f.tone === "amber" ? T.amberBg : f.tone === "green" ? T.greenBg : "#F1EBE1"} color={f.tone === "amber" ? T.amber : f.tone === "green" ? T.green : T.sub} />
