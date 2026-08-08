@@ -3559,11 +3559,93 @@ const DevCar = ({ s = 22 }) => (
   </svg>
 );
 
+// ————————————————————————————————————————————————————————————
+// SỨC KHOẺ BÀ · nhóm với bác sĩ Vinmec (5 bước)
+// Ranh giới cứng: Mai gom hồ sơ, nhắc thuốc, đặt lịch, chuyển câu hỏi
+// và đọc kết quả qua loa cho Bà. Mai KHÔNG chẩn đoán, KHÔNG đổi liều.
+// Bác sĩ quyết. Một demo mà AI phán bệnh thì phản tác dụng ngay.
+// ————————————————————————————————————————————————————————————
+const BP = [132, 136, 134, 141, 138, 145, 148];
+const flowCare = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Mai gom từ máy đo ở nhà Bà, đơn thuốc cô Út chụp, và sổ khám lần trước. Mai không tự đọc bệnh, chỉ xếp lại cho gọn.">Hồ sơ của Bà</H1>
+      <KV rows={[["Bà", "78 tuổi · Cà Mau · cách nhà 1.700km"], ["Huyết áp sáng nay", "148/92 · cao hơn mọi hôm", "amber"], ["Đang uống", "Amlodipine 5mg · mỗi sáng"], ["Khám gần nhất", "12/05 · BS. Trần Thu Hân"], ["Dị ứng", "Penicillin", "amber"]]} />
+      <Express
+        now={() => a.go(2)}
+        nowLabel="Hỏi bác sĩ Hân luôn"
+        more={a.next}
+        moreLabel="Xem chỉ số 30 ngày trước" />
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Bà đo mỗi sáng, loa nhà Bà đọc số rồi Mai ghi lại. Bảy lần gần nhất.">Huyết áp đang lên</H1>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 13, background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "13px 14px 11px" }}>
+        <Bars data={BP} highlight={6} w={150} h={46} labels={["", "", "", "", "", "", "nay"]} />
+        <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: T.sub, lineHeight: 1.5, ...num }}>
+          Từ <b style={{ color: T.ink }}>132</b> lên <b style={{ color: T.amber }}>148</b> trong bảy ngày. Mai thấy số đi lên nên báo anh, còn nó có nghĩa gì thì để bác sĩ nói.
+        </div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <KV rows={[["Uống thuốc đều không", "6/7 ngày · quên sáng 04/08"], ["Loa nhắc lúc", "07:00 mỗi sáng", "green"]]} />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Hỏi bác sĩ Hân</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai soạn sẵn, anh xem rồi gửi. Hồ sơ Bà đi kèm để bác sĩ khỏi hỏi lại.">Gửi bác sĩ</H1>
+      <Choice value={a.d.ask || "bp"} onPick={(v) => a.set({ ask: v })}
+        items={[
+          { id: "bp", Icon: TriangleAlert, t: "Huyết áp lên bảy ngày liền", s: "kèm bảng số và đơn thuốc đang uống", right: "gấp" },
+          { id: "med", Icon: Syringe, t: "Hỏi lại liều thuốc", s: "Bà quên một sáng, có cần uống bù không" },
+          { id: "visit", Icon: Clock, t: "Xin lịch tái khám", s: "lần trước 12/05, đã ba tháng" },
+        ]} />
+      <div style={{ marginTop: 12, background: T.dark, color: "#FBF7F1", borderRadius: 16, borderBottomRightRadius: 6, padding: "12px 14px", fontSize: 14.5, lineHeight: 1.5 }}>
+        {a.d.ask === "med" ? "Chào bác sĩ, mẹ tôi quên uống Amlodipine sáng 04/08. Sáng nay đo 148/92. Bác cho hỏi có cần uống bù không ạ?"
+          : a.d.ask === "visit" ? "Chào bác sĩ, mẹ tôi khám lần cuối 12/05, huyết áp bảy ngày nay lên 148/92. Bác sắp cho mẹ tôi lịch tái khám được không ạ?"
+          : "Chào bác sĩ, huyết áp mẹ tôi bảy ngày nay lên đều, sáng nay 148/92. Bà vẫn uống Amlodipine 5mg, quên một sáng 04/08. Nhờ bác xem giúp ạ."}
+      </div>
+      <AutoNext ms={1700} onDone={a.next}>
+        <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 9, fontSize: 14, color: T.sub }}>
+          <Sparkles size={15} color={T.brand} className="spin-soft" /> Đang gửi kèm hồ sơ cho BS. Hân…
+        </div>
+      </AutoNext>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Bác sĩ trả lời sau 6 phút. Mai không sửa một chữ nào trong câu của bác sĩ.">BS. Hân đã xem</H1>
+      <Evidence src="BS. Trần Thu Hân · Tim mạch · Vinmec Central Park" time="15:48" Icon={BadgeCheck} color="#D8A13A"
+        text="Số này cần theo dõi thêm chứ chưa phải cấp cứu. Bác giữ nguyên liều, đo thêm buổi chiều trong ba ngày. Nếu có lần nào trên 160 hoặc bà thấy đau đầu, chóng mặt thì gọi tôi ngay. Tôi xếp lịch khám từ xa cho bà sáng 11/08." />
+      <div style={{ marginTop: 12 }}>
+        <KV rows={[["Khám từ xa", "08:30 · 11/08 · qua loa nhà Bà", "green"], ["Việc Mai làm", "nhắc đo thêm buổi chiều 3 ngày"], ["Báo ngay nếu", "trên 160, hoặc đau đầu chóng mặt", "amber"], ["Liều thuốc", "bác sĩ giữ nguyên · Mai không đổi"]]} />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Đặt nhắc cho Bà</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "2px 0 6px" }}><StrokeCheck size={34} /></div>
+      <H1 sub="Bà không cần bấm gì. Tới giờ loa gọi, Bà nói số, Mai ghi và gửi bác sĩ.">Đã xếp xong</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
+        <div style={{ fontSize: 14.5, color: "#14603C", lineHeight: 1.6, ...num }}>
+          Loa nhà Bà nhắc đo lúc 07:00 và 16:00 trong ba ngày. Sáng 11/08 loa gọi bác sĩ giúp Bà. Anh và chị Vy đều nhận được số ngay khi Bà đo xong.
+        </div>
+      </div>
+      <ShareNudge line="Cô Út ở gần Bà nhất. Cho cô vào nhóm thì cô cũng thấy số và lịch khám, khỏi phải gọi hỏi nhau." cta="Mời cô Út vào nhóm" />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
 const SURFACES = [
   { id: "winx", n: "WinX", img: "logos/winx.png", c: "#FFFFFF", pad: 0, flow: "winx" },
   { id: "zalo", n: "Zalo", img: "logos/zalo.svg", c: "#0068FF", pad: 10, flow: "kb", app: "Zalo" },
   { id: "wa", n: "WhatsApp", img: "logos/whatsapp.svg", c: "#25D366", pad: 9, flow: "kb", app: "WhatsApp" },
   { id: "gmail", n: "Gmail", img: "logos/gmail.svg", c: "#FFFFFF", pad: 9, flow: "share" },
+  { id: "vinmec", n: "Vinmec", img: "logos/vinmec-icon.png", c: "#FFFFFF", pad: 4, flow: "care" },
   { id: "loa", n: "Loa", Dev: DevSpeaker, c: T.dark, flow: "speaker" },
   { id: "watch", n: "Đồng hồ", Dev: DevWatch, c: "#3A4A6B", flow: "dev" },
   { id: "buds", n: "Tai nghe", Dev: DevBuds, c: "#6E665C", flow: "dev" },
@@ -3595,6 +3677,7 @@ export default function MaiV18() {
   const [famMsgs, setFamMsgs] = useState([]);
   const [ongMsgs, setOngMsgs] = useState([]);
   const [wpMsgs, setWpMsgs] = useState([]);
+  const [careMsgs, setCareMsgs] = useState([]);
   const [holdTray, setHoldTray] = useState(null);
   const [tray, setTray] = useState(false);
   const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chào anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm nút nói." }]);
@@ -3689,6 +3772,10 @@ export default function MaiV18() {
       setTimeout(() => { setFamMsgs((x) => [...x, { id: Date.now(), from: "w", name: "Vy", text: "Dạ để em lo, anh yên tâm 👍" }]); bump(); }, 1400);
     }
   };
+  const sendCare = () => {
+    const q = input.trim(); if (!q) return;
+    setInput(""); setCareMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
+  };
   const sendWp = () => {
     const q = input.trim(); if (!q) return;
     setInput(""); setWpMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
@@ -3720,6 +3807,7 @@ export default function MaiV18() {
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
     winx: ["Quét xong, nhà mình lên hạng Vàng với 1.026 điểm. Phiếu 20.000đ Mai để sẵn trong thẻ.", "thẻ WinX", ["Điểm WinX được bao nhiêu?", "Giỏ hàng bao nhiêu tiền?", "Mua quà gì cho Bà?"]],
     hold: ["Xong rồi anh, khay đã trả tiền và cửa hàng gói sẵn. Mai vẫn canh nhóm giúp anh.", "Win+ Hai Bà Trưng", ["Tối nay nấu gì nhanh?", "Giỏ hàng bao nhiêu tiền?", "Điểm WinX được bao nhiêu?"]],
+    care: ["BS. Hân xem rồi, giữ nguyên liều và xếp khám từ xa sáng 11/08. Loa nhà Bà nhắc đo thêm buổi chiều ba ngày.", "BS. Hân · Vinmec", ["Huyết áp Bà thế nào?", "Bà uống thuốc gì?", "Mua quà gì cho Bà?"]],
   };
   const afterFlow = (id) => {
     if (flowFrom.current !== "mai" || !AFTER[id]) return;
@@ -3754,6 +3842,7 @@ export default function MaiV18() {
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
     wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
     winx: () => flowWinx(end("winx", () => setDone((d) => ({ ...d, winx: true }))), () => setDone((d) => ({ ...d, shared: true }))),
+    care: () => flowCare(end("care", () => setDone((d) => ({ ...d, care: true })))),
     hold: () => flowBuy(end("hold", (d) => setDone((x) => ({ ...x, hold: true, holdTotal: (d && d.total) || 0 }))), (function () {
       const x = holdTray || TRAYS[5];
       const cheaper = TRAYS.filter((y) => y.now < x.now).sort((a, b) => a.now - b.now)[0];
@@ -3768,7 +3857,7 @@ export default function MaiV18() {
       };
     })()),
   };
-  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Mua ở Win+ Hai Bà Trưng" };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Mua ở Win+ Hai Bà Trưng", care: "Sức khoẻ Bà" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
   const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
@@ -3791,6 +3880,7 @@ export default function MaiV18() {
   const sendSticker = (id) => {
     const msg = { id: Date.now(), from: "vy", type: "sticker", st: id };
     if (screen === "family") setFamMsgs((x) => [...x, msg]);
+    else if (screen === "care") setCareMsgs((x) => [...x, msg]);
     else if (screen === "ongba") setOngMsgs((x) => [...x, msg]);
     else if (screen === "winplus") setWpMsgs((x) => [...x, msg]);
     else setMaiMsgs((x) => [...x, msg]);
@@ -4012,6 +4102,7 @@ export default function MaiV18() {
                     {pointing && <div className="sn-ring" style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: `inset 0 0 0 2px ${T.brand}` }} />}
                   </div>
                   <ChatRow avatar="Ông bà cô chú" letter="Ô" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
+                  <ChatRow Icon={Syringe} tint="#FDF2DC" color="#C8912B" title="Sức khoẻ Bà" verified sub={done.care ? "BS. Hân: giữ nguyên liều, đo thêm 3 ngày" : "cô Út: sáng nay má đo 148/92"} time="15:41" unread={done.care ? null : "2"} onTap={() => setScreen("care")} />
                   <ChatRow Icon={Store} tint="#FDE7E5" color="#E8342C" title="Win+ Hai Bà Trưng" verified sub={done.hold ? "Mai: chị My đã chừa 1 khay bò nạm" : "Mai lọc 47 tin, giữ lại 1 tin hợp bếp"} time="08:21" unread={done.hold ? null : "1"} onTap={() => setScreen("winplus")} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>KÊNH</div>
                   <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
@@ -4126,6 +4217,27 @@ export default function MaiV18() {
                   <div ref={endRef} />
                 </div>
                 {inputBar(sendOng, "Nhắn ông bà cô chú…", false, false)}
+              </>
+            )}
+
+            {screen === "care" && (
+              <>
+                <Head back={() => setScreen("home")} title="Sức khoẻ Bà"
+                  sub={<><ShieldCheck size={15} color={T.green} strokeWidth={2.2} /><span style={{ fontSize: 12, color: T.faint }}>4 người · có bác sĩ</span></>} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 14, padding: "10px 12px", marginBottom: 12 }}>
+                    <img src="logos/vinmec-icon.png" alt="" width="22" height="22" style={{ display: "block", flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: T.ink, lineHeight: 1.45 }}>BS. Trần Thu Hân · Tim mạch · Vinmec Central Park</span>
+                  </div>
+                  <Msg m={{ from: "w", name: "cô Út", text: "Sáng nay má đo 148/92, cao hơn mọi hôm anh Hải ơi" }} />
+                  <Msg m={{ from: "w", name: "Vy", text: "Anh xem giúp em với, tuần này em không về Cà Mau được" }} />
+                  <MaiBanner text="Mai gom hồ sơ Bà rồi: bảy lần đo gần nhất, đơn thuốc đang uống, sổ khám 12/05. Gửi bác sĩ Hân xem giúp nhé anh."
+                    cta="Xem" done={!!done.care} doneText="BS. Hân đã xem · khám từ xa 08:30 ngày 11/08" onTap={() => openFlow("care")} />
+                  {done.care && <Msg m={{ type: "ext", color: "#D8A13A", Icon: BadgeCheck, src: "BS. Trần Thu Hân · Vinmec", time: "15:48", text: "Giữ nguyên liều, đo thêm buổi chiều ba ngày. Trên 160 hoặc bà thấy chóng mặt thì gọi tôi ngay." }} />}
+                  {careMsgs.map((m) => <Msg key={m.id} m={m} />)}
+                  <div ref={endRef} />
+                </div>
+                {inputBar(sendCare, "Nhắn cả nhà và bác sĩ…", false, false)}
               </>
             )}
 

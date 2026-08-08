@@ -19,3 +19,13 @@ Logo là nhãn hiệu của chủ sở hữu. Ở đây dùng để chỉ đúng
 Đã kiểm: MEATDeli chỉ bán **thịt heo** — 51 sản phẩm trên trang, không có bò.
 Nên sáu khay trong nhóm cửa hàng đều là heo, và miếng bò nạm trong giỏ WinMart+
 không còn gắn nhãn MEATDeli nữa.
+
+## Vinmec
+
+| File | Nguồn | Ghi chú |
+| --- | --- | --- |
+| `vinmec-icon.png` | vinmec.com — apple-icon-180x180 | Icon chính thức, chim vàng. |
+
+Vinmec thuộc Vingroup chứ không phải Masan. Ở đây dùng có chủ ý: m.ai định hướng
+nối với nhiều đối tác, không chỉ trong nhà Masan — dải app đã có sẵn Zalo,
+WhatsApp, Gmail đều là bên ngoài.
