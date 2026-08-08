@@ -3407,15 +3407,37 @@ const flowHold = (finish, tray) => {
 ];
 };
 
+// Bốn hình thiết bị: cùng nét 1.9, cùng cỡ quang học, trắng trên ô tối.
+const DevSpeaker = ({ s = 22 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2.5" width="14" height="19" rx="3.2" /><circle cx="12" cy="15" r="3.4" /><circle cx="12" cy="7" r="1.5" />
+  </svg>
+);
+const DevWatch = ({ s = 22 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="6" y="6" width="12" height="12" rx="3.4" /><path d="M9.5 6V3h5v3M9.5 18v3h5v-3" /><path d="M12 10v2.4l1.8 1.1" />
+  </svg>
+);
+const DevBuds = ({ s = 22 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8.5 9.5a3.2 3.2 0 10-3.2 3.2h.7v5.6a1.6 1.6 0 003.2 0V9.5Z" /><path d="M15.5 9.5a3.2 3.2 0 113.2 3.2h-.7v5.6a1.6 1.6 0 01-3.2 0V9.5Z" />
+  </svg>
+);
+const DevCar = ({ s = 22 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 13.5l1.8-5A2.4 2.4 0 017.1 7h9.8a2.4 2.4 0 012.3 1.5l1.8 5" /><path d="M2.6 13.5h18.8v3.6H2.6z" /><circle cx="6.6" cy="17.1" r="1.5" /><circle cx="17.4" cy="17.1" r="1.5" />
+  </svg>
+);
+
 const SURFACES = [
-  { id: "winx", n: "WinX", g: "X", c: "#E8342C", flow: "winx" },
-  { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
-  { id: "wa", n: "WhatsApp", g: "W", c: "#25D366", flow: "kb", app: "WhatsApp" },
-  { id: "gmail", n: "Gmail", g: "M", c: "#C5221F", flow: "share" },
-  { id: "loa", n: "Loa m.ai", g: "🔊", c: T.dark, flow: "speaker" },
-  { id: "watch", n: "Đồng hồ", g: "⌚", c: "#3A4A6B", flow: "dev" },
-  { id: "buds", n: "Tai nghe", g: "🎧", c: "#6E665C", flow: "dev" },
-  { id: "car", n: "Xe", g: "🚗", c: "#1C2536", flow: "dev" },
+  { id: "winx", n: "WinX", img: "logos/winx.png", c: "#FFFFFF", pad: 0, flow: "winx" },
+  { id: "zalo", n: "Zalo", img: "logos/zalo.svg", c: "#0068FF", pad: 10, flow: "kb", app: "Zalo" },
+  { id: "wa", n: "WhatsApp", img: "logos/whatsapp.svg", c: "#25D366", pad: 9, flow: "kb", app: "WhatsApp" },
+  { id: "gmail", n: "Gmail", img: "logos/gmail.svg", c: "#FFFFFF", pad: 9, flow: "share" },
+  { id: "loa", n: "Loa", Dev: DevSpeaker, c: T.dark, flow: "speaker" },
+  { id: "watch", n: "Đồng hồ", Dev: DevWatch, c: "#3A4A6B", flow: "dev" },
+  { id: "buds", n: "Tai nghe", Dev: DevBuds, c: "#6E665C", flow: "dev" },
+  { id: "car", n: "Xe", Dev: DevCar, c: "#1C2536", flow: "dev" },
 ];
 
 // ————————————————————————————————————————————————————————————
@@ -3786,9 +3808,13 @@ export default function MaiV18() {
                     <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 2 }}>
                       {SURFACES.map((sf) => (
                         <button key={sf.id} onClick={() => { if (sf.app) setSurfApp(sf.app); openFlow(sf.flow); }} className="btn press"
-                          style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 46 }}>
-                          <span style={{ width: 42, height: 42, borderRadius: 13, background: sf.c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: sf.g.length > 1 ? 18 : 17, fontWeight: 800, boxShadow: "0 2px 6px rgba(60,45,30,.14)" }}>{sf.g}</span>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 4, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
+                          style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 60 }}>
+                          <span style={{ width: 42, height: 42, borderRadius: 13, background: sf.c, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(60,45,30,.14)", border: sf.c === "#FFFFFF" ? `1px solid ${T.hair}` : "none", overflow: "hidden" }}>
+                            {sf.img
+                              ? <img src={sf.img} alt="" width={42 - sf.pad * 2} height={42 - sf.pad * 2} style={{ display: "block" }} />
+                              : <sf.Dev s={22} />}
+                          </span>
+                          <div style={{ fontSize: 11.5, color: T.sub, marginTop: 5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
                           {done[sf.flow] && <div style={{ fontSize: 10.5, color: T.green, fontWeight: 700 }}>✓</div>}
                         </button>
                       ))}
