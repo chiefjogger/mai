@@ -915,7 +915,7 @@ const PACK_SHOP = [
     id: "shop_winx_points",
     k: ["diem winx", "duoc bao nhieu diem", "tich diem", "don nay duoc may diem", "winx", "diem thuong", "may diem", "cong diem the nao"],
     must: ["diem", "winx"],
-    reply: "Đơn 186.000đ cộng 186 điểm WinX, cứ 1.000đ được 1 điểm. Phải trả bằng WinMoney mới cộng, trả tiền mặt khi nhận thì mất điểm.",
+    reply: "Cứ 1.000đ trả bằng WinMoney được 1 điểm, giỏ 186.000đ thì cộng 186 điểm. Trả tiền mặt vẫn được giá hội viên, chỉ là không cộng điểm.",
     flow: "cart",
     cta: "Đặt đơn",
     chips: ["Sao đăng kiểm không được điểm?", "Số dư WinMoney còn bao nhiêu?", "Giỏ hàng bao nhiêu tiền?"],

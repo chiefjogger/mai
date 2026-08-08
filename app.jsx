@@ -2074,101 +2074,140 @@ const EXTRA = [
   { n: "Nước mắm Nam Ngư 500ml", p: 28000, brand: "Chin-su" },
   { n: "Chuối tiêu 1kg", p: 26000 },
 ];
-const flowCart = (finish) => {
-  const total = (items, extras) => items.reduce((s, i) => s + i.p * i.q, 0) + EXTRA.filter((e, k) => extras[k]).reduce((s, e) => s + e.p, 0);
+// ————————————————————————————————————————————————————————————
+// MUA HÀNG · một xương sống duy nhất
+// Trước đây giỏ WinMart+ thì mua thật còn khay trong nhóm Win+ chỉ nhắn
+// người ta giữ hộ — hai hình dạng khác hẳn nhau cho cùng một việc. Giờ
+// cả hai đi chung năm bước: đơn → nhận → trả → duyệt → xong.
+//
+// Theo lối Amazon: tổng tiền hiện đủ ngay từ bước một kể cả phí 0đ, mặc
+// định chọn sẵn cách thường dùng, một nút mua nhanh, và không có con số
+// nào đổi ở bước cuối.
+// ————————————————————————————————————————————————————————————
+const WINX_RATE = 1000; // 1.000đ trả bằng WinMoney = 1 điểm. Một luật, mọi nơi.
+const shipFee = (sub) => (sub >= 100000 ? 0 : 15000);
+const pointsFor = (sub, src) => (src === "cod" ? 0 : Math.round(sub / WINX_RATE));
+
+const Line = ({ l, v, strong, tone }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: strong ? "9px 0 2px" : "4px 0" }}>
+    <span style={{ fontSize: strong ? 15 : 14, fontWeight: strong ? 700 : 400, color: tone === "green" ? T.green : T.sub }}>{l}</span>
+    <span style={{ fontFamily: strong ? DISPLAY : FONT, fontSize: strong ? 18 : 14, fontWeight: strong ? 600 : 600, color: tone === "green" ? T.green : T.ink, ...num }}>{v}</span>
+  </div>
+);
+
+// order: { kind, title, sub, items, store, dist, collect, hold, proof, scene, reorder }
+const flowBuy = (finish, order) => {
+  const o = order;
+  const sub = (a) => o.items.reduce((s, i) => s + i.p * (a.d.q ? a.d.q[i.n] != null ? a.d.q[i.n] : i.q : i.q), 0)
+    + (o.kind === "cart" ? EXTRA.filter((e, k) => (a.d.ex || {})[k]).reduce((s, e) => s + e.p, 0) : 0);
+  const ship = (a) => (a.d.take === "self" ? 0 : shipFee(sub(a)));
+  const tot = (a) => sub(a) + ship(a);
+
   return [
-    (a) => {
-      const items = a.d.items || CART0;
-      return (
-        <>
-          <H1 sub="Mai soạn theo bài bò kho trong kênh, chia cho nhà 4 người. Anh sửa số lượng thoải mái.">Giỏ Mai soạn</H1>
-          {/* Không giấu giá rẻ hơn khi chênh đáng kể. Chị Xuân bắt đúng chỗ này. */}
-          {worthSwitch(TRAYS[5].was, TRAYS[5].now) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 14, padding: "11px 12px", marginBottom: 11 }}>
-              <Store size={16} color={T.brandInk} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: T.ink, lineHeight: 1.45, ...num }}>
-                Chị My bên Win+ Hai Bà Trưng còn khay {TRAYS[5].n.toLowerCase()} {fmt(TRAYS[5].now)}, rẻ hơn {fmt(TRAYS[5].was - TRAYS[5].now)}. Kho cũng ngon, nhưng anh phải ghé lấy hoặc chờ Supra 2 tiếng.
-              </span>
-            </div>
-          )}
-          <Thumb from="#8A4630" to="#3A1B12" emoji="🍲" h={92} />
-          <div style={{ marginTop: 10 }}>
-            <Qty items={items} set={(i, q) => { const c = items.map((x, k) => (k === i ? { ...x, q } : x)); a.set({ items: c }); }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 2px", fontWeight: 700, fontSize: 15, color: T.ink }}>
-            <span>Tạm tính</span><span style={{ fontFamily: DISPLAY, fontSize: 17, ...num }}>{fmt(total(items, a.d.ex || {}))}</span>
-          </div>
-          <Foot><Btn wide onClick={a.next}>Mai gợi ý thêm gì?</Btn></Foot>
-        </>
-      );
-    },
-    (a) => {
-      const items = a.d.items || CART0, ex = a.d.ex || {};
-      return (
-        <>
-          <H1 sub="Dựa trên đồ nhà mình hay mua và giỏ tuần trước. Bỏ qua được.">Thêm cho đủ tuần?</H1>
-          <div style={{ display: "grid", gap: 8 }}>
-            {EXTRA.map((e, k) => (
-              <Toggle key={e.n} on={!!ex[k]} onTap={(v) => a.set({ ex: { ...ex, [k]: v } })} t={e.n} s={fmt(e.p) + (e.brand ? " · " + e.brand : "")} />
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 2px", fontWeight: 700, fontSize: 15 }}>
-            <span>Tạm tính</span><span style={{ fontFamily: DISPLAY, fontSize: 17, ...num }}>{fmt(total(items, ex))}</span>
-          </div>
-          <Foot><Btn wide onClick={a.next}>Chọn giờ giao</Btn></Foot>
-        </>
-      );
-    },
+    // 1 · Đơn — tổng đủ ngay đây, không có "tạm tính" mập mờ
     (a) => (
       <>
-        <H1 sub="Tập cuối Anh Trai Say Hi 20:00, Mai chọn sẵn giờ giao sớm cho anh kịp nấu.">Supra giao lúc nào</H1>
-        <Slots value={a.d.slot || "18:00"} onPick={(v) => a.set({ slot: v })}
-          list={[{ t: "17:30", note: "còn 2 tài xế" }, { t: "18:00", note: "trống" }, { t: "18:30", note: "trống" }, { t: "19:00", full: true }, { t: "19:30", note: "trống" }, { t: "20:00", note: "muộn" }]} />
-        <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
+        <H1 sub={o.sub}>{o.title}</H1>
+        {o.proof && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 12, padding: "9px 11px", marginBottom: 11 }}>
+            <Users size={15} color={T.green} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13.5, color: "#14603C", lineHeight: 1.4 }}>{o.proof}</span>
+          </div>
+        )}
+        <Qty items={o.items.map((i) => ({ ...i, q: a.d.q && a.d.q[i.n] != null ? a.d.q[i.n] : i.q }))}
+          set={(i, q) => a.set({ q: { ...(a.d.q || {}), [o.items[i].n]: q } })} />
+        <div style={{ marginTop: 10, borderTop: `1px solid ${T.hair}`, paddingTop: 6 }}>
+          <Line l="Tiền hàng" v={fmt(sub(a))} />
+          <Line l={ship(a) === 0 ? "Phí giao · miễn từ 100.000đ" : "Phí giao"} v={ship(a) === 0 ? "0đ" : fmt(ship(a))} tone={ship(a) === 0 ? "green" : null} />
+          <Line l="Tổng" v={fmt(tot(a))} strong />
+        </div>
+        <Express
+          now={() => a.go(3)}
+          nowLabel={"Đặt luôn · " + fmt(tot(a))}
+          more={a.next}
+          moreLabel={o.kind === "cart" ? "Thêm món hoặc đổi giờ giao" : "Đổi số lượng hoặc cách nhận"} />
       </>
     ),
-    (a) => {
-      const tt = total(a.d.items || CART0, a.d.ex || {});
-      return (
-        <>
-          <H1 sub="Điểm WinX chỉ cộng khi mua hàng của Masan.">Giao tới đâu, trả bằng gì</H1>
-          <KV rows={[["Địa chỉ", "Zeit River · T1.02.06"], ["Siêu thị", "WinMart+ Thảo Điền · 1,4km"], ["Giao bởi", "Supra · " + (a.d.slot || "18:00")], ["Tổng", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"]]} />
-          <div style={{ marginTop: 12 }}>
-            <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })} items={[{ id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư " + fmt(a.ctx && a.ctx.bal != null ? a.ctx.bal : 2480000) }, { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không tích điểm WinX", warn: true }]} />
+
+    // 2 · Nhận thế nào — gộp cả gợi ý thêm món vào đây cho giỏ
+    (a) => (
+      <>
+        <H1 sub={o.collect ? "Cửa hàng cách nhà " + o.dist + ". Ghé lấy thì khỏi phí giao." : "Supra giao tận cửa Zeit River T1.02.06."}>Nhận thế nào</H1>
+        <Choice value={a.d.take || "supra"} onPick={(v) => a.set({ take: v })}
+          items={[
+            { id: "supra", Icon: ShoppingCart, t: "Supra giao tận cửa", s: "trong 2 tiếng · " + (shipFee(sub(a)) === 0 ? "miễn phí giao" : "phí 15.000đ"), right: shipFee(sub(a)) === 0 ? "0đ" : fmt(15000) },
+            ...(o.collect ? [{ id: "self", Icon: Store, t: "Anh ghé lấy", s: o.store + " · nói tên là lấy được", right: o.dist }] : []),
+          ]} />
+        {a.d.take !== "self" && (
+          <div style={{ marginTop: 13 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Giao lúc</div>
+            <Slots value={a.d.slot || "18:00"} onPick={(v) => a.set({ slot: v })}
+              list={[{ t: "17:30", note: "còn 2 tài" }, { t: "18:00", note: "trống" }, { t: "18:30", note: "trống" }, { t: "19:00", full: true }, { t: "19:30", note: "trống" }, { t: "20:00", note: "muộn" }]} />
           </div>
-          <Foot><Btn wide onClick={a.next}>{a.d.src === "cod" ? "Đặt đơn" : "Trả " + fmt(tt)}</Btn></Foot>
-        </>
-      );
-    },
+        )}
+        {o.kind === "cart" && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Mai gợi ý thêm, bỏ qua được</div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {EXTRA.map((e, k) => (
+                <Toggle key={e.n} on={!!(a.d.ex || {})[k]} onTap={(v) => a.set({ ex: { ...(a.d.ex || {}), [k]: v } })} t={e.n} s={fmt(e.p) + (e.brand ? " · " + e.brand : "")} />
+              ))}
+            </div>
+          </div>
+        )}
+        <Foot><Btn wide onClick={a.next}>Chọn cách trả</Btn></Foot>
+      </>
+    ),
+
+    // 3 · Trả bằng gì — số ở đây phải bằng số ở bước cuối
+    (a) => (
+      <>
+        <H1 sub="Chưa quét mặt là chưa mất đồng nào.">Trả bằng gì</H1>
+        <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })}
+          items={[
+            { id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư " + fmt(a.ctx && a.ctx.bal != null ? a.ctx.bal : 2480000) + " · cộng " + pointsFor(sub(a), "wm") + " điểm WinX", right: fmt(tot(a)) },
+            { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không cộng điểm, vẫn được giá hội viên", right: fmt(tot(a)), warn: true },
+          ]} />
+        <div style={{ marginTop: 13, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "11px 13px" }}>
+          <Line l="Tiền hàng" v={fmt(sub(a))} />
+          <Line l="Phí giao" v={ship(a) === 0 ? "0đ" : fmt(ship(a))} tone={ship(a) === 0 ? "green" : null} />
+          <Line l="Điểm WinX" v={a.d.src === "cod" ? "không có" : "+" + pointsFor(sub(a), "wm")} />
+          <Line l="Tổng" v={fmt(tot(a))} strong />
+        </div>
+        <Foot><Btn wide onClick={a.next}>{a.d.src === "cod" ? "Đặt đơn · trả khi nhận" : "Trả " + fmt(tot(a))}</Btn></Foot>
+      </>
+    ),
+
+    // 4 · Duyệt
     (a) => a.d.src === "cod"
       ? (
         <>
-          <H1 sub="Anh trả tiền mặt lúc nhận, Mai không đụng vào ví.">Đặt đơn, trả sau</H1>
-          <KV rows={[["Trả khi nhận", fmt(total(a.d.items || CART0, a.d.ex || {}))], ["Người giao", "Supra · " + (a.d.slot || "18:00")], ["Điểm WinX", "không có · trả tiền mặt", "amber"]]} />
+          <H1 sub="Mai không đụng vào ví. Anh trả tiền mặt lúc nhận hàng.">Đặt đơn, trả sau</H1>
+          <KV rows={[["Trả khi nhận", fmt(tot(a))], [a.d.take === "self" ? "Ghé lấy" : "Supra giao", a.d.take === "self" ? o.store : "trước " + (a.d.slot || "18:00")], ["Điểm WinX", "không có · trả tiền mặt", "amber"]]} />
           <Foot><Btn wide onClick={a.next}>Chốt đơn</Btn></Foot>
         </>
       )
-      : <FaceStep label={"Nhìn vào máy để trả " + fmt(total(a.d.items || CART0, a.d.ex || {}))} sub="WinMart+ · WinMoney" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
+      : <FaceStep label={"Nhìn vào máy để trả " + fmt(tot(a))} sub={o.store + " · WinMoney"} onDone={a.next} onCancel={() => a.go(2)} />,
+
+    // 5 · Xong
     (a) => (
       <>
-        <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang giao</H1>
-        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Tài xế Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước " + (a.d.slot || "18:00"), s: "Mai báo khi hàng tới cửa" }]} />
-        <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+        <div style={{ textAlign: "center", padding: "2px 0 6px" }}><Burst /><StrokeCheck size={34} /></div>
+        <H1 sub={a.d.take === "self"
+          ? "Nhân viên gói sẵn để ở quầy, anh nói tên là lấy. Giữ tới " + (o.hold || "cuối ngày") + "."
+          : "Supra giao trước " + (a.d.slot || "18:00") + ", Mai báo khi hàng tới cửa."}>{a.d.src === "cod" ? "Đặt xong" : "Trả xong"}</H1>
+        <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px" }}>
+          <Line l={a.d.src === "cod" ? "Trả khi nhận" : "Đã trả"} v={fmt(tot(a))} strong />
+          <Line l="Điểm WinX" v={a.d.src === "cod" ? "không có · trả tiền mặt" : "+" + pointsFor(sub(a), "wm")} tone={a.d.src === "cod" ? null : "green"} />
+          <Line l={a.d.take === "self" ? "Lấy tại" : "Giao"} v={a.d.take === "self" ? o.store : "trước " + (a.d.slot || "18:00")} />
+        </div>
+        {o.reorder && <div style={{ marginTop: 11, fontSize: 14, color: T.sub, lineHeight: 1.5 }}>{o.reorder}</div>}
+        <Foot><Btn wide onClick={() => { finish({ ...a.d, total: a.d.src === "cod" ? 0 : tot(a), slot: a.d.slot || "18:00", cod: a.d.src === "cod" }); a.close(); }}>Xong</Btn></Foot>
       </>
     ),
-    (a) => {
-      const tt = total(a.d.items || CART0, a.d.ex || {});
-      return (
-        <>
-          <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-          <H1 sub={"Supra giao trước " + (a.d.slot || "18:00") + ", Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong."}>Đặt xong rồi</H1>
-          <KV rows={[[a.d.src === "cod" ? "Trả khi nhận" : "Tổng trả", fmt(tt)], ["Điểm WinX", a.d.src === "cod" ? "không có · trả tiền mặt" : "+" + Math.round(tt / 1000), a.d.src === "cod" ? "amber" : "green"], ["Giao", "Supra · trước " + (a.d.slot || "18:00")]]} />
-          <Foot><Btn wide onClick={() => { finish({ ...a.d, total: tt }); a.close(); }}>Về kênh</Btn></Foot>
-        </>
-      );
-    },
   ];
 };
+
 
 // 5 · VÉ CONCERT (7 bước)
 const flowTicket = (finish) => [
@@ -3496,90 +3535,7 @@ const TrayGrid = ({ onTap }) => (
 );
 
 // 15 · CHỪA HÀNG Ở CỬA HÀNG (6 bước)
-const flowHold = (finish, tray) => {
-  const x = tray || TRAYS[5];
-  const cheaper = TRAYS.filter((y) => y.now < x.now).sort((a, b) => a.now - b.now)[0];
-  return [
-  (a) => (
-    <>
-      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, sáu khay giảm giá sáng nay.">Chừa {x.n.toLowerCase()}</H1>
-      <div style={{ display: "flex", alignItems: "center", gap: 13, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 16, padding: "13px 14px", marginBottom: 12 }}>
-        <Scene name="meal" small />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{x.n} MEATDeli {x.g}</div>
-          <div style={{ fontSize: 14, color: T.brandInk, marginTop: 2, ...num }}>{fmt(x.now)} · thường {fmt(x.was)} · rẻ hơn {fmt(x.was - x.now)}</div>
-        </div>
-      </div>
-      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "18:00 chiều nay", "amber"]]} />
-      {/* Không giấu khay rẻ hơn. Người đi chợ bốn mươi năm nhìn ra ngay. */}
-      {cheaper && (
-        <div style={{ marginTop: 10, fontSize: 14, color: T.sub, lineHeight: 1.5 }}>
-          Rẻ nhất sáng nay là {cheaper.n.toLowerCase()} {fmt(cheaper.now)}. Mai gợi ý khay này vì hợp nồi bò kho tối nay, còn anh muốn khay rẻ hơn thì quay ra chạm khay đó.
-        </div>
-      )}
-      <Express
-        now={() => { a.set({ qty: 1, take: "supra" }); a.go(3); }}
-        nowLabel={"Chừa 1 khay · Supra giao tận cửa"}
-        more={a.next}
-        moreLabel="Em ghé lấy, hoặc đổi số lượng" />
-    </>
-  ),
-  (a) => (
-    <>
-      <H1 sub="Chị My giữ tới 18:00 chiều nay.">Chừa mấy khay</H1>
-      <Qty items={[{ n: x.n + " " + x.g, p: x.now, q: a.d.qty || 1 }]} set={(i, q) => a.set({ qty: q })} />
-      <Foot><Btn wide onClick={a.next}>Chọn cách nhận</Btn></Foot>
-    </>
-  ),
-  (a) => (
-    <>
-      <H1 sub="Cửa hàng cách nhà 1,2km, đi bộ khoảng 15 phút.">Nhận thế nào</H1>
-      <Choice value={a.d.take || "supra"} onPick={(v) => a.set({ take: v })}
-        items={[
-          { id: "supra", Icon: ShoppingCart, t: "Supra giao tận cửa", s: "trong 2 tiếng · đơn trên 100.000đ miễn phí", right: "0đ" },
-          { id: "self", Icon: Store, t: "Anh ghé lấy", s: "quầy tươi · nói tên là chị My đưa", right: "1,2km" },
-        ]} />
-      <Foot><Btn wide onClick={a.next}>Nhắn chị My</Btn></Foot>
-    </>
-  ),
-  (a) => (
-    <>
-      <H1 sub="Mai nhắn riêng chị My, không đăng vào nhóm 498 người.">Tin Mai gửi</H1>
-      <div style={{ background: T.dark, color: "#FBF7F1", borderRadius: 16, borderBottomRightRadius: 6, padding: "12px 14px", fontSize: 14.5, lineHeight: 1.5 }}>
-        Chị My ơi, chừa em {a.d.qty || 1} khay {x.n.toLowerCase()} {x.g} nha chị. {a.d.take === "self" ? "Chiều em ghé lấy." : "Cho em gửi Supra giao giúp ạ."} Em cảm ơn chị.
-      </div>
-      <AutoNext ms={1600} onDone={a.next}>
-        <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 9, fontSize: 14, color: T.sub }}>
-          <Sparkles size={15} color={T.brand} className="spin-soft" /> Đang gửi cho chị My…
-        </div>
-      </AutoNext>
-    </>
-  ),
-  (a) => (
-    <>
-      <H1 sub="Chị My trả lời sau 40 giây, nhanh hơn Mai tưởng.">Chị My đã chừa</H1>
-      <Evidence src="chị My · Win+ 13 Hai Bà Trưng" time="08:24" Icon={Store} color="#E8342C"
-        text={"Dạ chị chừa rồi nha em, khay " + Math.round(x.now / 1000) + "k. Em nói tên là lấy được, hoặc để chị đưa shipper Supra."} />
-      <div style={{ marginTop: 12 }}>
-        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay " + x.n.toLowerCase()], ["Giá", fmt(x.now * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "18:00 chiều nay", "amber"]]} />
-      </div>
-      <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
-    </>
-  ),
-  (a) => (
-    <>
-      <div style={{ textAlign: "center", padding: "2px 0 6px" }}><StrokeCheck size={34} /></div>
-      <H1 sub="Mai vẫn đọc nhóm giúp anh. Có khay hợp bếp nhà mình thì Mai báo, còn lại Mai để yên.">Đã chừa hàng</H1>
-      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
-        <div style={{ fontSize: 14, color: "#14603C", lineHeight: 1.55, ...num }}>
-          Rẻ hơn giá thường {fmt((x.was - x.now) * (a.d.qty || 1))}. Trả bằng WinMoney thì cộng thêm {x.now * (a.d.qty || 1) / 1000} điểm WinX, còn trả tiền mặt vẫn được giá này.
-        </div>
-      </div>
-      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về nhóm</Btn></Foot>
-    </>
-  ),
-];
-};
+
 
 // Bốn hình thiết bị: cùng nét 1.9, cùng cỡ quang học, trắng trên ô tối.
 const DevSpeaker = ({ s = 22 }) => (
@@ -3668,11 +3624,12 @@ export default function MaiV18() {
     }
   };
   const allDone = done.pay && done.form && done.pick;
-  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cartTotal != null ? done.cartTotal : done.cart ? 186000 : 0) - (done.form ? 120000 : 0) - (done.tea ? 165000 : 0);
+  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cartTotal || 0) - (done.holdTotal || 0) - (done.form ? 120000 : 0) - (done.tea ? 165000 : 0);
   const [teaArm, setTeaArm] = useState(0); // 0 nghỉ · 1 chờ chạm lần hai
   const spent = [
     done.pay && { t: "Học bơi tháng 8 · Bin", s: "15:43 · biên lai gửi riêng cô Lan", v: 850000, Icon: Banknote },
-    done.cart && { t: "Giỏ WinMart+ hôm nay", s: "Supra giao trước 18:00", v: 186000, Icon: ShoppingCart },
+    done.cartTotal > 0 && { t: "Giỏ WinMart+", s: "Supra giao trước " + (done.cartSlot || "18:00"), v: done.cartTotal, Icon: ShoppingCart },
+    done.holdTotal > 0 && { t: "Khay giảm giá · Win+ Hai Bà Trưng", s: "cửa hàng gói sẵn, nói tên là lấy", v: done.holdTotal, Icon: Store },
     done.tea && { t: "Hộp trà sen Phúc Long", s: "giỗ Ông 09/08 · giao 08/08", v: 165000, Icon: Store },
     done.form && { t: "Phí dã ngoại Cần Giờ · Na", s: "đã gửi cô Hồng cùng đơn", v: 120000, Icon: FileText },
   ].filter(Boolean);
@@ -3739,7 +3696,7 @@ export default function MaiV18() {
     const hit = TRAYS.find((x) => x.k.some((w) => f.includes(w))) || null;
     setTimeout(() => {
       setWpMsgs((x) => [...x, hit
-        ? { id: Date.now() + 1, from: "mai", text: "Anh nhắn " + hit.n.toLowerCase() + " " + fmt(hit.now) + " phải không. Mai nhắn riêng chị My chừa giúp, khỏi chờ trong nhóm 498 người.", extra: <div style={{ marginTop: 9 }}><Btn onClick={() => { setHoldTray(hit); openFlow("hold"); }}>Nhờ chị My chừa</Btn></div> }
+        ? { id: Date.now() + 1, from: "mai", text: "Anh nhắn " + hit.n.toLowerCase() + " " + fmt(hit.now) + " phải không. Mai nhắn riêng chị My chừa giúp, khỏi chờ trong nhóm 498 người.", extra: <div style={{ marginTop: 9 }}><Btn onClick={() => { setHoldTray(hit); openFlow("hold"); }}>Mua khay này</Btn></div> }
         : { id: Date.now() + 1, from: "mai", text: "Sáng nay còn 6 khay giảm giá, rẻ nhất là đùi heo và nạc vai 41.000đ. Anh nói tên món là Mai nhắn riêng chị My chừa giúp." }]);
       bump();
     }, 900);
@@ -3762,7 +3719,7 @@ export default function MaiV18() {
     inspect: ["Đặt xong 07:30 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
     winx: ["Quét xong, nhà mình lên hạng Vàng với 1.026 điểm. Phiếu 20.000đ Mai để sẵn trong thẻ.", "thẻ WinX", ["Điểm WinX được bao nhiêu?", "Giỏ hàng bao nhiêu tiền?", "Mua quà gì cho Bà?"]],
-    hold: ["Chị My chừa 1 khay bò nạm 99.000đ, rẻ hơn giỏ cũ 40.000đ. Mai vẫn canh nhóm cửa hàng giúp anh.", "Win+ Hai Bà Trưng", ["Tối nay nấu gì nhanh?", "Giỏ hàng bao nhiêu tiền?", "Điểm WinX được bao nhiêu?"]],
+    hold: ["Xong rồi anh, khay đã trả tiền và cửa hàng gói sẵn. Mai vẫn canh nhóm giúp anh.", "Win+ Hai Bà Trưng", ["Tối nay nấu gì nhanh?", "Giỏ hàng bao nhiêu tiền?", "Điểm WinX được bao nhiêu?"]],
   };
   const afterFlow = (id) => {
     if (flowFrom.current !== "mai" || !AFTER[id]) return;
@@ -3780,7 +3737,13 @@ export default function MaiV18() {
     pay: () => flowPay(end("pay", () => complete("pay"))),
     pickup: () => flowPickup(end("pickup", () => complete("pick"))),
     form: () => flowForm(end("form", () => complete("form"))),
-    cart: () => flowCart(end("cart", (d) => setDone((x) => ({ ...x, cart: true, cartTotal: d && d.src === "cod" ? 0 : (d && d.total) || 186000, cartSlot: (d && d.slot) || "18:00", cartCod: !!(d && d.src === "cod") })))),
+    cart: () => flowBuy(end("cart", (d) => setDone((x) => ({ ...x, cart: true, cartTotal: (d && d.total) || 0, cartSlot: (d && d.slot) || "18:00", cartCod: !!(d && d.cod) }))), {
+      kind: "cart", title: "Giỏ Mai soạn",
+      sub: "Mai soạn theo bài bò kho trong kênh, chia cho nhà 4 người.",
+      items: CART0, store: "WinMart+ Thảo Điền", dist: "1,4km", collect: false,
+      proof: "462 người trong kênh Cơm tối đã nấu bài này",
+      reorder: "Mai lưu giỏ này, lần sau anh nói đặt lại là xong.",
+    }),
     ticket: () => flowTicket(end("ticket", () => setDone((d) => ({ ...d, ticket: true })))),
     resale: () => flowResale(end("resale", () => setDone((d) => ({ ...d, resale: true })))),
     inspect: () => flowInspect(end("inspect", () => setDone((d) => ({ ...d, inspect: true })))),
@@ -3791,9 +3754,21 @@ export default function MaiV18() {
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
     wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
     winx: () => flowWinx(end("winx", () => setDone((d) => ({ ...d, winx: true }))), () => setDone((d) => ({ ...d, shared: true }))),
-    hold: () => flowHold(end("hold", () => setDone((d) => ({ ...d, hold: true }))), holdTray),
+    hold: () => flowBuy(end("hold", (d) => setDone((x) => ({ ...x, hold: true, holdTotal: (d && d.total) || 0 }))), (function () {
+      const x = holdTray || TRAYS[5];
+      const cheaper = TRAYS.filter((y) => y.now < x.now).sort((a, b) => a.now - b.now)[0];
+      return {
+        kind: "tray", title: x.n + " giảm giá",
+        sub: "Chị My bên quầy tươi đăng lúc 08:21. Thường " + fmt(x.was) + ", sáng nay còn " + fmt(x.now) + "."
+          + (cheaper ? " Rẻ nhất sáng nay là " + cheaper.n.toLowerCase() + " " + fmt(cheaper.now) + "." : ""),
+        items: [{ n: x.n + " " + x.g, p: x.now, q: 1, brand: "MEATDeli" }],
+        store: "Win+ 13 Hai Bà Trưng", dist: "1,2km", collect: true, hold: "18:00 chiều nay",
+        proof: "Cô Bảy vừa đặt 2 khay ba rọi sáng nay",
+        reorder: "Mai canh nhóm cửa hàng giúp anh, có khay hợp bếp nhà mình thì Mai báo.",
+      };
+    })()),
   };
-  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Chừa hàng ở cửa hàng" };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Mua ở Win+ Hai Bà Trưng" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
   const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
@@ -4167,7 +4142,7 @@ export default function MaiV18() {
 
                   <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Sáng nay cửa hàng em còn ít khay thịt giảm giá, khách ăn gì nhắn em chừa nha" }} />
                   <div style={{ margin: "2px 0 10px" }}><TrayGrid onTap={(x) => { setHoldTray(x); openFlow("hold"); }} /></div>
-                  <div style={{ fontSize: 14, color: T.sub, margin: "0 0 12px 2px", ...num }}>08:21 · chạm khay nào cũng được, Mai nhắn chị My chừa giúp</div>
+                  <div style={{ fontSize: 14, color: T.sub, margin: "0 0 12px 2px", ...num }}>08:21 · chạm khay nào cũng được, mua thẳng trong đây</div>
 
                   <Msg m={{ type: "ext", color: "#E8342C", Icon: BadgeCheck, src: "Hội viên WinX · tin cửa hàng", time: "07:00",
                     text: "Ngày 08/08 WinMart+ ưu đãi lớn cho hội viên WinX. Quét thẻ ở quầy là được giá hội viên, không cần phiếu giấy." }} />
@@ -4196,7 +4171,7 @@ export default function MaiV18() {
                   <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Dạ còn cô ơi, cô ghé sớm 19:00 giữ chỗ nha" }} />
 
                   <MaiBanner text="498 người, 47 tin sáng nay. Mai giữ lại 1 tin: sườn non còn 2 khay, 62.000đ thay vì 96.000đ. Kho được, mà rẻ hơn miếng bò trong giỏ."
-                    cta="Xem" done={!!done.hold} doneText="Chị My đã chừa hàng · nhắn riêng, không đăng nhóm" onTap={() => { setHoldTray(null); openFlow("hold"); }} />
+                    cta="Xem" done={!!done.hold} doneText="Đã mua · cửa hàng gói sẵn, nói tên là lấy" onTap={() => { setHoldTray(null); openFlow("hold"); }} />
                   {wpMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   <div ref={endRef} />
                 </div>
