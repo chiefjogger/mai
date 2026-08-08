@@ -39,8 +39,6 @@
 
 <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 <script>
-  // Babel Standalone transpiles app.jsx in the browser, so no build step is needed.
-  Babel.transformScriptTags();
   window.addEventListener("error", function (e) {
     var b = document.getElementById("boot");
     if (b && !b.classList.contains("gone")) b.textContent = "Không tải được: " + (e.message || "lỗi không rõ");
@@ -52,6 +50,21 @@
     }
   }).observe(document.getElementById("root"), { childList: true });
 </script>
-<script type="text/babel" data-type="module" data-presets="react" src="./app.jsx"></script>
+<script>
+  // Inject app.jsx rather than hard-coding the tag, so a local run can bust the
+  // cache. Without this the browser happily serves a stale app.jsx while the
+  // file on disk has changed — which makes every measurement taken against it
+  // a lie. Production keeps the clean URL so the 220KB stays cacheable.
+  (function () {
+    var dev = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    var s = document.createElement("script");
+    s.type = "text/babel";
+    s.setAttribute("data-type", "module");
+    s.setAttribute("data-presets", "react");
+    s.src = "./app.jsx" + (dev ? "?t=" + Date.now() : "");
+    s.onload = function () { Babel.transformScriptTags(); };
+    document.body.appendChild(s);
+  })();
+</script>
 </body>
 </html>

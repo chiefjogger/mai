@@ -2192,7 +2192,7 @@ const flowInspect = (finish) => [
 ];
 
 // 8 · CUỘC GỌI GIẢ (6 bước)
-const flowCall = (finish) => [
+const flowCall = (finish, onShare) => [
   (a) => (
     <AutoNext ms={1900} onDone={a.next}>
       <div style={{ textAlign: "center", padding: "10px 0 4px" }}>
@@ -2261,9 +2261,14 @@ const flowCall = (finish) => [
   ),
   (a) => (
     <>
-      <div style={{ textAlign: "center", padding: "4px 0" }}><div style={{ fontSize: 38 }}>🛡️</div></div>
+      <div style={{ textAlign: "center", padding: "2px 0 6px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 58, height: 58, borderRadius: 20, background: T.greenBg, border: "1px solid #CFE7DA" }}>
+          <ShieldCheck size={30} color={T.green} strokeWidth={2} />
+        </span>
+      </div>
       <H1 sub="Một người trong nhà bị thử là cả nhà được bảo vệ.">Đã chặn cho cả nhà</H1>
       <KV rows={[["Chặn cho", "anh · Vy · Na · Bin"], ["Gửi cảnh báo", "kênh Nhà mình + 214k thành viên kênh"], ["Báo cơ quan", "đã gửi kèm bản ghi", "green"], ["Nhắc Na", "Mai dạy Na câu mật khẩu gia đình", "green"]]} />
+      <ShareNudge line="Số này đang gọi nhiều nhà. Gửi cảnh báo cho người quen thì máy họ cũng chặn sẵn, khỏi phải gặp." cta="Cảnh báo người quen" onDone={onShare} />
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
     </>
   ),
@@ -2933,7 +2938,7 @@ const Cover = ({ onClose }) => (
       </div>
 
       <div style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 600, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink, marginTop: 16 }}>Trợ lý riêng, ngay trong tin nhắn</div>
-      <div style={{ fontSize: 17, lineHeight: 1.55, color: T.sub, marginTop: 9, maxWidth: 348 }}>Việc nhà, việc cơ quan, hội nhóm bạn bè. Mai nhớ hết, nhắc đúng lúc, rồi làm hộ mình.</div>
+      <div style={{ fontSize: 17, lineHeight: 1.55, color: T.sub, marginTop: 9, maxWidth: 348 }}>Việc nhà, việc cơ quan, hội nhóm bạn bè. Mai nhớ, Mai nhắc, Mai làm hộ mình.</div>
 
       {/* Bốn ô này để người xem thấy Mai không chỉ lo việc nhà. */}
       <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
@@ -2950,7 +2955,7 @@ const Cover = ({ onClose }) => (
       <div style={{ height: 1, background: T.hair, margin: "14px 0 12px" }} />
 
       <div style={{ fontSize: 14, fontWeight: 750, letterSpacing: 0.7, color: T.faint }}>BẢN XEM THỬ NÀY</div>
-      <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: T.ink, marginTop: 5, marginBottom: 13 }}>Một buổi chiều của nhà anh Hải</div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 21, fontWeight: 600, color: T.ink, marginTop: 5, marginBottom: 12 }}>Một buổi chiều của nhà anh Hải</div>
 
       {/* Năm ô mặt người: trả lời "Bin là đứa nào?" trước khi bác ấy kịp hỏi. */}
       <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
@@ -2966,7 +2971,7 @@ const Cover = ({ onClose }) => (
             <span style={{ width: 48, height: 48, borderRadius: 15, background: `linear-gradient(145deg, #E8825A, ${T.brand})`, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(194,85,47,.28)" }}><Logo size={26} /></span>
           </div>
           <div style={{ fontSize: 15, fontWeight: 650, color: T.ink, whiteSpace: "nowrap" }}>Mai</div>
-          <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>lo việc cho cả nhà</div>
+          <div style={{ fontSize: 15, color: T.sub, marginTop: 2, lineHeight: 1.3, minHeight: 39 }}>lo việc nhà</div>
         </div>
       </div>
 
@@ -2989,7 +2994,240 @@ const Cover = ({ onClose }) => (
   </div>
 );
 
+// ————————————————————————————————————————————————————————————
+// WINX · thẻ thành viên, quét tích điểm, lên hạng
+// Cái thẻ này là thứ người ta chụp màn hình khoe bạn, nên nó được
+// vẽ như thẻ thật: nền chuyển màu theo hạng, hoa văn bảo an, mã vạch.
+// ————————————————————————————————————————————————————————————
+const TIERS = [
+  { id: "bac", n: "Bạc", min: 0, a: "#CBD3DA", b: "#78868F", ink: "#F8FAFB", dim: "rgba(255,255,255,.62)",
+    perks: ["Tích 1 điểm mỗi 1.000đ", "Voucher 10.000đ mỗi tháng"] },
+  { id: "vang", n: "Vàng", min: 1000, a: "#F3C963", b: "#B5822A", ink: "#3B2B08", dim: "rgba(59,43,8,.58)",
+    perks: ["Tích gấp đôi cuối tuần", "Voucher 20.000đ mỗi tháng", "Giao nhanh Supra miễn phí"] },
+  { id: "kc", n: "Kim cương", min: 5000, a: "#B9CDF7", b: "#7A66D8", ink: "#F5F8FF", dim: "rgba(245,248,255,.68)",
+    perks: ["Tích gấp ba cuối tuần", "Voucher 50.000đ mỗi tháng", "Quầy ưu tiên ở WinMart+", "Đổi quà giới hạn"] },
+];
+const tierOf = (p) => TIERS.reduce((acc, t) => (p >= t.min ? t : acc), TIERS[0]);
+const nextTier = (p) => TIERS.find((t) => t.min > p) || null;
+
+// Mã vạch vẽ từ chuỗi, cùng chuỗi thì cùng mã — không random giữa các lần render.
+const Barcode = ({ code = "8938505974194", w = 240, h = 54, color = "#241F1A" }) => {
+  const bars = useMemo(() => {
+    let s = hash32(code) || 1, x = 0;
+    const out = [];
+    while (x < 100) {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      const bw = 0.45 + ((s >>> 8) % 5) * 0.34;
+      const gap = 0.4 + ((s >>> 16) % 4) * 0.26;
+      if (x + bw > 100) break;
+      out.push([r2(x), r2(bw)]);
+      x += bw + gap;
+    }
+    return out;
+  }, [code]);
+  return (
+    <svg viewBox="0 0 100 24" width={w} height={h} preserveAspectRatio="none" aria-hidden="true" style={{ display: "block" }}>
+      {bars.map(([x, bw], i) => <rect key={i} x={x} y="0" width={bw} height="24" fill={color} />)}
+    </svg>
+  );
+};
+
+// Hoa văn kiểu giấy tờ có giá — thứ làm cái thẻ trông "thật".
+const Guilloche = ({ uid, tint }) => (
+  <g opacity="0.5">
+    {[0, 1, 2, 3, 4, 5].map((i) => (
+      <ellipse key={i} cx={250 - i * 16} cy={78} rx={128 - i * 9} ry={62 - i * 5}
+        fill="none" stroke={tint} strokeWidth="0.7" opacity={0.5 - i * 0.06} />
+    ))}
+    {[0, 1, 2, 3].map((i) => (
+      <circle key={"c" + i} cx={44} cy={128} r={30 + i * 15} fill="none" stroke={tint} strokeWidth="0.6" opacity={0.34 - i * 0.07} />
+    ))}
+  </g>
+);
+
+const TierCard = ({ points, name = "PHẠM ĐỨC HẢI", code = "8938505974194", flash }) => {
+  const tier = tierOf(points);
+  const uid = useUid("tc");
+  return (
+    <div className={flash ? "rise tier-flash" : "rise"} style={{ position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: "0 10px 30px rgba(60,45,30,.22), 0 2px 6px rgba(60,45,30,.12)" }}>
+      <svg viewBox="0 0 340 190" style={{ display: "block", width: "100%", height: "auto" }} aria-hidden="true">
+        <defs>
+          <linearGradient id={uid + "g"} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={tier.a} /><stop offset="1" stopColor={tier.b} />
+          </linearGradient>
+          <linearGradient id={uid + "s"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0.30" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <rect width="340" height="190" fill={`url(#${uid}g)`} />
+        <Guilloche uid={uid} tint={tier.ink} />
+        <rect className="tier-sheen" x="-150" y="0" width="130" height="190" fill={`url(#${uid}s)`} transform="skewX(-18)" />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, padding: "15px 17px", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: tier.dim }}>WINX</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 25, fontWeight: 600, color: tier.ink, letterSpacing: -0.4, marginTop: 3, textShadow: "0 1px 2px rgba(0,0,0,.14)" }}>Hạng {tier.n}</div>
+          </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,.24)", border: `1px solid ${tier.dim}`, borderRadius: 999, padding: "5px 11px", backdropFilter: "blur(3px)" }}>
+            <Sparkles size={13} color={tier.ink} strokeWidth={2.4} />
+            <span style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 600, color: tier.ink, ...num }}>{points.toLocaleString("vi-VN")}</span>
+          </span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1.1, color: tier.ink, marginBottom: 8, textShadow: "0 1px 2px rgba(0,0,0,.14)" }}>{name}</div>
+        <div style={{ background: "#FFFDF9", borderRadius: 9, padding: "7px 9px 5px" }}>
+          <Barcode code={code} w="100%" h={38} />
+          <div style={{ fontSize: 10.5, letterSpacing: 2.4, color: T.sub, textAlign: "center", marginTop: 3, ...num }}>{code}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ————— rủ bạn, chỉ ở đúng lúc vừa nhận được giá trị —————
+const ShareNudge = ({ line, cta, onDone }) => {
+  const [s, setS] = useState(0);
+  if (s === 2)
+    return (
+      <div className="rise" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "11px 13px", background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 14 }}>
+        <Check size={15} color={T.green} strokeWidth={3} />
+        <span style={{ fontSize: 14, color: "#14603C", lineHeight: 1.45 }}>Đã gửi. Bạn anh mở là dùng được ngay, không phải cài gì.</span>
+      </div>
+    );
+  return (
+    <div style={{ marginTop: 14, padding: "12px 13px", background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <Users size={16} color={T.sub} strokeWidth={2.2} />
+        <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: T.sub, lineHeight: 1.45 }}>{line}</span>
+      </div>
+      {s === 0 ? (
+        <button onClick={() => setS(1)} className="btn press" style={{ marginTop: 10, width: "100%", background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, fontSize: 14.5, padding: "11px 14px" }}>{cta}</button>
+      ) : (
+        <div className="rise" style={{ marginTop: 10, display: "grid", gap: 7 }}>
+          {[["Nhà mình", "4 người"], ["Ông bà & cô chú", "8 người"], ["Chọn bạn khác", "từ danh bạ"]].map(([n, s2]) => (
+            <button key={n} onClick={() => { setS(2); ding(true); onDone && onDone(); }} className="btn press" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, padding: "10px 12px", textAlign: "left" }}>
+              <Avatar name={n} size={30} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14.5, fontWeight: 650 }}>{n}</span>
+                <span style={{ display: "block", fontSize: 13, color: T.faint, fontWeight: 400 }}>{s2}</span>
+              </span>
+              <ChevronRight size={15} color={T.faint} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// 14 · WINX (7 bước) · quét ở quầy → lên hạng → đổi voucher
+const flowWinx = (finish, onShare) => [
+  (a) => (
+    <>
+      <H1 sub="Đưa mã này cho nhân viên quầy là xong, không cần mở app nào khác.">Thẻ WinX của anh</H1>
+      <TierCard points={840} />
+      <div style={{ marginTop: 12 }}>
+        <KV rows={[["Hạng hiện tại", "Bạc"], ["Điểm", "840"], ["Còn để lên Vàng", "160 điểm", "amber"], ["Dùng ở", "WinMart+ · Phúc Long · MEATDeli"]]} />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Quét ở quầy WinMart+</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Quầy WinMart+ Thảo Điền · giỏ bò kho 186.000đ trả bằng WinMoney.">Đang quét mã</H1>
+      <div style={{ position: "relative", background: "#FFFDF9", border: `1px solid ${T.hair}`, borderRadius: 16, padding: "20px 16px", overflow: "hidden" }}>
+        <Barcode code="8938505974194" w="100%" h={62} />
+        <div className="scan" />
+      </div>
+      <AutoNext ms={1500} onDone={a.next}>
+        <div style={{ marginTop: 13, display: "flex", alignItems: "center", gap: 9, fontSize: 14, color: T.sub }}>
+          <Sparkles size={15} color={T.brand} className="spin-soft" /> Máy quầy đang đọc mã của anh…
+        </div>
+      </AutoNext>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "2px 0 6px" }}><Burst /><StrokeCheck size={34} /></div>
+      <H1 sub="1.000đ được 1 điểm. Trả bằng WinMoney mới cộng, trả tiền mặt thì không.">Cộng 186 điểm</H1>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "14px 15px" }}>
+        <Donut value={1026} total={5000} size={58} color={T.brand} label="1.026" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 650, color: T.ink }}>840 → 1.026 điểm</div>
+          <div style={{ fontSize: 13.5, color: T.green, fontWeight: 650, marginTop: 3 }}>Vừa đủ lên hạng Vàng</div>
+        </div>
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xem hạng mới</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Hạng giữ trong 12 tháng. Mai nhắc trước khi sắp tụt hạng.">Lên hạng Vàng</H1>
+      <TierCard points={1026} flash />
+      <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+        {tierOf(1026).perks.map((p) => (
+          <div key={p} style={{ display: "flex", alignItems: "center", gap: 10, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 13, padding: "11px 12px" }}>
+            <IconSq Icon={Check} tint={T.greenBg} color={T.green} size={26} />
+            <span style={{ fontSize: 14, color: T.ink }}>{p}</span>
+          </div>
+        ))}
+      </div>
+      <Foot><Btn wide onClick={a.next}>Ba hạng có gì khác</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Càng mua ở WinMart+, Phúc Long, MEATDeli thì càng nhanh lên hạng.">Ba hạng</H1>
+      <div style={{ display: "grid", gap: 9 }}>
+        {TIERS.map((tr) => {
+          const on = tr.id === "vang";
+          return (
+            <div key={tr.id} style={{ display: "flex", alignItems: "center", gap: 12, background: on ? T.brandSoft : T.surf, border: `1px solid ${on ? "#EBCBB6" : T.hair}`, borderRadius: 14, padding: "12px 13px" }}>
+              <span style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(140deg, ${tr.a}, ${tr.b})`, flexShrink: 0, boxShadow: "inset 0 1px 0 rgba(255,255,255,.45)" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{tr.n}{on && <span style={{ fontSize: 13, fontWeight: 650, color: T.brandInk }}> · hạng của anh</span>}</div>
+                <div style={{ fontSize: 13.5, color: T.sub, marginTop: 2, ...num }}>{tr.min === 0 ? "từ 0 điểm" : "từ " + tr.min.toLocaleString("vi-VN") + " điểm"} · {tr.perks.length} quyền lợi</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 12, fontSize: 13.5, color: T.sub, lineHeight: 1.55, ...num }}>Anh còn 3.974 điểm nữa là lên Kim cương. Cứ đi chợ như thường thì khoảng 8 tháng.</div>
+      <Foot><Btn wide onClick={a.next}>Ví voucher</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Hạng Vàng mở thêm hai phiếu. Chạm để chọn phiếu anh muốn dùng.">Ví voucher</H1>
+      <Choice value={a.d.v || "v20"} onPick={(v) => a.set({ v })}
+        items={[
+          { id: "v20", Icon: Ticket, t: "Phiếu mua hàng 20.000đ", s: "đơn từ 200.000đ · WinMart+ · mới mở", right: "Vàng" },
+          { id: "v50", Icon: Store, t: "Giảm 50% ly thứ hai", s: "Phúc Long · tới cuối tháng", right: "Vàng" },
+          { id: "v10", Icon: Ticket, t: "Phiếu mua hàng 10.000đ", s: "đơn từ 100.000đ · WinMart+", right: "Bạc" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Dùng phiếu này</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "2px 0 6px" }}><StrokeCheck size={34} /></div>
+      <H1 sub="Phiếu nằm sẵn trong thẻ. Lần tới quét mã ở quầy là tự trừ, anh không phải nhớ.">Đã nhận phiếu</H1>
+      <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "13px 14px" }}>
+        <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.5 }}>ĐANG GIỮ</div>
+        <div style={{ fontSize: 15, fontWeight: 650, color: T.ink, marginTop: 4 }}>{a.d.v === "v50" ? "Giảm 50% ly thứ hai · Phúc Long" : a.d.v === "v10" ? "Phiếu mua hàng 10.000đ" : "Phiếu mua hàng 20.000đ"}</div>
+        <div style={{ fontSize: 13.5, color: T.sub, marginTop: 3, ...num }}>Hạng Vàng · 1.026 điểm · giữ tới 08/2027</div>
+      </div>
+      <ShareNudge line="Nhà anh Hải vừa lên hạng Vàng. Rủ người nhà tích chung một thẻ thì lên hạng nhanh gấp đôi." cta="Rủ người nhà tích chung" onDone={onShare} />
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
+    </>
+  ),
+];
+
 const SURFACES = [
+  { id: "winx", n: "WinX", g: "X", c: "#E8342C", flow: "winx" },
   { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
   { id: "wa", n: "WhatsApp", g: "W", c: "#25D366", flow: "kb", app: "WhatsApp" },
   { id: "gmail", n: "Gmail", g: "M", c: "#C5221F", flow: "share" },
@@ -3130,6 +3368,7 @@ export default function MaiV18() {
     resale: ["Vé đã sang tên anh, ghế B12-13. Tiền chỉ rời ví khi vé về tới tên anh.", "giữ tiền tới khi nhận vé", ["Vé concert đợt 3 khi nào mở?", "Tối nay nhà mình xem gì?", "Hôm nay còn việc gì gấp?"]],
     inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
+    winx: ["Quét xong, nhà mình lên hạng Vàng với 1.026 điểm. Phiếu 20.000đ Mai để sẵn trong thẻ.", "thẻ WinX", ["Điểm WinX được bao nhiêu?", "Giỏ hàng bao nhiêu tiền?", "Mua quà gì cho Bà?"]],
   };
   const afterFlow = (id) => {
     if (flowFrom.current !== "mai" || !AFTER[id]) return;
@@ -3151,14 +3390,15 @@ export default function MaiV18() {
     ticket: () => flowTicket(end("ticket", () => setDone((d) => ({ ...d, ticket: true })))),
     resale: () => flowResale(end("resale", () => setDone((d) => ({ ...d, resale: true })))),
     inspect: () => flowInspect(end("inspect", () => setDone((d) => ({ ...d, inspect: true })))),
-    call: () => flowCall(end("call", () => setDone((d) => ({ ...d, call: true })))),
+    call: () => flowCall(end("call", () => setDone((d) => ({ ...d, call: true }))), () => setDone((d) => ({ ...d, shared: true }))),
     kb: () => flowKeyboard(() => setDone((d) => ({ ...d, kb: true })), surfApp),
     share: () => flowShare(() => setDone((d) => ({ ...d, share: true }))),
     speaker: () => flowSpeaker(() => setDone((d) => ({ ...d, speaker: true }))),
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
     wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
+    winx: () => flowWinx(end("winx", () => setDone((d) => ({ ...d, winx: true }))), () => setDone((d) => ({ ...d, shared: true }))),
   };
-  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney" };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
   const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
@@ -3286,6 +3526,10 @@ export default function MaiV18() {
         @keyframes wm{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
         @keyframes shim{from{background-position:140% 0}to{background-position:-140% 0}}
         @keyframes blob{0%,100%{border-radius:46% 54% 52% 48%;transform:scale(1)}33%{border-radius:58% 42% 44% 56%;transform:scale(1.1)}66%{border-radius:44% 56% 60% 40%;transform:scale(1.04)}}
+        .tier-sheen{animation:sheen 3.4s cubic-bezier(.4,0,.2,1) .6s infinite}
+        @keyframes sheen{0%{transform:translateX(0) skewX(-18deg)}42%,100%{transform:translateX(560px) skewX(-18deg)}}
+        .tier-flash{animation:tierup .7s cubic-bezier(.22,1.2,.36,1) both}
+        @keyframes tierup{0%{transform:scale(.94) translateY(8px);opacity:0}60%{transform:scale(1.015)}100%{transform:none;opacity:1}}
         @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
         @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
                 @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important}}
