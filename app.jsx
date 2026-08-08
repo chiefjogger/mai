@@ -3254,6 +3254,115 @@ const flowWinx = (finish, onShare) => [
   ),
 ];
 
+// ————————————————————————————————————————————————————————————
+// WIN+ HAI BÀ TRƯNG · nhóm Zalo của cửa hàng
+// Nhóm thật ngoài đời: nhân viên chụp khay thịt giảm giá, khách nhắn
+// "chừa em một khay". Ghim của nhóm là "đừng rời nhóm, hãy tắt thông
+// báo" — tức là nhóm hữu ích nhưng ồn. Đó đúng là việc của Mai.
+// ————————————————————————————————————————————————————————————
+const TRAYS = [
+  { n: "Ba rọi heo", g: "398g", was: 75600, now: 53000 },
+  { n: "Đùi heo", g: "401g", was: 58500, now: 41000 },
+  { n: "Cốt lết", g: "409g", was: 59700, now: 44000 },
+  { n: "Sườn non", g: "327g", was: 62100, now: 44000 },
+  { n: "Nạc vai", g: "407g", was: 59300, now: 41000 },
+  { n: "Bò nạm", g: "500g", was: 139000, now: 99000, hot: true },
+];
+const TrayGrid = ({ onTap }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+    {TRAYS.map((x) => (
+      <div key={x.n} onClick={x.hot ? onTap : undefined} className={x.hot ? "press" : undefined}
+        style={{ background: T.surf, border: `1px solid ${x.hot ? T.brand : T.hair}`, borderRadius: 11, padding: "8px 8px 7px", cursor: x.hot ? "pointer" : "default", boxShadow: x.hot ? "0 2px 8px rgba(194,85,47,.18)" : "none" }}>
+        <div style={{ height: 26, borderRadius: 6, background: "linear-gradient(140deg,#E4B7AE,#B4635A)", marginBottom: 6, position: "relative", overflow: "hidden" }}>
+          <span style={{ position: "absolute", left: 4, top: 3, fontSize: 7.5, fontWeight: 800, color: "#FFF", letterSpacing: 0.2 }}>MEATDeli</span>
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 650, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.n}</div>
+        <div style={{ fontSize: 11, color: T.faint, ...num }}>{x.g}</div>
+        <div style={{ marginTop: 3, ...num }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: x.hot ? T.brandInk : T.ink }}>{Math.round(x.now / 1000)}k</span>
+          <span style={{ fontSize: 10.5, color: T.faint, textDecoration: "line-through", marginLeft: 4 }}>{Math.round(x.was / 1000)}k</span>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// 15 · CHỪA HÀNG Ở CỬA HÀNG (6 bước)
+const flowHold = (finish) => [
+  (a) => (
+    <>
+      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, còn 6 khay. Mai chỉ giữ lại khay hợp bếp nhà mình.">Khay hợp nồi bò kho</H1>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 16, padding: "13px 14px", marginBottom: 12 }}>
+        <Scene name="meal" small />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>Bò nạm MEATDeli 500g</div>
+          <div style={{ fontSize: 13.5, color: T.brandInk, marginTop: 2, ...num }}>99.000đ · thường 139.000đ · còn 2 khay</div>
+        </div>
+      </div>
+      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "12:00 trưa nay", "amber"], ["Rẻ hơn giỏ Mai soạn", "40.000đ", "green"]]} />
+      <Express
+        now={() => { a.set({ qty: 1, take: "supra" }); a.go(3); }}
+        nowLabel="Nhắn chị My chừa 1 khay"
+        more={a.next}
+        moreLabel="Đổi số lượng hoặc cách nhận" />
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Còn 2 khay, chị My giữ tới 12:00 trưa.">Chừa mấy khay</H1>
+      <Qty items={[{ n: "Bò nạm 500g", p: 99000, q: a.d.qty || 1 }]} set={(q) => a.set({ qty: q })} />
+      <Foot><Btn wide onClick={a.next}>Chọn cách nhận</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Cửa hàng cách nhà 1,2km, đi bộ khoảng 15 phút.">Nhận thế nào</H1>
+      <Choice value={a.d.take || "supra"} onPick={(v) => a.set({ take: v })}
+        items={[
+          { id: "supra", Icon: ShoppingCart, t: "Supra giao tận cửa", s: "trong 2 tiếng · đơn trên 100.000đ miễn phí", right: "0đ" },
+          { id: "self", Icon: Store, t: "Anh ghé lấy", s: "quầy tươi · nói tên là chị My đưa", right: "1,2km" },
+        ]} />
+      <Foot><Btn wide onClick={a.next}>Nhắn chị My</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Mai nhắn riêng chị My, không đăng vào nhóm 498 người.">Tin Mai gửi</H1>
+      <div style={{ background: T.dark, color: "#FBF7F1", borderRadius: 16, borderBottomRightRadius: 6, padding: "12px 14px", fontSize: 14.5, lineHeight: 1.5 }}>
+        Chị My ơi, chừa em {a.d.qty || 1} khay bò nạm 500g nha chị. {a.d.take === "self" ? "Chiều em ghé lấy." : "Cho em gửi Supra giao giúp ạ."} Em cảm ơn chị.
+      </div>
+      <AutoNext ms={1600} onDone={a.next}>
+        <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 9, fontSize: 14, color: T.sub }}>
+          <Sparkles size={15} color={T.brand} className="spin-soft" /> Đang gửi cho chị My…
+        </div>
+      </AutoNext>
+    </>
+  ),
+  (a) => (
+    <>
+      <H1 sub="Chị My trả lời sau 40 giây, nhanh hơn Mai tưởng.">Chị My đã chừa</H1>
+      <Evidence src="chị My · Win+ 13 Hai Bà Trưng" time="08:24" Icon={Store} color="#E8342C"
+        text="Dạ chị chừa rồi nha em, khay 99k. Em nói tên là lấy được, hoặc để chị đưa shipper Supra." />
+      <div style={{ marginTop: 12 }}>
+        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay bò nạm 500g"], ["Giá", fmt(99000 * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
+      </div>
+      <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
+    </>
+  ),
+  (a) => (
+    <>
+      <div style={{ textAlign: "center", padding: "2px 0 6px" }}><StrokeCheck size={34} /></div>
+      <H1 sub="Mai vẫn đọc nhóm giúp anh. Có khay hợp bếp nhà mình thì Mai báo, còn lại Mai để yên.">Đã chừa hàng</H1>
+      <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
+        <div style={{ fontSize: 14, color: "#14603C", lineHeight: 1.55, ...num }}>
+          Rẻ hơn giỏ Mai soạn ban đầu {fmt(40000)}. Trả bằng WinMoney thì cộng thêm 99 điểm WinX.
+        </div>
+      </div>
+      <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về nhóm</Btn></Foot>
+    </>
+  ),
+];
+
 const SURFACES = [
   { id: "winx", n: "WinX", g: "X", c: "#E8342C", flow: "winx" },
   { id: "zalo", n: "Zalo", g: "Z", c: "#0068FF", flow: "kb", app: "Zalo" },
@@ -3289,6 +3398,7 @@ export default function MaiV18() {
   const [surfApp, setSurfApp] = useState("Zalo");
   const [famMsgs, setFamMsgs] = useState([]);
   const [ongMsgs, setOngMsgs] = useState([]);
+  const [wpMsgs, setWpMsgs] = useState([]);
   const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chào anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm nút nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3379,6 +3489,10 @@ export default function MaiV18() {
       setTimeout(() => { setFamMsgs((x) => [...x, { id: Date.now(), from: "w", name: "Vy", text: "Dạ để em lo, anh yên tâm 👍" }]); bump(); }, 1400);
     }
   };
+  const sendWp = () => {
+    const q = input.trim(); if (!q) return;
+    setInput(""); setWpMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
+  };
   const sendOng = () => {
     const q = input.trim(); if (!q) return;
     setInput(""); setOngMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
@@ -3397,6 +3511,7 @@ export default function MaiV18() {
     inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
     winx: ["Quét xong, nhà mình lên hạng Vàng với 1.026 điểm. Phiếu 20.000đ Mai để sẵn trong thẻ.", "thẻ WinX", ["Điểm WinX được bao nhiêu?", "Giỏ hàng bao nhiêu tiền?", "Mua quà gì cho Bà?"]],
+    hold: ["Chị My chừa 1 khay bò nạm 99.000đ, rẻ hơn giỏ cũ 40.000đ. Mai vẫn canh nhóm cửa hàng giúp anh.", "Win+ Hai Bà Trưng", ["Tối nay nấu gì nhanh?", "Giỏ hàng bao nhiêu tiền?", "Điểm WinX được bao nhiêu?"]],
   };
   const afterFlow = (id) => {
     if (flowFrom.current !== "mai" || !AFTER[id]) return;
@@ -3425,8 +3540,9 @@ export default function MaiV18() {
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
     wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
     winx: () => flowWinx(end("winx", () => setDone((d) => ({ ...d, winx: true }))), () => setDone((d) => ({ ...d, shared: true }))),
+    hold: () => flowHold(end("hold", () => setDone((d) => ({ ...d, hold: true })))),
   };
-  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX" };
+  const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Chừa hàng ở cửa hàng" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
 
   const ChatRow = ({ Icon, tint, color, letter, avatar, title, sub, time, unread, verified, onTap }) => (
@@ -3639,6 +3755,7 @@ export default function MaiV18() {
                     {pointing && <div className="sn-ring" style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: `inset 0 0 0 2px ${T.brand}` }} />}
                   </div>
                   <ChatRow avatar="Ông bà cô chú" letter="Ô" title="Ông bà & cô chú" verified sub="Bà: cuối tuần về ăn giỗ nha con" time="12:02" onTap={() => setScreen("ongba")} />
+                  <ChatRow Icon={Store} tint="#FDE7E5" color="#E8342C" title="Win+ Hai Bà Trưng" verified sub={done.hold ? "Mai: chị My đã chừa 1 khay bò nạm" : "Mai lọc 47 tin, giữ lại 1 tin hợp bếp"} time="08:21" unread={done.hold ? null : "1"} onTap={() => setScreen("winplus")} />
                   <div style={{ padding: "12px 14px 5px", fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>KÊNH</div>
                   <ChatRow Icon={Music} tint="#F4EBFF" color="#7A2ECC" title="Anh Trai Say Hi" sub="Tập cuối tối nay 20:00 · ▲2,1k" time="15:33" onTap={() => setScreen("atsh")} />
                   <ChatRow Icon={Car} tint={T.amberBg} color={T.amber} title="Vietnam Cars" sub="Đăng kiểm Q2: sáng thứ Ba vắng nhất · ▲214" time="15:10" onTap={() => setScreen("cars")} />
@@ -3752,6 +3869,34 @@ export default function MaiV18() {
                   <div ref={endRef} />
                 </div>
                 {inputBar(sendOng, "Nhắn ông bà cô chú…", false, false)}
+              </>
+            )}
+
+            {screen === "winplus" && (
+              <>
+                <Head back={() => setScreen("home")} title="Win+ Hai Bà Trưng"
+                  sub={<><BadgeCheck size={15} color="#E8342C" strokeWidth={2.2} /><span style={{ fontSize: 12, color: T.faint, ...num }}>498 thành viên</span></>} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
+                  {/* Ghim thật của nhóm ngoài đời — cũng là lý do Mai có việc ở đây. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, background: "#FFF8EC", border: "1px solid #F0D8B0", borderRadius: 14, padding: "10px 12px", marginBottom: 12 }}>
+                    <Bell size={15} color={T.amber} strokeWidth={2.2} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: T.ink, lineHeight: 1.45 }}>Ghim: đừng rời nhóm, hãy tắt thông báo</span>
+                  </div>
+
+                  <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Sáng nay cửa hàng em còn ít khay thịt giảm giá, khách ăn gì nhắn em chừa nha" }} />
+                  <div style={{ margin: "2px 0 10px" }}><TrayGrid onTap={() => openFlow("hold")} /></div>
+                  <div style={{ fontSize: 11.5, color: T.faint, margin: "0 0 12px 2px", ...num }}>08:21 · chạm khay có viền để Mai chừa giúp</div>
+
+                  <Msg m={{ type: "ext", color: "#E8342C", Icon: BadgeCheck, src: "Hội viên WinX · tin cửa hàng", time: "07:00",
+                    text: "Ngày 08/08 WinMart+ ưu đãi lớn cho hội viên WinX. Quét thẻ ở quầy là được giá hội viên, không cần phiếu giấy." }} />
+                  <Msg m={{ from: "w", name: "cô Bảy", text: "Chừa tui 2 khay ba rọi nghen My" }} />
+
+                  <MaiBanner text="498 người, 47 tin sáng nay. Mai giữ lại 1 tin: bò nạm 500g còn 2 khay, 99.000đ, đúng món cho nồi bò kho tối nay."
+                    cta="Xem" done={!!done.hold} doneText="Chị My đã chừa 1 khay bò nạm · rẻ hơn giỏ cũ 40.000đ" onTap={() => openFlow("hold")} />
+                  {wpMsgs.map((m) => <Msg key={m.id} m={m} />)}
+                  <div ref={endRef} />
+                </div>
+                {inputBar(sendWp, "Nhắn nhóm cửa hàng…", false, false)}
               </>
             )}
 
