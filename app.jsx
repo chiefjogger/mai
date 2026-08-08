@@ -1819,7 +1819,7 @@ const flowForm = (finish) => [
   (a) => (
     <>
       <H1 sub="Email trường gửi 3 ngày trước, Mai giữ lại chờ anh.">Thư của trường</H1>
-      <Evidence Icon={FileText} color="#7A5CB8" src="Email · THCS Trần Phú" time="03/08" text="Kính gửi phụ huynh em Nguyễn Thị Na, lớp 6A2. Nhà trường tổ chức dã ngoại Cần Giờ thứ Sáu 08/08. Phụ huynh vui lòng ký đơn đồng ý và nộp phí 120.000đ trước thứ Sáu." />
+      <Evidence Icon={FileText} color="#7A5CB8" src="Email · THCS Trần Phú" time="03/08" text="Kính gửi phụ huynh em Nguyễn Thị Na, lớp 6A2. Nhà trường tổ chức dã ngoại Cần Giờ 08/08. Phụ huynh vui lòng ký đơn đồng ý và nộp phí 120.000đ trước 08/08." />
       <Express
         now={() => a.go(3)}
         nowLabel="Xem lại rồi ký đơn"
@@ -1854,7 +1854,7 @@ const flowForm = (finish) => [
       <Choice value={a.d.fee || "now"} onPick={(v) => a.set({ fee: v })}
         items={[
           { id: "now", Icon: Wallet, t: "Chuyển luôn cùng lúc ký", s: "WinMoney · có biên lai gửi cô Hồng", right: fmt(120000) },
-          { id: "later", Icon: Store, t: "Na mang tiền mặt thứ Sáu", s: "Mai nhắc anh tối thứ Năm chuẩn bị" },
+          { id: "later", Icon: Store, t: "Na mang tiền mặt 08/08", s: "Mai nhắc anh tối 07/08 chuẩn bị" },
         ]} />
       <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
     </>
@@ -1866,9 +1866,9 @@ const flowForm = (finish) => [
       <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: 14, fontSize: 12.5, color: T.ink, lineHeight: 1.7 }}>
         <div style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 600, marginBottom: 6 }}>ĐƠN ĐỒNG Ý CHO HỌC SINH ĐI DÃ NGOẠI</div>
         Học sinh: <b>Nguyễn Thị Na</b> · lớp 6A2<br />
-        Địa điểm: Cần Giờ · thứ Sáu 08/08<br />
+        Địa điểm: Cần Giờ · 08/08<br />
         Dị ứng: {a.d.al === "yes" ? "có · hải sản" : "không"}<br />
-        Phí: {a.d.fee === "later" ? "nộp tiền mặt thứ Sáu" : "đã chuyển 120.000đ"}<br />
+        Phí: {a.d.fee === "later" ? "nộp tiền mặt 08/08" : "đã chuyển 120.000đ"}<br />
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.hair}`, display: "flex", alignItems: "center", gap: 7 }}>
           <BadgeCheck size={15} color={T.green} />
           <span style={{ fontSize: 11.5, color: T.green, fontWeight: 650 }}>Ký số bằng CCCD ···· 4102 · 15:47 06/08</span>
@@ -1908,6 +1908,15 @@ const flowCart = (finish) => {
       return (
         <>
           <H1 sub="Mai soạn theo bài bò kho trong kênh, chia cho nhà 4 người. Anh sửa số lượng thoải mái.">Giỏ Mai soạn</H1>
+          {/* Không giấu giá rẻ hơn khi chênh đáng kể. Chị Xuân bắt đúng chỗ này. */}
+          {worthSwitch(TRAYS[5].was, TRAYS[5].now) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 14, padding: "11px 12px", marginBottom: 11 }}>
+              <Store size={16} color={T.brandInk} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: T.ink, lineHeight: 1.45, ...num }}>
+                Chị My bên Win+ Hai Bà Trưng còn khay bò nạm {fmt(TRAYS[5].now)}, rẻ hơn {fmt(TRAYS[5].was - TRAYS[5].now)}. Đổi lại anh phải ghé lấy hoặc chờ Supra 2 tiếng.
+              </span>
+            </div>
+          )}
           <Thumb from="#8A4630" to="#3A1B12" emoji="🍲" h={92} />
           <div style={{ marginTop: 10 }}>
             <Qty items={items} set={(i, q) => { const c = items.map((x, k) => (k === i ? { ...x, q } : x)); a.set({ items: c }); }} />
@@ -1991,8 +2000,8 @@ const flowCart = (finish) => {
 const flowTicket = (finish) => [
   (a) => (
     <>
-      <H1 sub="Đợt 2 hết trong 7 phút. Đợt 3 mở 20:00 thứ Sáu.">Đợt bán thứ 3</H1>
-      <KV rows={[["Mở bán", "20:00 · thứ Sáu 08/08", "amber"], ["Khu B", fmt(890000) + "/vé"], ["Giới hạn", "4 vé mỗi CCCD"], ["Quy định", "vé gắn CCCD, không sang tay ngoài app"]]} />
+      <H1 sub="Đợt 2 hết trong 7 phút. Đợt 3 mở 20:00 ngày 08/08.">Đợt bán thứ 3</H1>
+      <KV rows={[["Mở bán", "20:00 · 08/08", "amber"], ["Khu B", fmt(890000) + "/vé"], ["Giới hạn", "4 vé mỗi CCCD"], ["Quy định", "vé gắn CCCD, không sang tay ngoài app"]]} />
       <Foot><Btn wide onClick={a.next}>Chọn vé</Btn></Foot>
     </>
   ),
@@ -2029,7 +2038,7 @@ const flowTicket = (finish) => [
   },
   (a) => (
     <>
-      <H1 sub="20:00 thứ Sáu anh đang ăn cơm với nhà, để Mai canh giờ và bấm giúp anh.">Mai canh giúp anh</H1>
+      <H1 sub="20:00 ngày 08/08 anh đang ăn cơm với nhà, để Mai canh giờ và bấm giúp anh.">Mai canh giúp anh</H1>
       <div style={{ display: "grid", gap: 8 }}>
         <Toggle on={a.d.t1 !== false} onTap={(v) => a.set({ t1: v })} t="Nhắc lúc 19:55" s="rung máy + báo trước 5 phút" />
         <Toggle on={a.d.t2 !== false} onTap={(v) => a.set({ t2: v })} t="Tự mở trang đặt vé đúng 20:00" s="Mai mở sẵn, anh chỉ bấm xác nhận" />
@@ -2051,7 +2060,7 @@ const flowTicket = (finish) => [
             <Mark size={30} alive />
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>Đang canh đợt 3</div>
-              <div style={{ fontSize: 11.5, color: T.brandInk, ...num }}>20:00 thứ Sáu · {q} vé khu {zone} · {fmt(price * q)}</div>
+              <div style={{ fontSize: 11.5, color: T.brandInk, ...num }}>20:00 ngày 08/08 · {q} vé khu {zone} · {fmt(price * q)}</div>
             </div>
           </div>
         </div>
@@ -2076,7 +2085,7 @@ const flowTicket = (finish) => [
     <>
       <div style={{ textAlign: "center", padding: "4px 0" }}><div style={{ fontSize: 38 }}>🎤</div></div>
       <H1 sub="Mai đã lưu kế hoạch vào hồ sơ nhà mình. Nếu đợt 3 hết trước khi anh bấm, Mai tự xếp anh vào danh sách chờ đợt 4.">Đã đặt lịch tranh vé</H1>
-      <KV rows={[["Nhắc", "19:55 thứ Sáu" + (a.d.t4 ? " · cả Vy" : "")], ["Tự mở trang", a.d.t2 === false ? "không" : "có · đúng 20:00"], ["CCCD điền sẵn", a.d.t3 === false ? "không" : "có"], ["Nếu hết vé", "vào danh sách chờ đợt 4", "green"]]} />
+      <KV rows={[["Nhắc", "19:55 ngày 08/08" + (a.d.t4 ? " · cả Vy" : "")], ["Tự mở trang", a.d.t2 === false ? "không" : "có · đúng 20:00"], ["CCCD điền sẵn", a.d.t3 === false ? "không" : "có"], ["Nếu hết vé", "vào danh sách chờ đợt 4", "green"]]} />
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
     </>
   ),
@@ -2157,7 +2166,7 @@ const flowInspect = (finish) => [
       <KV rows={[["Biển số", "51K-238.19"], ["Xe", "Mazda CX-5 · 2021"], ["Hạn đăng kiểm", "12/09/2026 · còn 37 ngày", "amber"], ["Quá hạn", "phạt 4–6 triệu · mất bảo hiểm", "amber"], ["Bảo hiểm TNDS", "còn hạn tới 03/2027", "green"]]} />
       <Express
         now={() => { a.set({ center: "07v", slot: "07:30" }); a.go(4); }}
-        nowLabel="Đặt 07:30 thứ Ba, 50-07V"
+        nowLabel="Đặt 07:30 ngày 12/08, 50-07V"
         more={a.next}
         moreLabel="Chọn trung tâm và giờ khác" />
     </>
@@ -2176,7 +2185,7 @@ const flowInspect = (finish) => [
   ),
   (a) => (
     <>
-      <H1 sub="Mẹo trong kênh: sáng thứ Ba vắng nhất, tránh cuối tháng.">Sáng thứ Ba 12/08</H1>
+      <H1 sub="Mẹo trong kênh: sáng thứ Ba vắng nhất, tránh cuối tháng.">Sáng 12/08</H1>
       {/* Số xe xếp hàng theo khung giờ, lấy từ kênh Vietnam Cars.
           Cột sáng nhất là khung Mai đề xuất. */}
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12, background: T.bg, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px 10px", marginBottom: 11 }}>
@@ -2188,7 +2197,7 @@ const flowInspect = (finish) => [
       <Slots value={a.d.slot || "07:30"} onPick={(v) => a.set({ slot: v })}
         list={[{ t: "07:30", note: "vắng nhất" }, { t: "08:00", note: "vừa" }, { t: "08:30", note: "vừa" }, { t: "09:00", note: "đông" }, { t: "09:30", full: true }, { t: "10:00", note: "đông" }]} />
       <div style={{ marginTop: 12, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>
-        Anh có họp 10:00 thứ Ba. Chọn 07:30 thì kịp về, Mai đã đối chiếu lịch.
+        Anh có họp 10:00 ngày 12/08. Chọn 07:30 thì kịp về, Mai đã đối chiếu lịch.
       </div>
       <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
     </>
@@ -2213,9 +2222,9 @@ const flowInspect = (finish) => [
   (a) => (
     <>
       <H1 sub="Trung tâm đăng kiểm không thuộc Masan, nên không có điểm WinX. Mai vẫn làm vì đây là việc của anh.">Xác nhận</H1>
-      <KV rows={[["Trung tâm", a.d.center === "05s" ? "50-05S · Quận 7" : a.d.center === "03v" ? "50-03V · Thủ Đức" : "50-07V · Bình Thạnh"], ["Giờ", (a.d.slot || "07:30") + " · thứ Ba 12/08"], ["Xe", "51K-238.19"], ["Phí", "khoảng 340.000đ, trả tại chỗ"], ["Điểm WinX", "không có · không thuộc Masan"]]} />
+      <KV rows={[["Trung tâm", a.d.center === "05s" ? "50-05S · Quận 7" : a.d.center === "03v" ? "50-03V · Thủ Đức" : "50-07V · Bình Thạnh"], ["Giờ", (a.d.slot || "07:30") + " · 12/08"], ["Xe", "51K-238.19"], ["Phí", "khoảng 340.000đ, trả tại chỗ"], ["Điểm WinX", "không có · không thuộc Masan"]]} />
       <div style={{ marginTop: 12 }}>
-        <Toggle on={a.d.rm !== false} onTap={(v) => a.set({ rm: v })} t="Nhắc hai lần" s="19:00 thứ Hai soạn giấy tờ · 06:45 thứ Ba trước khi đi" />
+        <Toggle on={a.d.rm !== false} onTap={(v) => a.set({ rm: v })} t="Nhắc hai lần" s="19:00 ngày 11/08 soạn giấy tờ · 06:45 ngày 12/08 trước khi đi" />
       </div>
       <Foot><Btn wide onClick={a.next}>Chốt lịch</Btn></Foot>
     </>
@@ -2226,7 +2235,7 @@ const flowInspect = (finish) => [
       <H1 sub="Mai đã vào lịch anh và cập nhật hồ sơ xe. Xong đăng kiểm, anh chụp giấy mới, Mai tự đọc và đặt hạn 2028.">Đặt xong</H1>
       <div style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 14, padding: "12px 13px" }}>
         <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.4 }}>LỊCH CỦA ANH</div>
-        <div style={{ fontSize: 14, fontWeight: 650, color: T.ink, marginTop: 4, ...num }}>{a.d.slot || "07:30"} thứ Ba 12/08 · Đăng kiểm 51K-238.19</div>
+        <div style={{ fontSize: 14, fontWeight: 650, color: T.ink, marginTop: 4, ...num }}>{a.d.slot || "07:30"} 12/08 · Đăng kiểm 51K-238.19</div>
         <div style={{ fontSize: 11.5, color: T.sub, marginTop: 3 }}>{a.d.center === "05s" ? "50-05S Quận 7" : a.d.center === "03v" ? "50-03V Thủ Đức" : "50-07V Bình Thạnh"} · nhắc trước 1 ngày</div>
       </div>
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
@@ -2404,7 +2413,7 @@ const FILES = [
   { id: "hp", Icon: GraduationCap, t: "Học phí quý 3", v: "đã trả ✓", tone: "green",
     detail: { h: "Học phí quý 3 · hai bé", s: "Đã trả đủ, biên lai lưu trong hồ sơ.", rows: [["Bin · TH Lê Lợi", fmt(4200000) + " ✓", "green"], ["Na · THCS Trần Phú", fmt(5100000) + " ✓", "green"], ["Ngày trả", "02/07 · WinMoney"], ["Quý 4", "Mai nhắc 25/09"], ["Biên lai", "2 bản trong hồ sơ"]], cta: "Xem biên lai" } },
   { id: "ve", Icon: Ticket, t: "Vé & sự kiện", v: "1 kế hoạch",
-    detail: { h: "Vé & sự kiện", s: "Vé gắn CCCD, vào cổng quét mặt.", rows: [["Concert 5", "đang canh đợt 3 · 20:00 thứ Sáu", "amber"], ["Họp phụ huynh Na", "19:00 · 15/08"], ["Giỗ Ông", "thứ Bảy 09/08"], ["Dã ngoại Na", "thứ Sáu 08/08"]], cta: "Xem kênh Anh Trai Say Hi", goto: "atsh" } },
+    detail: { h: "Vé & sự kiện", s: "Vé gắn CCCD, vào cổng quét mặt.", rows: [["Concert 5", "đang canh đợt 3 · 20:00 ngày 08/08", "amber"], ["Họp phụ huynh Na", "19:00 · 15/08"], ["Giỗ Ông", "09/08"], ["Dã ngoại Na", "08/08"]], cta: "Xem kênh Anh Trai Say Hi", goto: "atsh" } },
   { id: "dien", Icon: Zap, t: "Điện tháng 7", v: fmt(1240000) + " ✓", tone: "green",
     detail: { h: "Điện · tháng 7", s: "Mai đọc từ email EVN và trả tự động khi anh cho phép.", rows: [["Số tiền", fmt(1240000) + " ✓", "green"], ["Kỳ", "01/07–31/07"], ["So tháng 6", "+8% · trời nóng"], ["Tự động trả", "đang bật"], ["Kỳ tới", "Mai trả ngày 12/08"]], cta: "Tắt tự động trả" } },
 ];
@@ -2449,7 +2458,7 @@ const FileSheet = ({ f, onClose, onFlow, onGoto, onAsk }) => {
 const POSTS = {
   cars: [
     { id: "c1", ch: "Vietnam Cars", up: 214, title: "Đăng kiểm Q2: sáng thứ Ba vắng nhất, 20 phút là xong", body: "Trung tâm 50-07V, tới trước 7:30. Tránh cuối tháng, cuối tháng xe tải dồn về đông lắm.", hero: { from: "#3A4A6B", to: "#141C30", emoji: "🚗" }, who: "anh Tuấn", when: "2 giờ trước", bg: "#3A4A6B",
-      act: { text: "Xe anh hạn 12/09 · trống sáng thứ Ba 12/08, 7:30", cta: "Đặt lịch", flow: "inspect" },
+      act: { text: "Xe anh hạn 12/09 · trống sáng 12/08, 7:30", cta: "Đặt lịch", flow: "inspect" },
       comments: [{ who: "chú Bình", when: "1 giờ", text: "Xác nhận, tuần trước em đi 7:20 xong lúc 7:45.", ver: true, bg: "#4A5568" }, { who: "anh Khoa", when: "48 phút", text: "50-05S đông kinh khủng, chờ hơn tiếng.", ver: true, bg: "#7A5CB8" }, { who: "chị Hà", when: "20 phút", text: "Nhớ mang bảo hiểm TNDS còn hạn nha mọi người.", ver: true, bg: "#B85C7A" }],
       profile: { who: "anh Tuấn", bg: "#3A4A6B", sub: "định danh CCCD · tham gia 3 năm", rows: [["Bài đăng", "128 bài"], ["Được ủng hộ", "14,2k"], ["Chuyên", "đăng kiểm, bảo dưỡng"], ["Xe", "Mazda 3 · 2019"], ["Giao dịch mua bán", "9 lần · không tranh chấp", "green"]] } },
     { id: "c2", ch: "Vietnam Cars", up: 89, title: "Pass cảm biến áp suất lốp, còn bảo hành 8 tháng · 450.000đ", body: "Mua dư một bộ, chưa bóc seal. Ưu tiên anh em Thảo Điền qua lấy.", thumb: { from: "#4A5568", to: "#1F2733", emoji: "🛞" }, who: "chú Bình", when: "5 giờ trước", bg: "#4A5568",
@@ -2474,7 +2483,7 @@ const POSTS = {
       act: { text: "Nhà 4 người xem chung 20:00 · combo snack WinMart+ · Supra giao trước 19:30", cta: "Đặt", flow: "cart" },
       comments: [{ who: "chị Trang", when: "50 phút", text: "Nhà em coi chung, tối nay đặt gà rán với bắp rang.", ver: true, bg: "#B85C7A" }, { who: "anh Khoa", when: "35 phút", text: "Điểm danh. Ai đi concert lập nhóm đi chung xe không?", ver: true, bg: "#7A5CB8" }, { who: "bé Ngọc", when: "12 phút", text: "Em lập rồi nha, ai muốn vào thì nhắn em.", ver: true, bg: "#7B2FA8" }],
       profile: { who: "bé Ngọc", bg: "#7B2FA8", sub: "định danh CCCD · 22 tuổi · TP.HCM", rows: [["Bài đăng", "84 bài"], ["Được ủng hộ", "31,2k"], ["Đã đi", "3 concert · vé chính chủ", "green"], ["Bình chọn", "1 phiếu mỗi tập · không cày"]] } },
-    { id: "a2", ch: "Anh Trai Say Hi", up: 876, title: "Vé concert đợt 3 mở bán 20:00 thứ Sáu, khu B còn nhiều", body: "Đợt 2 hết trong 7 phút. Nhớ đăng nhập sẵn trước 5 phút, điền sẵn CCCD.", hero: { from: "#1E3A8A", to: "#0B1533", emoji: "🎫" }, who: "anh Khoa", when: "3 giờ trước", bg: "#1E3A8A",
+    { id: "a2", ch: "Anh Trai Say Hi", up: 876, title: "Vé concert đợt 3 mở bán 20:00 ngày 08/08, khu B còn nhiều", body: "Đợt 2 hết trong 7 phút. Nhớ đăng nhập sẵn trước 5 phút, điền sẵn CCCD.", hero: { from: "#1E3A8A", to: "#0B1533", emoji: "🎫" }, who: "anh Khoa", when: "3 giờ trước", bg: "#1E3A8A",
       act: { text: "Mai canh giờ mở bán và điền sẵn CCCD cả nhà", cta: "Để Mai canh", flow: "ticket" },
       comments: [{ who: "chị Ngân", when: "2 giờ", text: "Đợt 2 em bấm chậm 20 giây là hết.", ver: true, bg: "#B85C7A" }, { who: "bé Ngọc", when: "1 giờ", text: "Vé gắn CCCD nên phe vé hết đường ôm rồi, mừng.", ver: true, bg: "#7B2FA8" }],
       profile: { who: "anh Khoa", bg: "#1E3A8A", sub: "định danh CCCD · quản trị viên kênh", rows: [["Bài đăng", "156 bài"], ["Được ủng hộ", "42,7k"], ["Vai trò", "quản trị · kiểm tin vé giả"], ["Đã chặn", "38 tin vé giả", "green"]] } },
@@ -2816,7 +2825,7 @@ const flowDevices = (finish) => [
       <H1 sub="17:24 · Mai nhận tín hiệu xe qua CarPlay. Việc đúng ngữ cảnh mới nói, không thì im.">Trong xe</H1>
       <div style={{ background: "#1C2536", borderRadius: 18, padding: 15, color: "#FFFDF9" }}>
         <div style={{ fontSize: 10.5, opacity: 0.6, letterSpacing: 0.6, fontWeight: 700 }}>MÀN HÌNH XE</div>
-        <div style={{ fontSize: 14.5, marginTop: 8, lineHeight: 1.55 }}>Xe 51K-238.19 · đăng kiểm còn 37 ngày. Sáng thứ Ba 12/08 trống lúc 7:30, cách nhà 4,2km.</div>
+        <div style={{ fontSize: 14.5, marginTop: 8, lineHeight: 1.55 }}>Xe 51K-238.19 · đăng kiểm còn 37 ngày. Sáng 12/08 trống lúc 7:30, cách nhà 4,2km.</div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <span className="btn" style={{ background: "#FFFDF9", color: "#1C2536" }}>Đặt lịch</span>
           <span className="btn" style={{ background: "rgba(255,255,255,.14)", color: "#FFFDF9" }}>Để sau</span>
@@ -2832,7 +2841,7 @@ const flowDevices = (finish) => [
       <Track speed={950} steps={[
         { t: "Đồng hồ · 16:22", s: a.d.wr === "call" ? "hẹn gọi Vy 17:02" : a.d.wr === "later" ? "xem sau" : "gửi 👍 vào Nhà mình" },
         { t: "Tai nghe · 17:10", s: "đọc tóm tắt 3 việc đã xong" },
-        { t: "Xe · 17:24", s: "đặt đăng kiểm 7:30 thứ Ba" },
+        { t: "Xe · 17:24", s: "đặt đăng kiểm 7:30 ngày 12/08" },
         { t: "Hồ sơ nhà mình", s: "cả ba đều ghi về một chỗ" },
       ]} />
       <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
@@ -2856,6 +2865,7 @@ const flowDevices = (finish) => [
 // 13 · VÍ WINMONEY (7 bước)
 // Ba người dùng thử đều sợ đúng một thứ: tiền tự đi mà không hỏi.
 // Luồng này kết ở chỗ đặt trần cho Mai, nên cái ví trả lời được nỗi sợ đó.
+const parseCap = (s) => (!s || s === "Không giới hạn" ? Infinity : parseInt(String(s).replace(/\D/g, ""), 10) || 0);
 const flowWallet = (finish, spent, bal) => [
   (a) => (
     <>
@@ -2865,7 +2875,7 @@ const flowWallet = (finish, spent, bal) => [
           <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.5 }}>SỐ DƯ</div>
           <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: T.ink, letterSpacing: -0.5, marginTop: 2, ...num }}>{fmt(bal)}</div>
         </div>
-        <Spark points={[2480, 2480, 2315, 2315, bal / 1000]} w={72} h={30} color={T.brand} fill />
+        <Spark points={[2480, 2480, 2480 - (spent.slice(0, 1).reduce((s2, z) => s2 + z.v, 0) / 1000), bal / 1000, bal / 1000]} w={72} h={30} color={T.brand} fill />
       </div>
       <KV rows={[["Nguồn tiền", "Techcombank ····4102"], ["Rút về tài khoản", "miễn phí · trong ngày"], ["Trả ở cửa hàng Masan", "WinMart+ · Phúc Long · MEATDeli"], ["Chuyển người nhà", "0đ phí · cần định danh CCCD"]]} />
       <Foot><Btn wide onClick={a.next}>Mai đã trả hộ những gì</Btn></Foot>
@@ -2909,9 +2919,9 @@ const flowWallet = (finish, spent, bal) => [
     <>
       <H1 sub="Mai xếp theo hạn, khoản nào sát Mai nhắc trước ba ngày.">Sắp tới</H1>
       <div style={{ display: "grid", gap: 8 }}>
-        {[["Phí dã ngoại Na", "hạn thứ Sáu · THCS Trần Phú", 120000, "amber"],
+        {[...(spent.some((z) => z.v === 120000) ? [] : [["Phí dã ngoại Na", "hạn 08/08 · THCS Trần Phú", 120000, "amber"]]),
           ["Đăng kiểm 51K-238.19", "12/09 · trả tại trung tâm", 340000, "gray"],
-          ["Điện tháng 8", "khoảng 10/09 · ước theo tháng 7", 1240000, "gray"]].map(([t, s, v, tone]) => (
+          ["Điện tháng 8", "hạn 12/08 · hoá đơn EVN đã về", 1310000, "amber"]].map(([t, s, v, tone]) => (
           <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: T.surf, border: `1px solid ${tone === "amber" ? "#F0D8B0" : T.hair}`, borderRadius: 14, padding: "11px 12px" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 650, color: T.ink }}>{t}</div>
@@ -2921,15 +2931,20 @@ const flowWallet = (finish, spent, bal) => [
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Cộng {fmt(1700000)} trong năm tuần tới. Số dư của anh còn {fmt(bal)}, Mai nhắc trước từng khoản.</div>
+      <div style={{ marginTop: 11, fontSize: 14, color: T.sub, lineHeight: 1.55 }}>Cộng {fmt(1770000)}, mà gần nhất là điện 12/08 chứ không phải tháng sau. Số dư còn {fmt(bal)}, Mai nhắc trước từng khoản.</div>
       <Foot><Btn wide onClick={a.next}>Đặt trần cho Mai</Btn></Foot>
     </>
   ),
   (a) => (
     <>
       <H1 sub="Dưới trần Mai tự trả rồi báo anh. Trên trần Mai dừng lại hỏi, kể cả khi anh đang họp.">Mai được trả hộ tới đâu</H1>
+      <div style={{ fontSize: 13.5, fontWeight: 650, color: T.sub, marginBottom: 8 }}>Mỗi lần tối đa</div>
       <Slots value={a.d.cap || "500.000đ"} onPick={(v) => a.set({ cap: v })}
         list={[{ t: "0đ", note: "hỏi mọi lần" }, { t: "200.000đ", note: "chặt" }, { t: "500.000đ", note: "vừa" }, { t: "1.000.000đ" }, { t: "2.000.000đ", note: "rộng" }, { t: "Không giới hạn", full: true, note: "Mai không nhận" }]} />
+      {/* Trần mỗi lần một mình là trần giả: chia nhỏ hoá đơn là lọt hết. */}
+      <div style={{ fontSize: 13.5, fontWeight: 650, color: T.sub, margin: "14px 0 8px" }}>Cả ngày tối đa</div>
+      <Slots value={a.d.day || "1.000.000đ"} onPick={(v) => a.set({ day: v })}
+        list={[{ t: "500.000đ", note: "chặt" }, { t: "1.000.000đ", note: "vừa" }, { t: "3.000.000đ", note: "rộng" }]} />
       <div style={{ marginTop: 12 }}>
         <Toggle on={a.d.big !== false} onTap={(v) => a.set({ big: v })} t="Khoản lạ luôn hỏi" s="Người nhận mới, hoặc số tiền gấp đôi thói quen, Mai hỏi dù dưới trần" />
       </div>
@@ -2945,11 +2960,13 @@ const flowWallet = (finish, spent, bal) => [
       <div style={{ textAlign: "center", padding: "4px 0" }}><StrokeCheck size={34} /></div>
       <H1 sub="Đổi lúc nào cũng được, anh mở ví là thấy. Mai không tự nới trần cho mình bao giờ.">Đặt xong</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
-        <div style={{ fontSize: 13.5, color: "#14603C", lineHeight: 1.6 }}>
-          Từ giờ Mai tự trả các khoản dưới <b style={{ ...num }}>{a.d.cap || "500.000đ"}</b> rồi báo anh sau. Khoản lớn hơn, hoặc người nhận lạ, Mai dừng lại hỏi anh trước.
+        <div style={{ fontSize: 14.5, color: "#14603C", lineHeight: 1.6 }}>
+          Từ giờ Mai tự trả các khoản dưới <b style={{ ...num }}>{a.d.cap || "500.000đ"}</b> mỗi lần, và không quá <b style={{ ...num }}>{a.d.day || "1.000.000đ"}</b> cả ngày. Quá một trong hai mức đó, hoặc người nhận lạ, Mai dừng lại hỏi anh trước.
         </div>
       </div>
-      <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, lineHeight: 1.55 }}>Học bơi 850.000đ hôm nay là khoản trên trần, nên Mai đã hỏi anh chứ không tự trả.</div>
+      <div style={{ marginTop: 11, fontSize: 14, color: T.sub, lineHeight: 1.55 }}>{parseCap(a.d.cap) >= 850000
+        ? "Học bơi 850.000đ hôm nay nằm dưới trần này, nên lần sau Mai tự trả rồi báo anh."
+        : "Học bơi 850.000đ hôm nay là khoản trên trần, nên Mai đã hỏi anh chứ không tự trả."}</div>
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Xong</Btn></Foot>
     </>
   ),
@@ -3048,8 +3065,10 @@ const TIERS = [
   { id: "vang", n: "Vàng", min: 1000, a: "#F3C963", b: "#B5822A", ink: "#3B2B08", dim: "rgba(59,43,8,.58)",
     perks: ["Tích gấp đôi cuối tuần", "Voucher 20.000đ mỗi tháng", "Giao nhanh Supra miễn phí"] },
   { id: "kc", n: "Kim cương", min: 5000, a: "#B9CDF7", b: "#7A66D8", ink: "#F5F8FF", dim: "rgba(245,248,255,.68)",
-    perks: ["Tích gấp ba cuối tuần", "Voucher 50.000đ mỗi tháng", "Quầy ưu tiên ở WinMart+", "Đổi quà giới hạn"] },
+    perks: ["Tích gấp ba cuối tuần", "Voucher 150.000đ mỗi tháng", "Quầy ưu tiên ở WinMart+", "Giao nhanh Supra miễn phí"] },
 ];
+// Chỉ nhắc khay rẻ hơn khi chênh đáng kể, còn lệch vài nghìn thì im cho gọn giỏ.
+const worthSwitch = (was, now) => was - now >= 30000 || (was - now) / was >= 0.2;
 const tierOf = (p) => TIERS.reduce((acc, t) => (p >= t.min ? t : acc), TIERS[0]);
 const nextTier = (p) => TIERS.find((t) => t.min > p) || null;
 
@@ -3180,7 +3199,7 @@ const flowWinx = (finish, onShare) => [
   ),
   (a) => (
     <>
-      <H1 sub="Quầy WinMart+ Thảo Điền · giỏ bò kho 186.000đ trả bằng WinMoney.">Đang quét mã</H1>
+      <H1 sub="Quầy WinMart+ Thảo Điền · đơn 186.000đ mua tại quầy sáng nay.">Đang quét mã</H1>
       <div style={{ position: "relative", background: "#FFFDF9", border: `1px solid ${T.hair}`, borderRadius: 16, padding: "20px 16px", overflow: "hidden" }}>
         <Barcode code="8938505974194" w="100%" h={62} />
         <div className="scan" />
@@ -3309,7 +3328,7 @@ const flowHold = (finish, tray) => {
   return [
   (a) => (
     <>
-      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, còn 6 khay giảm giá.">Chừa {x.n.toLowerCase()}</H1>
+      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, sáu khay giảm giá sáng nay.">Chừa {x.n.toLowerCase()}</H1>
       <div style={{ display: "flex", alignItems: "center", gap: 13, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 16, padding: "13px 14px", marginBottom: 12 }}>
         <Scene name="meal" small />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -3317,7 +3336,7 @@ const flowHold = (finish, tray) => {
           <div style={{ fontSize: 14, color: T.brandInk, marginTop: 2, ...num }}>{fmt(x.now)} · thường {fmt(x.was)} · rẻ hơn {fmt(x.was - x.now)}</div>
         </div>
       </div>
-      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
+      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "18:00 chiều nay", "amber"]]} />
       {/* Không giấu khay rẻ hơn. Người đi chợ bốn mươi năm nhìn ra ngay. */}
       {cheaper && (
         <div style={{ marginTop: 10, fontSize: 14, color: T.sub, lineHeight: 1.5 }}>
@@ -3333,8 +3352,8 @@ const flowHold = (finish, tray) => {
   ),
   (a) => (
     <>
-      <H1 sub="Chị My giữ tới 12:00 trưa nay.">Chừa mấy khay</H1>
-      <Qty items={[{ n: x.n + " " + x.g, p: x.now, q: a.d.qty || 1 }]} set={(q) => a.set({ qty: q })} />
+      <H1 sub="Chị My giữ tới 18:00 chiều nay.">Chừa mấy khay</H1>
+      <Qty items={[{ n: x.n + " " + x.g, p: x.now, q: a.d.qty || 1 }]} set={(i, q) => a.set({ qty: q })} />
       <Foot><Btn wide onClick={a.next}>Chọn cách nhận</Btn></Foot>
     </>
   ),
@@ -3368,7 +3387,7 @@ const flowHold = (finish, tray) => {
       <Evidence src="chị My · Win+ 13 Hai Bà Trưng" time="08:24" Icon={Store} color="#E8342C"
         text={"Dạ chị chừa rồi nha em, khay " + Math.round(x.now / 1000) + "k. Em nói tên là lấy được, hoặc để chị đưa shipper Supra."} />
       <div style={{ marginTop: 12 }}>
-        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay " + x.n.toLowerCase()], ["Giá", fmt(x.now * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
+        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay " + x.n.toLowerCase()], ["Giá", fmt(x.now * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "18:00 chiều nay", "amber"]]} />
       </div>
       <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
     </>
@@ -3452,12 +3471,13 @@ export default function MaiV18() {
     }
   };
   const allDone = done.pay && done.form && done.pick;
-  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cartTotal != null ? done.cartTotal : done.cart ? 186000 : 0) - (done.tea ? 165000 : 0);
+  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cartTotal != null ? done.cartTotal : done.cart ? 186000 : 0) - (done.form ? 120000 : 0) - (done.tea ? 165000 : 0);
   const [teaArm, setTeaArm] = useState(0); // 0 nghỉ · 1 chờ chạm lần hai
   const spent = [
     done.pay && { t: "Học bơi tháng 8 · Bin", s: "15:43 · biên lai gửi riêng cô Lan", v: 850000, Icon: Banknote },
-    done.cart && { t: "Giỏ WinMart+ thứ Tư", s: "Supra giao trước 18:00", v: 186000, Icon: ShoppingCart },
-    done.tea && { t: "Hộp trà sen Phúc Long", s: "giỗ Ông thứ Bảy · giao thứ Sáu", v: 165000, Icon: Store },
+    done.cart && { t: "Giỏ WinMart+ hôm nay", s: "Supra giao trước 18:00", v: 186000, Icon: ShoppingCart },
+    done.tea && { t: "Hộp trà sen Phúc Long", s: "giỗ Ông 09/08 · giao 08/08", v: 165000, Icon: Store },
+    done.form && { t: "Phí dã ngoại Cần Giờ · Na", s: "đã gửi cô Hồng cùng đơn", v: 120000, Icon: FileText },
   ].filter(Boolean);
 
   const snap = () => {
@@ -3540,9 +3560,9 @@ export default function MaiV18() {
     pickup: ["Chốt xong, Vy đón Bin 16:20. Mai đã vào lịch cả hai người và đặt nhắc trước 15 phút.", "lịch anh và Vy", ["Trả học bơi cho Bin", "Chiều mai lớp có nghỉ không?", "Hôm nay còn việc gì gấp?"]],
     form: ["Đơn đã gửi, cô Hồng nhận rồi. Mai lưu một bản vào hồ sơ của Na.", "email nhà trường", ["Na họp phụ huynh hôm nào?", "Tôi nợ gì tuần này?", "Hộ chiếu Na còn hạn không?"]],
     cart: ["Đặt xong, Supra giao trước 18:00. Giỏ này cộng 186 điểm WinX cho nhà mình.", "WinMart+ · Supra", ["Tối nay nấu gì nhanh?", "Điểm WinX được bao nhiêu?", "Mua quà gì cho Bà?"]],
-    ticket: ["Mai canh vé đợt 3, 20:00 thứ Sáu. Tới giờ Mai bấm giúp, anh chỉ cần quét mặt duyệt.", "vé gắn CCCD", ["Tối nay nhà mình xem gì?", "Sang nhượng vé có an toàn không?", "Thứ Sáu tối tôi rảnh không?"]],
+    ticket: ["Mai canh vé đợt 3, 20:00 ngày 08/08. Tới giờ Mai bấm giúp, anh chỉ cần quét mặt duyệt.", "vé gắn CCCD", ["Tối nay nhà mình xem gì?", "Sang nhượng vé có an toàn không?", "Tối 08/08 tôi rảnh không?"]],
     resale: ["Vé đã sang tên anh, ghế B12-13. Tiền chỉ rời ví khi vé về tới tên anh.", "giữ tiền tới khi nhận vé", ["Vé concert đợt 3 khi nào mở?", "Tối nay nhà mình xem gì?", "Hôm nay còn việc gì gấp?"]],
-    inspect: ["Đặt xong 07:30 thứ Ba 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
+    inspect: ["Đặt xong 07:30 12/08, trung tâm 50-07V. Giấy tờ Mai gom sẵn trong hồ sơ nhà mình.", "hồ sơ xe", ["Đăng kiểm cần mang giấy gì?", "Phí đăng kiểm bao nhiêu?", "Bảo hiểm xe còn hạn không?"]],
     call: ["Số đó Mai chặn rồi, không đổ chuông nhà mình nữa. Trường thật thì gọi qua số đã định danh.", "chặn giả mạo", ["Trường gọi xin tiền có thật không?", "Mai lọc cuộc gọi kiểu gì?", "Hôm nay còn việc gì gấp?"]],
     winx: ["Quét xong, nhà mình lên hạng Vàng với 1.026 điểm. Phiếu 20.000đ Mai để sẵn trong thẻ.", "thẻ WinX", ["Điểm WinX được bao nhiêu?", "Giỏ hàng bao nhiêu tiền?", "Mua quà gì cho Bà?"]],
     hold: ["Chị My chừa 1 khay bò nạm 99.000đ, rẻ hơn giỏ cũ 40.000đ. Mai vẫn canh nhóm cửa hàng giúp anh.", "Win+ Hai Bà Trưng", ["Tối nay nấu gì nhanh?", "Giỏ hàng bao nhiêu tiền?", "Điểm WinX được bao nhiêu?"]],
@@ -3626,7 +3646,7 @@ export default function MaiV18() {
           <React.Fragment key={p.id}>
             <Post up={p.up} title={p.title} body={p.body} hero={p.hero} thumb={p.thumb} comments={p.comments.length}
               meta={{ who: p.who, when: p.when }} onTap={() => { setPost(p); ding(); }} onAuthor={() => { setProf(p.profile); ding(); }} />
-            {p.act && <MaiBanner text={p.act.text} cta={p.act.cta} done={!!done[p.act.flow]} doneText={{ cart: "Đã đặt · Supra giao trước " + (done.cartSlot || "18:00"), ticket: "Mai đang canh · nhắc 19:55 thứ Sáu", resale: "Vé đã về tên anh · B12-13", inspect: "TT 50-07V · 7:30 thứ Ba 12/08" }[p.act.flow]} onTap={() => openFlow(p.act.flow)} />}
+            {p.act && <MaiBanner text={p.act.text} cta={p.act.cta} done={!!done[p.act.flow]} doneText={{ cart: "Đã đặt · Supra giao trước " + (done.cartSlot || "18:00"), ticket: "Mai đang canh · nhắc 19:55 ngày 08/08", resale: "Vé đã về tên anh · B12-13", inspect: "TT 50-07V · 7:30 12/08" }[p.act.flow]} onTap={() => openFlow(p.act.flow)} />}
           </React.Fragment>
         ))}
         <div style={{ padding: "12px 2px 4px", fontSize: 11.5, color: T.faint, lineHeight: 1.55 }}>Kênh mở · mọi người đăng đều định danh CCCD · chạm tên người đăng để xem hồ sơ</div>
@@ -3853,7 +3873,7 @@ export default function MaiV18() {
                     <Row Icon={Car} iconTint={T.amberBg} iconColor={T.amber} title="Đón Bin 16:30 · còn 48 phút"
                       quote="em đón được, anh họp đi 👍" quoteWho="Vy · 15:38" meta="Họp của anh kéo tới 17:00" metaTone="amber" cta="Chốt"
                       done={done.pick ? "Đã chốt" : null} doneMeta="Vy đón 16:20 · đã vào lịch 2 người" onTap={() => openFlow("pickup")} />
-                    <Row Icon={FileText} title="Đơn dã ngoại · Na" meta="Email THCS Trần Phú · hạn thứ Sáu" cta="Ký"
+                    <Row Icon={FileText} title="Đơn dã ngoại · Na" meta="Email THCS Trần Phú · hạn 08/08" cta="Ký"
                       done={done.form ? "Đã gửi" : null} doneMeta="Cô Hồng đã nhận · lưu hồ sơ Na" onTap={() => openFlow("form")} last />
                   </CardBox>
                   {allDone && (
@@ -3875,11 +3895,11 @@ export default function MaiV18() {
                     </>
                   )}
                   {evt >= 1 && <Msg m={{ type: "ext", src: "Zalo · Vy chuyển tiếp · nhóm 3A", time: "15:44", text: "Cô Lan: Chiều mai lớp nghỉ, giáo viên họp." }} />}
-                  {evt >= 2 && <Msg m={{ type: "act", done: undone, text: undone ? "Đã giữ lịch cũ" : "Dời bơi Bin sang thứ Năm 17:00 · đã báo Vy · đã xem ✓", undo: () => { setUndone(true); ding(); }, undoLabel: "Giữ lịch cũ" }} />}
+                  {evt >= 2 && <Msg m={{ type: "act", done: undone, text: undone ? "Đã giữ lịch cũ" : "Dời bơi Bin sang 07/08 lúc 17:00 · đã báo Vy · đã xem ✓", undo: () => { setUndone(true); ding(); }, undoLabel: "Giữ lịch cũ" }} />}
                   {cam === 1 && <div className="rise" style={{ display: "flex", gap: 7, alignItems: "center", padding: "6px 2px", fontSize: 12.5, color: T.sub }}><Camera size={13} /> Mai đang đọc giấy báo…</div>}
                   {cam === 2 && (
                     <>
-                      <Msg m={{ type: "ext", color: "#7A5CB8", Icon: Camera, src: "Ảnh giấy báo · từ cặp sách Na", time: "15:47", text: "THCS Trần Phú: Họp phụ huynh 19:00 thứ Sáu 15/08, phòng A2." }} />
+                      <Msg m={{ type: "ext", color: "#7A5CB8", Icon: Camera, src: "Ảnh giấy báo · từ cặp sách Na", time: "15:47", text: "THCS Trần Phú: Họp phụ huynh 19:00 15/08, phòng A2." }} />
                       <Msg m={{ type: "act", done: camUndone, text: camUndone ? "Đã xóa khỏi lịch" : "Đã vào lịch anh & Vy · nhắc trước 1 ngày", undo: () => { setCamUndone(true); ding(); }, undoLabel: "Xóa khỏi lịch" }} />
                     </>
                   )}
@@ -3896,8 +3916,8 @@ export default function MaiV18() {
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 6px" }}>
                   <Msg m={{ from: "w", name: "Bà", text: "Cuối tuần về ăn giỗ nha các con 🙏" }} />
                   <Msg m={{ from: "w", name: "Cô Út", text: "Dạ con đặt xe rồi má ơi" }} />
-                  <MaiBanner thumb={{ from: "#1E6B4F", to: "#0C3A28", emoji: "🍵" }} text="Giỗ Ông thứ Bảy · Bà thích trà sen · hộp quà Phúc Long 165.000đ" cta="Xem"
-                    done={!!done.tea} doneText="Hộp trà sen Phúc Long · Supra giao thứ Sáu" onTap={() => { setDone((d) => ({ ...d, tea: true })); ding(true); }} />
+                  <MaiBanner thumb={{ from: "#1E6B4F", to: "#0C3A28", emoji: "🍵" }} text="Giỗ Ông 09/08 · Bà thích trà sen · hộp quà Phúc Long 165.000đ" cta="Xem"
+                    done={!!done.tea} doneText="Hộp trà sen Phúc Long · Supra giao 08/08" onTap={() => { setDone((d) => ({ ...d, tea: true })); ding(true); }} />
                   {ongMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   <div ref={endRef} />
                 </div>
