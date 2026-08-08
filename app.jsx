@@ -7,7 +7,7 @@ import {
   TriangleAlert, Music, Ticket, X, Plus, Minus, Clock, MapPin, Bell, Download,
   CircleAlert, Sparkles, Wallet, CreditCard, Store, PhoneOff, Flag, Users,
 } from "lucide-react";
-import { matchMai, pickFallback, GREETING_CHIPS } from "./brain.js";
+import { matchMai, pickFallback, fold, GREETING_CHIPS } from "./brain.js";
 
 // ————————————————————————————————————————————————————————————
 // m.ai · v19 · trợ lý riêng nằm trong tin nhắn: việc nhà, việc cơ quan, hội nhóm.
@@ -1566,13 +1566,15 @@ const Track = ({ steps, speed = 1100, onEnd }) => {
     </div>
   );
 };
-const FaceStep = ({ label, sub, onDone }) => {
+const FaceStep = ({ label, sub, onDone, onCancel }) => {
   const [ok, setOk] = useState(false);
+  const [stop, setStop] = useState(false);
   useEffect(() => {
+    if (stop) return;
     const a = setTimeout(() => { setOk(true); ding(true); }, 1150);
     const b = setTimeout(() => { onDone(); }, 1950);
     return () => { clearTimeout(a); clearTimeout(b); };
-  }, [onDone]);
+  }, [onDone, stop]);
   return (
     <div style={{ textAlign: "center", padding: "18px 0 6px" }}>
       <div style={{ position: "relative", width: 122, height: 122, margin: "0 auto 18px" }}>
@@ -1583,6 +1585,11 @@ const FaceStep = ({ label, sub, onDone }) => {
       </div>
       <div style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, color: T.ink }}>{ok ? "Đã xác thực" : label}</div>
       <div style={{ fontSize: 12.5, color: T.sub, marginTop: 6, ...num }}>{sub}</div>
+      {/* Phải có đường lui ngay lúc đang quét, không phải sau khi tiền đi. */}
+      {!ok && onCancel && (
+        <button onClick={() => { setStop(true); onCancel(); }} className="btn press" style={{ marginTop: 16, background: "#F1EBE1", color: T.sub, fontSize: 15, padding: "11px 20px" }}>Dừng lại</button>
+      )}
+      {stop && <div style={{ marginTop: 14, fontSize: 14.5, color: T.green, fontWeight: 650 }}>Mai dừng rồi, chưa trừ đồng nào.</div>}
     </div>
   );
 };
@@ -1601,8 +1608,8 @@ const AutoNext = ({ ms, onDone, children }) => {
 const Express = ({ now, nowLabel, more, moreLabel }) => (
   <div style={{ marginTop: 16 }}>
     <Btn wide onClick={now}>{nowLabel}</Btn>
-    <button onClick={more} className="btn press" style={{ width: "100%", marginTop: 8, background: "transparent", color: T.sub, border: "none", fontSize: 14.5, padding: "10px 14px" }}>
-      {moreLabel} <ChevronRight size={13} strokeWidth={2.4} style={{ verticalAlign: -2 }} />
+    <button onClick={more} className="btn press" style={{ width: "100%", marginTop: 8, background: T.surf, color: T.ink, border: `1px solid ${T.hair}`, fontSize: 15, padding: "12px 14px" }}>
+      {moreLabel} <ChevronRight size={14} strokeWidth={2.4} style={{ verticalAlign: -2 }} />
     </button>
   </div>
 );
@@ -1659,10 +1666,10 @@ const flowPay = (finish) => [
       </div>
       <div style={{ marginTop: 12 }}><KV rows={[["Hạn chót", "Hôm nay · 17:00", "amber"], ["Đã đóng", "14/32 phụ huynh"], ["Cô nhắc", "lần 2"]]} /></div>
       <Express
-        now={() => a.go(4)}
-        nowLabel="Trả 850.000đ bằng WinMoney"
+        now={() => a.go(3)}
+        nowLabel="Xem lại rồi trả 850.000đ"
         more={a.next}
-        moreLabel="Xem khoản thu và cách trả" />
+        moreLabel="Xem kỹ từng bước" />
     </>
   ),
   (a) => (
@@ -1695,7 +1702,7 @@ const flowPay = (finish) => [
       <Foot><Btn wide onClick={a.next}>Xác nhận {fmt(850000)}</Btn></Foot>
     </>
   ),
-  (a) => <FaceStep label="Nhìn vào máy để trả 850.000đ" sub="WinMoney · TCB ····4102" onDone={a.next} />,
+  (a) => <FaceStep label="Nhìn vào máy để trả 850.000đ" sub="WinMoney · TCB ····4102" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
   (a) => (
     <>
       <div style={{ textAlign: "center", marginBottom: 4 }}>
@@ -1814,10 +1821,10 @@ const flowForm = (finish) => [
       <H1 sub="Email trường gửi 3 ngày trước, Mai giữ lại chờ anh.">Thư của trường</H1>
       <Evidence Icon={FileText} color="#7A5CB8" src="Email · THCS Trần Phú" time="03/08" text="Kính gửi phụ huynh em Nguyễn Thị Na, lớp 6A2. Nhà trường tổ chức dã ngoại Cần Giờ thứ Sáu 08/08. Phụ huynh vui lòng ký đơn đồng ý và nộp phí 120.000đ trước thứ Sáu." />
       <Express
-        now={() => a.go(4)}
-        nowLabel="Ký đơn và trả 120.000đ"
+        now={() => a.go(3)}
+        nowLabel="Xem lại rồi ký đơn"
         more={a.next}
-        moreLabel="Đọc đơn Mai điền sẵn" />
+        moreLabel="Đọc kỹ từng phần" />
     </>
   ),
   (a) => (
@@ -1852,7 +1859,7 @@ const flowForm = (finish) => [
       <Foot><Btn wide onClick={a.next}>Tiếp tục</Btn></Foot>
     </>
   ),
-  (a) => <FaceStep label={a.d.fee === "later" ? "Ký đơn bằng định danh của anh" : "Ký đơn và chuyển 120.000đ"} sub="Chữ ký số gắn CCCD ···· 4102" onDone={a.next} />,
+  (a) => <FaceStep label={a.d.fee === "later" ? "Ký đơn bằng định danh của anh" : "Ký đơn và chuyển 120.000đ"} sub="Chữ ký số gắn CCCD ···· 4102" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
   (a) => (
     <>
       <H1 sub="Bản này đã gửi cô Hồng chủ nhiệm 6A2 lúc 15:47.">Đơn đã gửi</H1>
@@ -1944,17 +1951,25 @@ const flowCart = (finish) => {
           <H1 sub="Điểm WinX chỉ cộng khi mua hàng của Masan.">Giao tới đâu, trả bằng gì</H1>
           <KV rows={[["Địa chỉ", "Zeit River · T1.02.06"], ["Siêu thị", "WinMart+ Thảo Điền · 1,4km"], ["Giao bởi", "Supra · " + (a.d.slot || "18:00")], ["Tổng", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"]]} />
           <div style={{ marginTop: 12 }}>
-            <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })} items={[{ id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư 2.480.000đ" }, { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không tích điểm WinX", warn: true }]} />
+            <Choice value={a.d.src || "wm"} onPick={(v) => a.set({ src: v })} items={[{ id: "wm", Icon: Wallet, t: "WinMoney", s: "số dư " + fmt(a.ctx && a.ctx.bal != null ? a.ctx.bal : 2480000) }, { id: "cod", Icon: Banknote, t: "Tiền mặt khi nhận", s: "không tích điểm WinX", warn: true }]} />
           </div>
           <Foot><Btn wide onClick={a.next}>{a.d.src === "cod" ? "Đặt đơn" : "Trả " + fmt(tt)}</Btn></Foot>
         </>
       );
     },
-    (a) => <FaceStep label={"Nhìn vào máy để trả " + fmt(total(a.d.items || CART0, a.d.ex || {}))} sub="WinMart+ · WinMoney" onDone={a.next} />,
+    (a) => a.d.src === "cod"
+      ? (
+        <>
+          <H1 sub="Anh trả tiền mặt lúc nhận, Mai không đụng vào ví.">Đặt đơn, trả sau</H1>
+          <KV rows={[["Trả khi nhận", fmt(total(a.d.items || CART0, a.d.ex || {}))], ["Người giao", "Supra · " + (a.d.slot || "18:00")], ["Điểm WinX", "không có · trả tiền mặt", "amber"]]} />
+          <Foot><Btn wide onClick={a.next}>Chốt đơn</Btn></Foot>
+        </>
+      )
+      : <FaceStep label={"Nhìn vào máy để trả " + fmt(total(a.d.items || CART0, a.d.ex || {}))} sub="WinMart+ · WinMoney" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
     (a) => (
       <>
         <H1 sub="Mai theo dõi giúp anh, có gì lệch Mai báo ngay.">Đơn đang giao</H1>
-        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Tài xế Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước 18:00", s: "Mai báo khi hàng tới cửa" }]} />
+        <Track steps={[{ t: "WinMart+ nhận đơn", s: "15:44" }, { t: "Đang soạn hàng", s: "nhân viên quầy tươi" }, { t: "Tài xế Supra đã nhận", s: "anh Tài · 51F1-882.03" }, { t: "Đang tới Zeit River", s: "còn 1,1km" }, { t: "Giao trước " + (a.d.slot || "18:00"), s: "Mai báo khi hàng tới cửa" }]} />
         <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
       </>
     ),
@@ -1963,9 +1978,9 @@ const flowCart = (finish) => {
       return (
         <>
           <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
-          <H1 sub="Supra giao trước 18:00, Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong.">Đặt xong rồi</H1>
-          <KV rows={[["Tổng trả", fmt(tt)], ["Điểm WinX", "+" + Math.round(tt / 1000), "green"], ["Lưu", "Công thức + giỏ hàng lặp lại"]]} />
-          <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về kênh</Btn></Foot>
+          <H1 sub={"Supra giao trước " + (a.d.slot || "18:00") + ", Mai báo khi hàng tới cửa. Công thức bò kho đã nằm trong hồ sơ, lần sau nói đặt lại là xong."}>Đặt xong rồi</H1>
+          <KV rows={[[a.d.src === "cod" ? "Trả khi nhận" : "Tổng trả", fmt(tt)], ["Điểm WinX", a.d.src === "cod" ? "không có · trả tiền mặt" : "+" + Math.round(tt / 1000), a.d.src === "cod" ? "amber" : "green"], ["Giao", "Supra · trước " + (a.d.slot || "18:00")]]} />
+          <Foot><Btn wide onClick={() => { finish({ ...a.d, total: tt }); a.close(); }}>Về kênh</Btn></Foot>
         </>
       );
     },
@@ -2024,7 +2039,7 @@ const flowTicket = (finish) => [
       <Foot><Btn wide onClick={a.next}>Xác nhận kế hoạch</Btn></Foot>
     </>
   ),
-  (a) => <FaceStep label="Xác nhận ý định mua vé" sub="Chưa trừ tiền · chỉ ghi CCCD để điền sẵn" onDone={a.next} />,
+  (a) => <FaceStep label="Xác nhận ý định mua vé" sub="Chưa trừ tiền · chỉ ghi CCCD để điền sẵn" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
   (a) => {
     const q = a.d.qty || 2, zone = a.d.zone || "B";
     const price = { A: 1490000, B: 890000, C: 590000 }[zone];
@@ -2665,7 +2680,7 @@ const flowShare = (finish) => [
         <KV rows={[["Nhắc", "09/08 · trước hạn 3 ngày"], ["Nguồn", "Gmail · anh chia sẻ 15:52"], ["Lưu tại", "Hồ sơ nhà mình · điện", "green"]]} />
         <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
       </>)
-    : <FaceStep label={a.d.act === "now" ? "Nhìn vào máy để trả 1.310.000đ" : "Cho phép Mai trả tự động kỳ điện"} sub="WinMoney · TCB ····4102 · hạn mức 2.000.000đ/lần" onDone={a.next} />,
+    : <FaceStep label={a.d.act === "now" ? "Nhìn vào máy để trả 1.310.000đ" : "Cho phép Mai trả tự động kỳ điện"} sub="WinMoney · TCB ····4102 · hạn mức 2.000.000đ/lần" onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
   (a) => (
     <>
       <div style={{ textAlign: "center", padding: "4px 0" }}><Burst /><StrokeCheck size={34} /></div>
@@ -2924,7 +2939,7 @@ const flowWallet = (finish, spent, bal) => [
       <Foot><Btn wide onClick={a.next}>Quét mặt để xác nhận</Btn></Foot>
     </>
   ),
-  (a) => <FaceStep label="Đặt trần chi tiêu" sub={"Mai tự trả tối đa " + (a.d.cap || "500.000đ") + " mỗi lần"} onDone={a.next} />,
+  (a) => <FaceStep label="Đặt trần chi tiêu" sub={"Mai tự trả tối đa " + (a.d.cap || "500.000đ") + " mỗi lần"} onDone={a.next} onCancel={() => a.go(Math.max(0, a.i - 1))} />,
   (a) => (
     <>
       <div style={{ textAlign: "center", padding: "4px 0" }}><StrokeCheck size={34} /></div>
@@ -3261,26 +3276,26 @@ const flowWinx = (finish, onShare) => [
 // báo" — tức là nhóm hữu ích nhưng ồn. Đó đúng là việc của Mai.
 // ————————————————————————————————————————————————————————————
 const TRAYS = [
-  { n: "Ba rọi heo", g: "398g", was: 75600, now: 53000 },
-  { n: "Đùi heo", g: "401g", was: 58500, now: 41000 },
-  { n: "Cốt lết", g: "409g", was: 59700, now: 44000 },
-  { n: "Sườn non", g: "327g", was: 62100, now: 44000 },
-  { n: "Nạc vai", g: "407g", was: 59300, now: 41000 },
-  { n: "Bò nạm", g: "500g", was: 139000, now: 99000, hot: true },
+  { n: "Ba rọi heo", g: "398g", was: 75600, now: 53000, k: ["ba roi", "ba chi"] },
+  { n: "Đùi heo", g: "401g", was: 58500, now: 41000, k: ["dui heo", "dui"] },
+  { n: "Cốt lết", g: "409g", was: 59700, now: 44000, k: ["cot let", "cotlet"] },
+  { n: "Sườn non", g: "327g", was: 62100, now: 44000, k: ["suon non", "suon"] },
+  { n: "Nạc vai", g: "407g", was: 59300, now: 41000, k: ["nac vai", "nac"] },
+  { n: "Bò nạm", g: "500g", was: 139000, now: 99000, hot: true, k: ["bo nam", "thit bo", "bo kho"] },
 ];
 const TrayGrid = ({ onTap }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
     {TRAYS.map((x) => (
-      <div key={x.n} onClick={x.hot ? onTap : undefined} className={x.hot ? "press" : undefined}
-        style={{ background: T.surf, border: `1px solid ${x.hot ? T.brand : T.hair}`, borderRadius: 11, padding: "8px 8px 7px", cursor: x.hot ? "pointer" : "default", boxShadow: x.hot ? "0 2px 8px rgba(194,85,47,.18)" : "none" }}>
+      <div key={x.n} onClick={() => onTap(x)} className="press"
+        style={{ background: T.surf, border: `${x.hot ? 2.5 : 1}px solid ${x.hot ? T.brand : T.hair}`, borderRadius: 11, padding: x.hot ? "6.5px 6.5px 5.5px" : "8px 8px 7px", cursor: "pointer", boxShadow: x.hot ? "0 2px 8px rgba(194,85,47,.18)" : "none" }}>
         <div style={{ height: 26, borderRadius: 6, background: "linear-gradient(140deg,#E4B7AE,#B4635A)", marginBottom: 6, position: "relative", overflow: "hidden" }}>
           <span style={{ position: "absolute", left: 4, top: 3, fontSize: 7.5, fontWeight: 800, color: "#FFF", letterSpacing: 0.2 }}>MEATDeli</span>
         </div>
-        <div style={{ fontSize: 12, fontWeight: 650, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.n}</div>
-        <div style={{ fontSize: 11, color: T.faint, ...num }}>{x.g}</div>
+        <div style={{ fontSize: 14, fontWeight: 650, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.n}</div>
+        <div style={{ fontSize: 12.5, color: T.faint, ...num }}>{x.g}</div>
         <div style={{ marginTop: 3, ...num }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: x.hot ? T.brandInk : T.ink }}>{Math.round(x.now / 1000)}k</span>
-          <span style={{ fontSize: 10.5, color: T.faint, textDecoration: "line-through", marginLeft: 4 }}>{Math.round(x.was / 1000)}k</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: x.hot ? T.brandInk : T.ink }}>{Math.round(x.now / 1000)}k</span>
+          <span style={{ fontSize: 12, color: T.faint, textDecoration: "line-through", marginLeft: 4 }}>{Math.round(x.was / 1000)}k</span>
         </div>
       </div>
     ))}
@@ -3288,29 +3303,38 @@ const TrayGrid = ({ onTap }) => (
 );
 
 // 15 · CHỪA HÀNG Ở CỬA HÀNG (6 bước)
-const flowHold = (finish) => [
+const flowHold = (finish, tray) => {
+  const x = tray || TRAYS[5];
+  const cheaper = TRAYS.filter((y) => y.now < x.now).sort((a, b) => a.now - b.now)[0];
+  return [
   (a) => (
     <>
-      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, còn 6 khay. Mai chỉ giữ lại khay hợp bếp nhà mình.">Khay hợp nồi bò kho</H1>
+      <H1 sub="Chị My bên quầy tươi đăng lúc 08:21, còn 6 khay giảm giá.">Chừa {x.n.toLowerCase()}</H1>
       <div style={{ display: "flex", alignItems: "center", gap: 13, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 16, padding: "13px 14px", marginBottom: 12 }}>
         <Scene name="meal" small />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>Bò nạm MEATDeli 500g</div>
-          <div style={{ fontSize: 13.5, color: T.brandInk, marginTop: 2, ...num }}>99.000đ · thường 139.000đ · còn 2 khay</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{x.n} MEATDeli {x.g}</div>
+          <div style={{ fontSize: 14, color: T.brandInk, marginTop: 2, ...num }}>{fmt(x.now)} · thường {fmt(x.was)} · rẻ hơn {fmt(x.was - x.now)}</div>
         </div>
       </div>
-      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "12:00 trưa nay", "amber"], ["Rẻ hơn giỏ Mai soạn", "40.000đ", "green"]]} />
+      <KV rows={[["Cửa hàng", "Win+ 13 Hai Bà Trưng · 1,2km"], ["Người đăng", "chị My · nhân viên quầy tươi"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
+      {/* Không giấu khay rẻ hơn. Người đi chợ bốn mươi năm nhìn ra ngay. */}
+      {cheaper && (
+        <div style={{ marginTop: 10, fontSize: 14, color: T.sub, lineHeight: 1.5 }}>
+          Rẻ nhất sáng nay là {cheaper.n.toLowerCase()} {fmt(cheaper.now)}. Mai gợi ý khay này vì hợp nồi bò kho tối nay, còn anh muốn khay rẻ hơn thì quay ra chạm khay đó.
+        </div>
+      )}
       <Express
         now={() => { a.set({ qty: 1, take: "supra" }); a.go(3); }}
-        nowLabel="Nhắn chị My chừa 1 khay"
+        nowLabel={"Chừa 1 khay · Supra giao tận cửa"}
         more={a.next}
-        moreLabel="Đổi số lượng hoặc cách nhận" />
+        moreLabel="Em ghé lấy, hoặc đổi số lượng" />
     </>
   ),
   (a) => (
     <>
-      <H1 sub="Còn 2 khay, chị My giữ tới 12:00 trưa.">Chừa mấy khay</H1>
-      <Qty items={[{ n: "Bò nạm 500g", p: 99000, q: a.d.qty || 1 }]} set={(q) => a.set({ qty: q })} />
+      <H1 sub="Chị My giữ tới 12:00 trưa nay.">Chừa mấy khay</H1>
+      <Qty items={[{ n: x.n + " " + x.g, p: x.now, q: a.d.qty || 1 }]} set={(q) => a.set({ qty: q })} />
       <Foot><Btn wide onClick={a.next}>Chọn cách nhận</Btn></Foot>
     </>
   ),
@@ -3329,7 +3353,7 @@ const flowHold = (finish) => [
     <>
       <H1 sub="Mai nhắn riêng chị My, không đăng vào nhóm 498 người.">Tin Mai gửi</H1>
       <div style={{ background: T.dark, color: "#FBF7F1", borderRadius: 16, borderBottomRightRadius: 6, padding: "12px 14px", fontSize: 14.5, lineHeight: 1.5 }}>
-        Chị My ơi, chừa em {a.d.qty || 1} khay bò nạm 500g nha chị. {a.d.take === "self" ? "Chiều em ghé lấy." : "Cho em gửi Supra giao giúp ạ."} Em cảm ơn chị.
+        Chị My ơi, chừa em {a.d.qty || 1} khay {x.n.toLowerCase()} {x.g} nha chị. {a.d.take === "self" ? "Chiều em ghé lấy." : "Cho em gửi Supra giao giúp ạ."} Em cảm ơn chị.
       </div>
       <AutoNext ms={1600} onDone={a.next}>
         <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 9, fontSize: 14, color: T.sub }}>
@@ -3342,9 +3366,9 @@ const flowHold = (finish) => [
     <>
       <H1 sub="Chị My trả lời sau 40 giây, nhanh hơn Mai tưởng.">Chị My đã chừa</H1>
       <Evidence src="chị My · Win+ 13 Hai Bà Trưng" time="08:24" Icon={Store} color="#E8342C"
-        text="Dạ chị chừa rồi nha em, khay 99k. Em nói tên là lấy được, hoặc để chị đưa shipper Supra." />
+        text={"Dạ chị chừa rồi nha em, khay " + Math.round(x.now / 1000) + "k. Em nói tên là lấy được, hoặc để chị đưa shipper Supra."} />
       <div style={{ marginTop: 12 }}>
-        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay bò nạm 500g"], ["Giá", fmt(99000 * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
+        <KV rows={[["Đã chừa", (a.d.qty || 1) + " khay " + x.n.toLowerCase()], ["Giá", fmt(x.now * (a.d.qty || 1))], ["Nhận", a.d.take === "self" ? "anh ghé quầy tươi" : "Supra giao trong 2 tiếng"], ["Giữ tới", "12:00 trưa nay", "amber"]]} />
       </div>
       <Foot><Btn wide onClick={a.next}>Xong</Btn></Foot>
     </>
@@ -3355,13 +3379,14 @@ const flowHold = (finish) => [
       <H1 sub="Mai vẫn đọc nhóm giúp anh. Có khay hợp bếp nhà mình thì Mai báo, còn lại Mai để yên.">Đã chừa hàng</H1>
       <div style={{ background: T.greenBg, border: "1px solid #CFE7DA", borderRadius: 16, padding: "13px 14px" }}>
         <div style={{ fontSize: 14, color: "#14603C", lineHeight: 1.55, ...num }}>
-          Rẻ hơn giỏ Mai soạn ban đầu {fmt(40000)}. Trả bằng WinMoney thì cộng thêm 99 điểm WinX.
+          Rẻ hơn giá thường {fmt((x.was - x.now) * (a.d.qty || 1))}. Trả bằng WinMoney thì cộng thêm {x.now * (a.d.qty || 1) / 1000} điểm WinX, còn trả tiền mặt vẫn được giá này.
         </div>
       </div>
       <Foot><Btn wide onClick={() => { finish(a.d); a.close(); }}>Về nhóm</Btn></Foot>
     </>
   ),
 ];
+};
 
 const SURFACES = [
   { id: "winx", n: "WinX", g: "X", c: "#E8342C", flow: "winx" },
@@ -3399,6 +3424,7 @@ export default function MaiV18() {
   const [famMsgs, setFamMsgs] = useState([]);
   const [ongMsgs, setOngMsgs] = useState([]);
   const [wpMsgs, setWpMsgs] = useState([]);
+  const [holdTray, setHoldTray] = useState(null);
   const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chào anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm nút nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3426,7 +3452,7 @@ export default function MaiV18() {
     }
   };
   const allDone = done.pay && done.form && done.pick;
-  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cart ? 186000 : 0) - (done.tea ? 165000 : 0);
+  const bal = 2480000 - (done.pay ? 850000 : 0) - (done.cartTotal != null ? done.cartTotal : done.cart ? 186000 : 0) - (done.tea ? 165000 : 0);
   const [teaArm, setTeaArm] = useState(0); // 0 nghỉ · 1 chờ chạm lần hai
   const spent = [
     done.pay && { t: "Học bơi tháng 8 · Bin", s: "15:43 · biên lai gửi riêng cô Lan", v: 850000, Icon: Banknote },
@@ -3492,6 +3518,14 @@ export default function MaiV18() {
   const sendWp = () => {
     const q = input.trim(); if (!q) return;
     setInput(""); setWpMsgs((x) => [...x, { id: Date.now(), from: "vy", text: q }]); bump();
+    const f = fold(q);
+    const hit = TRAYS.find((x) => x.k.some((w) => f.includes(w))) || null;
+    setTimeout(() => {
+      setWpMsgs((x) => [...x, hit
+        ? { id: Date.now() + 1, from: "mai", text: "Anh nhắn " + hit.n.toLowerCase() + " " + fmt(hit.now) + " phải không. Mai nhắn riêng chị My chừa giúp, khỏi chờ trong nhóm 498 người.", extra: <div style={{ marginTop: 9 }}><Btn onClick={() => { setHoldTray(hit); openFlow("hold"); }}>Nhờ chị My chừa</Btn></div> }
+        : { id: Date.now() + 1, from: "mai", text: "Sáng nay còn 6 khay giảm giá, rẻ nhất là đùi heo và nạc vai 41.000đ. Anh nói tên món là Mai nhắn riêng chị My chừa giúp." }]);
+      bump();
+    }, 900);
   };
   const sendOng = () => {
     const q = input.trim(); if (!q) return;
@@ -3524,12 +3558,12 @@ export default function MaiV18() {
   };
 
   // đăng ký luồng
-  const end = (id, fn) => () => { fn(); afterFlow(id); };
+  const end = (id, fn) => (d) => { fn(d); afterFlow(id); };
   const FLOWS = {
     pay: () => flowPay(end("pay", () => complete("pay"))),
     pickup: () => flowPickup(end("pickup", () => complete("pick"))),
     form: () => flowForm(end("form", () => complete("form"))),
-    cart: () => flowCart(end("cart", () => setDone((d) => ({ ...d, cart: true })))),
+    cart: () => flowCart(end("cart", (d) => setDone((x) => ({ ...x, cart: true, cartTotal: d && d.src === "cod" ? 0 : (d && d.total) || 186000, cartSlot: (d && d.slot) || "18:00", cartCod: !!(d && d.src === "cod") })))),
     ticket: () => flowTicket(end("ticket", () => setDone((d) => ({ ...d, ticket: true })))),
     resale: () => flowResale(end("resale", () => setDone((d) => ({ ...d, resale: true })))),
     inspect: () => flowInspect(end("inspect", () => setDone((d) => ({ ...d, inspect: true })))),
@@ -3540,7 +3574,7 @@ export default function MaiV18() {
     dev: () => flowDevices(() => setDone((d) => ({ ...d, dev: true }))),
     wallet: () => flowWallet(end("wallet", () => setDone((d) => ({ ...d, wallet: true }))), spent, bal),
     winx: () => flowWinx(end("winx", () => setDone((d) => ({ ...d, winx: true }))), () => setDone((d) => ({ ...d, shared: true }))),
-    hold: () => flowHold(end("hold", () => setDone((d) => ({ ...d, hold: true })))),
+    hold: () => flowHold(end("hold", () => setDone((d) => ({ ...d, hold: true }))), holdTray),
   };
   const TITLES = { pay: "Trả học bơi", pickup: "Người đón Bin", form: "Đơn dã ngoại", cart: "Giỏ WinMart+", ticket: "Vé concert", resale: "Sang nhượng vé", inspect: "Đăng kiểm xe", call: "Cuộc gọi lạ", kb: "Bàn phím m.ai trong " + surfApp, share: "Chia sẻ vào Mai", speaker: "Loa m.ai · nhà Bà", dev: "Đồng hồ · tai nghe · xe", wallet: "Ví WinMoney", winx: "Thẻ WinX", hold: "Chừa hàng ở cửa hàng" };
   const openFlow = (id, from) => { flowFrom.current = from || null; setPost(null); setFile(null); setFlow(id); ding(); };
@@ -3592,7 +3626,7 @@ export default function MaiV18() {
           <React.Fragment key={p.id}>
             <Post up={p.up} title={p.title} body={p.body} hero={p.hero} thumb={p.thumb} comments={p.comments.length}
               meta={{ who: p.who, when: p.when }} onTap={() => { setPost(p); ding(); }} onAuthor={() => { setProf(p.profile); ding(); }} />
-            {p.act && <MaiBanner text={p.act.text} cta={p.act.cta} done={!!done[p.act.flow]} doneText={{ cart: "Đã đặt · Supra giao 18:00 · +186 điểm WinX", ticket: "Mai đang canh · nhắc 19:55 thứ Sáu", resale: "Vé đã về tên anh · B12-13", inspect: "TT 50-07V · 7:30 thứ Ba 12/08" }[p.act.flow]} onTap={() => openFlow(p.act.flow)} />}
+            {p.act && <MaiBanner text={p.act.text} cta={p.act.cta} done={!!done[p.act.flow]} doneText={{ cart: "Đã đặt · Supra giao trước " + (done.cartSlot || "18:00"), ticket: "Mai đang canh · nhắc 19:55 thứ Sáu", resale: "Vé đã về tên anh · B12-13", inspect: "TT 50-07V · 7:30 thứ Ba 12/08" }[p.act.flow]} onTap={() => openFlow(p.act.flow)} />}
           </React.Fragment>
         ))}
         <div style={{ padding: "12px 2px 4px", fontSize: 11.5, color: T.faint, lineHeight: 1.55 }}>Kênh mở · mọi người đăng đều định danh CCCD · chạm tên người đăng để xem hồ sơ</div>
@@ -3725,18 +3759,17 @@ export default function MaiV18() {
                       {allDone || !visitedFamily ? <ChevronRight size={16} color={T.faint} /> : <Countdown minutes={78} total={480} size={44} />}
                     </div>
                   </div>
-                  <div style={{ padding: "13px 14px 14px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 10 }}>
-                      <span style={{ fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI ĐI CÙNG ANH</span>
-                      <span style={{ fontSize: 11.5, color: T.faint }}>· chạm để xem Mai làm việc trong app khác</span>
+                  <div style={{ padding: "11px 14px 11px", background: T.surf, borderBottom: `1px solid ${T.hair}` }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 750, letterSpacing: 0.8, color: T.faint }}>MAI CÓ SẴN TRONG</span>
                     </div>
-                    <div style={{ display: "flex", gap: 9, overflowX: "auto", paddingBottom: 2 }}>
+                    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 2 }}>
                       {SURFACES.map((sf) => (
                         <button key={sf.id} onClick={() => { if (sf.app) setSurfApp(sf.app); openFlow(sf.flow); }} className="btn press"
-                          style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 58 }}>
-                          <span style={{ width: 48, height: 48, borderRadius: 15, background: sf.c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: sf.g.length > 1 ? 21 : 19, fontWeight: 800, boxShadow: "0 2px 8px rgba(60,45,30,.16)" }}>{sf.g}</span>
-                          <div style={{ fontSize: 11.5, color: T.sub, marginTop: 5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
-                          {done[sf.flow] && <div style={{ fontSize: 10.5, color: T.green, fontWeight: 700 }}>đã xem ✓</div>}
+                          style={{ background: "transparent", padding: 0, display: "block", textAlign: "center", flexShrink: 0, width: 46 }}>
+                          <span style={{ width: 42, height: 42, borderRadius: 13, background: sf.c, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: sf.g.length > 1 ? 18 : 17, fontWeight: 800, boxShadow: "0 2px 6px rgba(60,45,30,.14)" }}>{sf.g}</span>
+                          <div style={{ fontSize: 11, color: T.sub, marginTop: 4, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sf.n}</div>
+                          {done[sf.flow] && <div style={{ fontSize: 10.5, color: T.green, fontWeight: 700 }}>✓</div>}
                         </button>
                       ))}
                     </div>
@@ -3774,7 +3807,7 @@ export default function MaiV18() {
                     <IconSq Icon={ShoppingCart} size={40} tint={T.greenBg} color={T.green} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 650, fontSize: 15, color: T.ink }}>Đi chợ · WinMart+</div>
-                      <div style={{ fontSize: 12.5, color: done.cart ? T.green : T.sub, marginTop: 2, fontWeight: done.cart ? 650 : 400 }}>{done.cart ? "Đã đặt · Supra giao trước 18:00" : "Bò kho tối nay · 5 món · Supra giao"}</div>
+                      <div style={{ fontSize: 12.5, color: done.cart ? T.green : T.sub, marginTop: 2, fontWeight: done.cart ? 650 : 400 }}>{done.cart ? "Đã đặt · Supra giao trước " + (done.cartSlot || "18:00") + (done.cartCod ? " · trả tiền mặt" : "") : "Bò kho tối nay · 5 món · Supra giao"}</div>
                     </div>
                     {done.cart ? <Pill tone="green"><Check size={11} strokeWidth={3} /> Xong</Pill> : <span style={{ fontFamily: DISPLAY, fontSize: 14.5, fontWeight: 600, color: T.ink, ...num }}>{fmt(186000)}</span>}
                   </div>
@@ -3884,15 +3917,15 @@ export default function MaiV18() {
                   </div>
 
                   <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Sáng nay cửa hàng em còn ít khay thịt giảm giá, khách ăn gì nhắn em chừa nha" }} />
-                  <div style={{ margin: "2px 0 10px" }}><TrayGrid onTap={() => openFlow("hold")} /></div>
-                  <div style={{ fontSize: 11.5, color: T.faint, margin: "0 0 12px 2px", ...num }}>08:21 · chạm khay có viền để Mai chừa giúp</div>
+                  <div style={{ margin: "2px 0 10px" }}><TrayGrid onTap={(x) => { setHoldTray(x); openFlow("hold"); }} /></div>
+                  <div style={{ fontSize: 14, color: T.sub, margin: "0 0 12px 2px", ...num }}>08:21 · chạm khay nào cũng được, Mai nhắn chị My chừa giúp</div>
 
                   <Msg m={{ type: "ext", color: "#E8342C", Icon: BadgeCheck, src: "Hội viên WinX · tin cửa hàng", time: "07:00",
                     text: "Ngày 08/08 WinMart+ ưu đãi lớn cho hội viên WinX. Quét thẻ ở quầy là được giá hội viên, không cần phiếu giấy." }} />
                   <Msg m={{ from: "w", name: "cô Bảy", text: "Chừa tui 2 khay ba rọi nghen My" }} />
 
                   <MaiBanner text="498 người, 47 tin sáng nay. Mai giữ lại 1 tin: bò nạm 500g còn 2 khay, 99.000đ, đúng món cho nồi bò kho tối nay."
-                    cta="Xem" done={!!done.hold} doneText="Chị My đã chừa 1 khay bò nạm · rẻ hơn giỏ cũ 40.000đ" onTap={() => openFlow("hold")} />
+                    cta="Xem" done={!!done.hold} doneText="Chị My đã chừa hàng · nhắn riêng, không đăng nhóm" onTap={() => { setHoldTray(null); openFlow("hold"); }} />
                   {wpMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   <div ref={endRef} />
                 </div>
@@ -3944,7 +3977,7 @@ export default function MaiV18() {
           {file && <FileSheet f={file} onClose={() => setFile(null)} onFlow={(id) => { setFile(null); openFlow(id); }} onGoto={(s) => { setFile(null); setFiles(false); setScreen(s); }} onAsk={(q) => { setFile(null); setFiles(false); askMai(q); }} />}
           {post && <PostSheet post={post} onClose={() => setPost(null)} onAuthor={() => { setProf(post.profile); }} onAct={() => post.act && openFlow(post.act.flow)} />}
           {prof && <ProfileSheet p={prof} onClose={() => setProf(null)} />}
-          {flow && <Wizard title={TITLES[flow]} steps={FLOWS[flow]()} onClose={() => setFlow(null)} />}
+          {flow && <Wizard title={TITLES[flow]} steps={FLOWS[flow]()} ctx={{ bal }} onClose={() => setFlow(null)} />}
           {cover && <Cover onClose={closeCover} />}
           {intro && <Intro onDone={() => setIntro(false)} />}
         </Boundary>
