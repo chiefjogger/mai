@@ -1889,7 +1889,7 @@ const flowForm = (finish) => [
 
 // 4 · GIỎ WINMART+ (7 bước)
 const CART0 = [
-  { n: "Bò nạm 500g", p: 139000, q: 1, brand: "MEATDeli" },
+  { n: "Bò nạm 500g", p: 139000, q: 1, brand: "quầy tươi" },
   { n: "Cà rốt 500g", p: 15000, q: 1 },
   { n: "Sả · gừng", p: 8000, q: 1 },
   { n: "Gia vị bò kho Chin-su", p: 12000, q: 1, brand: "Chin-su" },
@@ -1913,7 +1913,7 @@ const flowCart = (finish) => {
             <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.brandSoft, border: "1px solid #EBCBB6", borderRadius: 14, padding: "11px 12px", marginBottom: 11 }}>
               <Store size={16} color={T.brandInk} strokeWidth={2.2} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: T.ink, lineHeight: 1.45, ...num }}>
-                Chị My bên Win+ Hai Bà Trưng còn khay bò nạm {fmt(TRAYS[5].now)}, rẻ hơn {fmt(TRAYS[5].was - TRAYS[5].now)}. Đổi lại anh phải ghé lấy hoặc chờ Supra 2 tiếng.
+                Chị My bên Win+ Hai Bà Trưng còn khay {TRAYS[5].n.toLowerCase()} {fmt(TRAYS[5].now)}, rẻ hơn {fmt(TRAYS[5].was - TRAYS[5].now)}. Kho cũng ngon, nhưng anh phải ghé lấy hoặc chờ Supra 2 tiếng.
               </span>
             </div>
           )}
@@ -3295,20 +3295,20 @@ const flowWinx = (finish, onShare) => [
 // báo" — tức là nhóm hữu ích nhưng ồn. Đó đúng là việc của Mai.
 // ————————————————————————————————————————————————————————————
 const TRAYS = [
-  { n: "Ba rọi heo", g: "398g", was: 75600, now: 53000, k: ["ba roi", "ba chi"] },
-  { n: "Đùi heo", g: "401g", was: 58500, now: 41000, k: ["dui heo", "dui"] },
-  { n: "Cốt lết", g: "409g", was: 59700, now: 44000, k: ["cot let", "cotlet"] },
-  { n: "Sườn non", g: "327g", was: 62100, now: 44000, k: ["suon non", "suon"] },
-  { n: "Nạc vai", g: "407g", was: 59300, now: 41000, k: ["nac vai", "nac"] },
-  { n: "Bò nạm", g: "500g", was: 139000, now: 99000, hot: true, k: ["bo nam", "thit bo", "bo kho"] },
+  { n: "Ba rọi heo", g: "398g", was: 75600, now: 53000, img: "photos/baroi.jpg", k: ["ba roi", "ba chi"] },
+  { n: "Nạc đùi", g: "401g", was: 58500, now: 41000, img: "photos/duiheo.jpg", k: ["dui heo", "nac dui", "dui"] },
+  { n: "Cốt lết", g: "409g", was: 59700, now: 44000, img: "photos/cotlet.jpg", k: ["cot let", "cotlet"] },
+  { n: "Nạc vai", g: "407g", was: 59300, now: 41000, img: "photos/nacvai.jpg", k: ["nac vai", "nac"] },
+  { n: "Nạc dăm", g: "395g", was: 68000, now: 47000, img: "photos/nacdam.jpg", k: ["nac dam", "dam dau gion"] },
+  { n: "Sườn non", g: "327g", was: 96000, now: 62000, hot: true, img: "photos/suonnon.jpg", k: ["suon non", "suon"] },
 ];
 const TrayGrid = ({ onTap }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
     {TRAYS.map((x) => (
       <div key={x.n} onClick={() => onTap(x)} className="press"
         style={{ background: T.surf, border: `${x.hot ? 2.5 : 1}px solid ${x.hot ? T.brand : T.hair}`, borderRadius: 11, padding: x.hot ? "6.5px 6.5px 5.5px" : "8px 8px 7px", cursor: "pointer", boxShadow: x.hot ? "0 2px 8px rgba(194,85,47,.18)" : "none" }}>
-        <div style={{ height: 26, borderRadius: 6, background: "linear-gradient(140deg,#E4B7AE,#B4635A)", marginBottom: 6, position: "relative", overflow: "hidden" }}>
-          <span style={{ position: "absolute", left: 4, top: 3, fontSize: 7.5, fontWeight: 800, color: "#FFF", letterSpacing: 0.2 }}>MEATDeli</span>
+        <div style={{ height: 58, borderRadius: 8, marginBottom: 6, overflow: "hidden", background: "#F1EBE1" }}>
+          <img src={x.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
         <div style={{ fontSize: 14, fontWeight: 650, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.n}</div>
         <div style={{ fontSize: 12.5, color: T.faint, ...num }}>{x.g}</div>
@@ -3968,9 +3968,31 @@ export default function MaiV18() {
 
                   <Msg m={{ type: "ext", color: "#E8342C", Icon: BadgeCheck, src: "Hội viên WinX · tin cửa hàng", time: "07:00",
                     text: "Ngày 08/08 WinMart+ ưu đãi lớn cho hội viên WinX. Quét thẻ ở quầy là được giá hội viên, không cần phiếu giấy." }} />
-                  <Msg m={{ from: "w", name: "cô Bảy", text: "Chừa tui 2 khay ba rọi nghen My" }} />
+                  <Msg m={{ from: "w", name: "cô Bảy", text: "Chừa tui 2 khay ba rọi nghen My 😀" }} />
+                  <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Dạ rồi cô Bảy ơi, em ghi rồi ạ" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, margin: "2px 0 12px 46px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "3px 9px", fontSize: 12.5 }}>❤️ 4</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "3px 9px", fontSize: 12.5 }}>👍 7</span>
+                  </div>
 
-                  <MaiBanner text="498 người, 47 tin sáng nay. Mai giữ lại 1 tin: bò nạm 500g còn 2 khay, 99.000đ, đúng món cho nồi bò kho tối nay."
+                  {/* Bình chọn — nhóm cộng đồng Zalo nào cũng có một cái đang chạy. */}
+                  <CardBox style={{ margin: "2px 0 10px", padding: "12px 13px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 750, color: T.faint, letterSpacing: 0.5 }}>BÌNH CHỌN · CỬA HÀNG HỎI</div>
+                    <div style={{ fontSize: 14.5, fontWeight: 650, color: T.ink, marginTop: 4, marginBottom: 9 }}>Tuần sau cô chú muốn cửa hàng gom món gì?</div>
+                    {[["Cá đồng miền Tây", 58], ["Rau Đà Lạt", 31], ["Trái cây theo mùa", 11]].map(([lb, pc]) => (
+                      <div key={lb} style={{ marginBottom: 7 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, color: T.ink, marginBottom: 3 }}><span>{lb}</span><span style={{ color: T.sub, ...num }}>{pc}%</span></div>
+                        <div style={{ height: 6, borderRadius: 3, background: "#EDE6DA", overflow: "hidden" }}><div style={{ width: pc + "%", height: "100%", background: T.brand, borderRadius: 3 }} /></div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 12.5, color: T.faint, marginTop: 6, ...num }}>91 người đã chọn · còn 2 ngày</div>
+                  </CardBox>
+
+                  <Msg m={{ from: "w", name: "anh Dũng", text: "Nhà mình tối qua kho cốt lết mua ở đây, con nít ăn hết nồi 🍚" }} />
+                  <Msg m={{ from: "w", name: "cô Tư", text: "Loto show tối thứ Bảy ở sân cửa hàng còn chỗ hông em?" }} />
+                  <Msg m={{ from: "w", name: "chị My · nhân viên quầy tươi", text: "Dạ còn cô ơi, cô ghé sớm 19:00 giữ chỗ nha" }} />
+
+                  <MaiBanner text="498 người, 47 tin sáng nay. Mai giữ lại 1 tin: sườn non còn 2 khay, 62.000đ thay vì 96.000đ. Kho được, mà rẻ hơn miếng bò trong giỏ."
                     cta="Xem" done={!!done.hold} doneText="Chị My đã chừa hàng · nhắn riêng, không đăng nhóm" onTap={() => { setHoldTray(null); openFlow("hold"); }} />
                   {wpMsgs.map((m) => <Msg key={m.id} m={m} />)}
                   <div ref={endRef} />

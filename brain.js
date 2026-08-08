@@ -836,7 +836,7 @@ const PACK_SHOP = [
   {
     id: "shop_bokho_items",
     k: ["bo kho can gi", "nguyen lieu bo kho", "mua gi nau bo kho", "bo kho mua gi", "can mua nhung gi", "nguyen lieu can mua", "trong gio co gi", "gio gom nhung gi", "gom nhung mon gi", "co nhung mon gi", "gom mon gi", "gia tung mon"],
-    reply: "Bò nạm MEATDeli 500g, cà rốt, sả gừng, gói gia vị bò kho Chin-su và 2 ổ bánh mì. Đủ 5 món, Mai chia sẵn theo khẩu phần nhà 4 người.",
+    reply: "Bò nạm 500g, cà rốt, sả gừng, gói gia vị bò kho Chin-su và 2 ổ bánh mì. Đủ 5 món, Mai chia sẵn theo khẩu phần nhà 4 người.",
     src: "công thức mẹ Su",
     flow: "cart",
     cta: "Mở giỏ",
@@ -932,7 +932,7 @@ const PACK_SHOP = [
     id: "shop_compare_price",
     k: ["so gia", "cho nao re hon", "co re hon khong", "dat hay re", "so sanh gia", "mua ngoai cho re hon khong", "gia co tot khong", "mua ngoai re hon"],
     not: ["dang kiem"],
-    reply: "Bò nạm MEATDeli 139.000đ nhỉnh hơn chợ chừng 10.000đ, đổi lại có nguồn gốc và đổi trả được. Điểm WinX chỉ đáng vài trăm đồng thôi, anh mua vì đỡ một chuyến chợ thì đúng hơn.",
+    reply: "Bò nạm quầy tươi 139.000đ nhỉnh hơn chợ chừng 10.000đ, đổi lại có nguồn gốc và đổi trả được. Điểm WinX chỉ đáng vài trăm đồng thôi, anh mua vì đỡ một chuyến chợ thì đúng hơn.",
     flow: "cart",
     cta: "Xem từng món",
     chips: ["Thịt bò MEATDeli giá sao?", "Đơn này được bao nhiêu điểm WinX?", "Giỏ hàng bao nhiêu tiền?"],
@@ -960,7 +960,7 @@ const PACK_SHOP = [
   {
     id: "shop_meatdeli",
     k: ["thit mat", "meatdeli", "bo nam", "mua thit", "thit bo", "thit tuoi", "thit lon", "thit lonn", "thit heo", "mua thit bo", "thit ngon"],
-    reply: "Bò nạm MEATDeli 500g 139.000đ, thịt mát nên kho xong không bã. Quầy tươi WinMart+ Thảo Điền soạn rồi Supra giao trong ngày.",
+    reply: "Bò nạm 500g quầy tươi 139.000đ, thịt mát nên kho xong không bã. Quầy tươi WinMart+ Thảo Điền soạn rồi Supra giao trong ngày.",
     flow: "cart",
     cta: "Thêm vào giỏ",
     chips: ["Bò kho cần mua những gì?", "Mua ngoài chợ có rẻ hơn không?", "Giỏ hàng bao nhiêu tiền?"],
@@ -1639,7 +1639,7 @@ const PACK_AUNTY = [
   {
     id: "store_group",
     k: ["nhom cua hang", "win hai ba trung", "nhom win", "nhom zalo cua hang", "cua hang gan nha", "nhom sieu thi", "co gi trong nhom cua hang"],
-    reply: "Nhóm Win+ Hai Bà Trưng 498 người, sáng nay 47 tin. Mai chỉ giữ lại một tin: bò nạm 500g còn 2 khay, giảm còn 99.000đ, đúng món cho nồi bò kho tối nay.",
+    reply: "Nhóm Win+ Hai Bà Trưng 498 người, sáng nay 47 tin. Mai chỉ giữ lại một tin: sườn non còn 2 khay, giảm còn 62.000đ, kho được mà rẻ hơn miếng bò trong giỏ.",
     src: "Win+ Hai Bà Trưng",
     flow: "hold",
     cta: "Nhờ chị My chừa",
@@ -1657,7 +1657,7 @@ const PACK_AUNTY = [
   {
     id: "store_discount",
     k: ["khay giam gia", "thit giam gia", "hang giam gia", "co gi giam gia", "sale gi khong", "giam gia hom nay", "uu dai hom nay"],
-    reply: "Sáng nay quầy tươi còn 6 khay giảm giá, rẻ nhất là đùi heo 41.000đ. Khay hợp bếp nhà mình là bò nạm 500g còn 99.000đ, thường 139.000đ.",
+    reply: "Sáng nay quầy tươi còn 6 khay giảm giá, rẻ nhất là nạc đùi và nạc vai 41.000đ. Khay đáng chú ý nhất là sườn non 62.000đ, thường 96.000đ.",
     src: "Win+ Hai Bà Trưng",
     flow: "hold",
     cta: "Nhờ chị My chừa",
