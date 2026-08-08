@@ -120,7 +120,7 @@ const PACK_MONEY = [
     k: ["tra bang gi", "dung vi nao", "the hay vi", "chuyen khoan hay tien mat", "tra bang the co phi khong", "phi chuyen tien", "tra bang winmoney", "tra bang gi thi re nhat"],
     must: ["bang gi", "vi nao", "the", "phi chuyen", "chuyen khoan", "winmoney"],
     w: 2,
-    reply: "WinMoney chuyển không mất phí, còn VISA ····8890 tính thêm 1.100đ. Mai để mặc định WinMoney vì số dư còn 2.480.000đ.",
+    reply: "WinMoney chuyển không mất phí, còn VISA ····8890 tính thêm 1.100đ. Mai chọn sẵn WinMoney vì số dư còn 2.480.000đ.",
     src: "ví WinMoney",
     flow: "pay",
     cta: "Chọn nguồn tiền",
@@ -941,7 +941,7 @@ const PACK_SHOP = [
   {
     id: "shop_supra_time",
     k: ["supra giao luc may gio", "khi nao giao", "bao lau thi giao", "giao luc may gio", "may gio giao hang", "giao hang khi nao", "shipper toi chua", "supra"],
-    reply: "Mai để mặc định 18:00 cho anh kịp nấu trước tập cuối 20:00, khung 17:30 còn 2 tài. Supra giao tận cửa T1.02.06 Zeit River.",
+    reply: "Mai chọn sẵn 18:00 cho anh kịp nấu trước tập cuối 20:00, khung 17:30 còn 2 tài. Supra giao tận cửa T1.02.06 Zeit River.",
     flow: "cart",
     cta: "Chọn giờ giao",
     chips: ["Đổi giờ giao sớm hơn được không?", "Giỏ hàng bao nhiêu tiền?", "Tối nay mấy giờ tập cuối?"],
@@ -1063,13 +1063,13 @@ const PACK_LIFE = [
   {
     id: "mai_who_sees_chat",
     k: ["ai doc duoc doan chat nay", "ai thay duoc doan nay", "vy co doc duoc khong", "chat nay co ai thay", "ai xem duoc tin nhan nay", "co rieng tu khong", "ai doc duoc"],
-    reply: "Chỉ anh và Mai. Vy, Na, Bin mỗi người một két riêng, chuyện của người này Mai không kể cho người kia.",
+    reply: "Chỉ anh và Mai. Vy, Na, Bin mỗi người một hồ sơ riêng, chuyện của người này Mai không kể cho người kia.",
     chips: ["Mai lưu những gì của nhà mình?", "Mai có đọc tin nhắn của anh không?", "Mai khác trợ lý thường chỗ nào?"],
   },
   {
     id: "mai_turn_off",
     k: ["tat bot quyen", "dung doc nua", "xoa du lieu", "tat mai di", "khong cho mai doc", "gioi han quyen", "tat quyen cua mai", "xoa het thong tin", "khoa lai"],
-    reply: "Mỗi nguồn một công tắc riêng, anh tắt nguồn nào Mai thôi đọc nguồn đó ngay từ lúc đó. Muốn xoá sạch két thì một chạm là xong, Mai không giữ bản sao.",
+    reply: "Mỗi nguồn một công tắc riêng, anh tắt nguồn nào Mai thôi đọc nguồn đó ngay từ lúc đó. Muốn xoá sạch hồ sơ thì một chạm là xong, Mai không giữ bản sao.",
     files: true,
     cta: "Mở hồ sơ nhà mình",
     chips: ["Mai lưu những gì của nhà mình?", "Ai đọc được đoạn chat này?", "Mai có đọc tin nhắn của anh không?"],
@@ -1080,7 +1080,7 @@ const PACK_LIFE = [
     id: "greet",
     k: ["chao mai", "chao em", "hello", "hi mai", "alo", "mai oi", "chao buoi chieu", "xin chao", "chao anh chi", "chao"],
     not: ["chao long"],
-    reply: "Chiều anh Hải. Trước 17:00 còn hai việc: học bơi của Bin chưa đóng và chưa chốt ai đón Bin lúc 16:30.",
+    reply: "Chào anh Hải. Trước 17:00 còn hai việc: học bơi của Bin chưa đóng và chưa chốt ai đón Bin lúc 16:30.",
     chips: ["Trả học bơi cho Bin", "Ai đón Bin chiều nay?", "Tối nay nhà mình xem gì?"],
   },
   {
