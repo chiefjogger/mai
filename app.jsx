@@ -1316,8 +1316,182 @@ const ReplyActions = ({ hit, onFlow, onGoto, onFiles }) => {
   return <div className="rise" style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>{b}</div>;
 };
 
+// ————————————————————————————————————————————————————————————
+// STICKER · nhân vật riêng, vẽ theo phong cách kawaii pastel
+// Viền nâu mảnh, mắt hạt có đốm sáng, má hồng, khối tròn. Bảng màu
+// kéo về phía giấy ấm của m.ai chứ không dùng pastel lạnh, để sticker
+// nằm trong khung chat không bị lạc tông.
+// ————————————————————————————————————————————————————————————
+const SK = {
+  ink: "#8A6A52", inkSoft: "#A88A70",
+  cream1: "#FCF5EA", cream2: "#F0DFC8",
+  bear1: "#DFC6AC", bear2: "#C3A283",
+  cat1: "#F1EAE2", cat2: "#DACDBF",
+  pig1: "#FADFDD", pig2: "#EEBFBE",
+  blush: "#EFA79C", cloth: "#CBDDEA", gold: "#EDC373",
+  bowl: "#EFE7DA", leaf: "#A8C49A",
+};
+// Mắt: hạt tối kèm một đốm sáng nhỏ lệch trên — thứ làm mặt có hồn.
+const SkEye = ({ x, y, r = 3.5 }) => (
+  <>
+    <ellipse cx={x} cy={y} rx={r} ry={r * 1.12} fill="#5C4render" />
+  </>
+);
+const Eye = ({ x, y, r = 3.4 }) => (
+  <g>
+    <ellipse cx={x} cy={y} rx={r} ry={r * 1.14} fill="#5B4436" />
+    <circle cx={x - r * 0.34} cy={y - r * 0.46} r={r * 0.34} fill="#FFFDF9" opacity="0.92" />
+  </g>
+);
+const Blush = ({ x, y, w = 5.2 }) => <ellipse cx={x} cy={y} rx={w} ry={w * 0.62} fill={SK.blush} opacity="0.5" />;
+const Ground = () => <ellipse cx="50" cy="93" rx="26" ry="3.6" fill={SK.ink} opacity="0.13" />;
+
+const SkWrap = ({ children, uid, a, b }) => (
+  <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
+    <defs>
+      <radialGradient id={uid} cx="38%" cy="30%" r="78%">
+        <stop offset="0" stopColor={a} /><stop offset="1" stopColor={b} />
+      </radialGradient>
+    </defs>
+    {children}
+  </svg>
+);
+
+// 1 · Mèo bưng tô cơm — "Ăn cơm chưa"
+const StkRice = () => { const u = useUid("sk1"); return (
+  <SkWrap uid={u} a={SK.cat1} b={SK.cat2}>
+    <Ground />
+    <path d="M31 40 29 19l17 9Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M69 40 71 19l-17 9Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M33.5 36.5 32.6 24l9.6 5.2Z" fill={SK.blush} opacity="0.55" />
+    <path d="M66.5 36.5 67.4 24l-9.6 5.2Z" fill={SK.blush} opacity="0.55" />
+    <path d="M50 26c14 0 22 9 22 21 0 13-9 21-22 21s-22-8-22-21c0-12 8-21 22-21Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M31 64c-3 10-1 21 5 25h28c6-4 8-15 5-25" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <Eye x={42} y={45} /><Eye x={58} y={45} />
+    <path d="M50 51.4 48.4 53h3.2Z" fill={SK.blush} stroke={SK.ink} strokeWidth="1.1" strokeLinejoin="round" />
+    <path d="M46.8 55.6c1 1.3 2.4 1.3 3.2 0 .8 1.3 2.2 1.3 3.2 0" stroke={SK.ink} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <path d="M24 47h7M24 52h7M69 47h7M69 52h7" stroke={SK.inkSoft} strokeWidth="1.3" strokeLinecap="round" opacity="0.75" />
+    <Blush x={34.5} y={53} /><Blush x={65.5} y={53} />
+    <path d="M31 79h38c0 9-8 14-19 14s-19-5-19-14Z" fill={SK.bowl} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M35 79c3-6 9-9 15-9s12 3 15 9" fill="#FFFDF9" stroke={SK.ink} strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M27 76c3 4 6 6 9 7M73 76c-3 4-6 6-9 7" stroke={SK.ink} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <path d="M42 68c-2-4 2-5 0-9M58 68c2-4-2-5 0-9" stroke={SK.inkSoft} strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.7" />
+  </SkWrap>
+); };
+
+// 2 · Gấu chắp tay — "Cảm ơn nha"
+const StkThanks = () => { const u = useUid("sk2"); return (
+  <SkWrap uid={u} a={SK.bear1} b={SK.bear2}>
+    <Ground />
+    <circle cx="32" cy="28" r="9" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" />
+    <circle cx="68" cy="28" r="9" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" />
+    <circle cx="32" cy="28" r="4.4" fill={SK.pig1} opacity="0.85" />
+    <circle cx="68" cy="28" r="4.4" fill={SK.pig1} opacity="0.85" />
+    <path d="M50 22c15 0 23 10 23 22s-9 21-23 21-23-9-23-21 8-22 23-22Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M33 63c-3 9-2 20 4 24h26c6-4 7-15 4-24" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <ellipse cx="50" cy="50" rx="9" ry="7" fill={SK.cream1} stroke={SK.ink} strokeWidth="1.4" />
+    <ellipse cx="50" cy="47" rx="2.6" ry="2" fill={SK.ink} />
+    <Eye x={40} y={41} /><Eye x={60} y={41} />
+    <Blush x={32} y={49} /><Blush x={68} y={49} />
+    <ellipse cx="44.5" cy="77" rx="7.4" ry="6" fill={SK.cream1} stroke={SK.ink} strokeWidth="1.6" transform="rotate(-14 44.5 77)" />
+    <ellipse cx="55.5" cy="77" rx="7.4" ry="6" fill={SK.cream1} stroke={SK.ink} strokeWidth="1.6" transform="rotate(14 55.5 77)" />
+    <path d="M41 74.5v4.5M45 73.5v5M56 73.5v5M60 74.5v4.5" stroke={SK.inkSoft} strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+    <path d="M28 60l-4-5M72 60l4-5" stroke={SK.gold} strokeWidth="2.2" strokeLinecap="round" />
+  </SkWrap>
+); };
+
+// 3 · Thỏ giơ tay — "Chừa em nha"
+const StkMe = () => { const u = useUid("sk3"); return (
+  <SkWrap uid={u} a={SK.cream1} b={SK.cream2}>
+    <Ground />
+    <path d="M40 30c-2-14 0-22 4-22s6 8 5 21M60 30c2-14 0-22-4-22s-6 8-5 21" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" strokeLinejoin="round" />
+    <path d="M43 14c-1 8-.6 12 .4 15M57 14c1 8 .6 12-.4 15" stroke={SK.blush} strokeWidth="2.6" fill="none" opacity="0.55" strokeLinecap="round" />
+    <path d="M50 27c14 0 21 9 21 20 0 12-8 19-21 19s-21-7-21-19c0-11 7-20 21-20Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M33 64c-3 9-1 19 5 23h24c6-4 8-14 5-23" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <Eye x={42} y={44} /><Eye x={58} y={44} />
+    <path d="M50 49v2.4M47.4 53.4c1.4 1.6 3.8 1.6 5.2 0" stroke={SK.ink} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <Blush x={35} y={51} /><Blush x={65} y={51} />
+    <path d="M70 70c6-3 9-9 8-15" fill="none" stroke={SK.ink} strokeWidth="1.8" strokeLinecap="round" />
+    <ellipse cx="79" cy="52" rx="6" ry="7" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" />
+    <path d="M30 72c-3 3-4 7-3 10" stroke={SK.ink} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+  </SkWrap>
+); };
+
+// 4 · Heo đất — "Đã trả rồi"
+const StkPaid = () => { const u = useUid("sk4"); return (
+  <SkWrap uid={u} a={SK.pig1} b={SK.pig2}>
+    <Ground />
+    <path d="M50 30c17 0 27 11 27 25 0 12-9 20-27 20s-27-8-27-20c0-14 10-25 27-25Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M31 33c-2-7 0-11 3-11s6 4 6 9M69 33c2-7 0-11-3-11s-6 4-6 9" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" strokeLinejoin="round" />
+    <ellipse cx="50" cy="56" rx="10.5" ry="8" fill={SK.pig2} stroke={SK.ink} strokeWidth="1.6" />
+    <ellipse cx="46.5" cy="56" rx="1.7" ry="2.3" fill={SK.ink} opacity="0.75" />
+    <ellipse cx="53.5" cy="56" rx="1.7" ry="2.3" fill={SK.ink} opacity="0.75" />
+    <Eye x={40} y={44} /><Eye x={60} y={44} />
+    <Blush x={31} y={52} /><Blush x={69} y={52} />
+    <rect x="42" y="30" width="16" height="3.4" rx="1.7" fill={SK.ink} opacity="0.5" />
+    <path d="M46 24c1-4 3-6 5-6" stroke={SK.gold} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <circle cx="60" cy="20" r="6.5" fill={SK.gold} stroke={SK.ink} strokeWidth="1.6" />
+    <path d="M57 20.2l2 2.2 4-4.4" stroke="#FFFDF9" strokeWidth="1.9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M28 70c1 5 3 8 5 9M72 70c-1 5-3 8-5 9" stroke={SK.ink} strokeWidth="1.7" fill="none" strokeLinecap="round" />
+  </SkWrap>
+); };
+
+// 5 · Mèo ngủ — "Đi ngủ nha"
+const StkSleep = () => { const u = useUid("sk5"); return (
+  <SkWrap uid={u} a={SK.cat1} b={SK.cat2}>
+    <Ground />
+    <path d="M20 80c0-12 13-20 30-20s30 8 30 20c0 5-4 8-12 8H32c-8 0-12-3-12-8Z" fill={SK.cloth} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M27 52c-1-7 1-11 4-11s5 3 5 7M63 52c1-7-1-11-4-11s-5 3-5 7" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" strokeLinejoin="round" />
+    <ellipse cx="45" cy="58" rx="21" ry="18" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M36 56c1.6 2 4.4 2 6 0M48 56c1.6 2 4.4 2 6 0" stroke={SK.ink} strokeWidth="1.7" fill="none" strokeLinecap="round" />
+    <Blush x={32} y={63} /><Blush x={58} y={63} />
+    <path d="M43.6 64c1.2 1.4 3.6 1.4 4.8 0" stroke={SK.ink} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <path d="M70 34c4 0 4 5 0 5s-4 5 0 5" stroke={SK.inkSoft} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M80 22c3 0 3 4 0 4s-3 4 0 4" stroke={SK.inkSoft} strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.7" />
+  </SkWrap>
+); };
+
+// 6 · Gấu ôm tim — "Thương quá"
+const StkLove = () => { const u = useUid("sk6"); return (
+  <SkWrap uid={u} a={SK.bear1} b={SK.bear2}>
+    <Ground />
+    <circle cx="31" cy="27" r="8.6" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" />
+    <circle cx="69" cy="27" r="8.6" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.7" />
+    <circle cx="31" cy="27" r="4.2" fill={SK.pig1} opacity="0.85" />
+    <circle cx="69" cy="27" r="4.2" fill={SK.pig1} opacity="0.85" />
+    <path d="M50 21c15 0 23 10 23 21s-9 20-23 20-23-8-23-20 8-21 23-21Z" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" />
+    <path d="M34 61c-3 9-2 19 4 23h24c6-4 7-14 4-23" fill={`url(#${u})`} stroke={SK.ink} strokeWidth="1.8" strokeLinejoin="round" />
+    <ellipse cx="50" cy="48" rx="8.4" ry="6.6" fill={SK.cream1} stroke={SK.ink} strokeWidth="1.4" />
+    <ellipse cx="50" cy="45.4" rx="2.4" ry="1.9" fill={SK.ink} />
+    <path d="M45.5 50.5c1.5 1.6 3.5 1.6 4.5 0M50 50.5c1 1.6 3 1.6 4.5 0" stroke={SK.ink} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <Eye x={40} y={39} /><Eye x={60} y={39} />
+    <Blush x={31} y={47} /><Blush x={69} y={47} />
+    <path d="M50 88c-9-6-14-11-14-17 0-4 3-7 7-7 3 0 5 2 7 4 2-2 4-4 7-4 4 0 7 3 7 7 0 6-5 11-14 17Z" fill={SK.blush} stroke={SK.ink} strokeWidth="1.7" strokeLinejoin="round" />
+    <path d="M44 68c1.5-1 3-1 4 0" stroke="#FFFDF9" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.75" />
+    <path d="M22 44c-3-2-3-6 0-7M78 44c3-2 3-6 0-7" stroke={SK.blush} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
+  </SkWrap>
+); };
+
+const STICKERS = [
+  { id: "rice", n: "Ăn cơm chưa", D: StkRice },
+  { id: "thanks", n: "Cảm ơn nha", D: StkThanks },
+  { id: "me", n: "Chừa em nha", D: StkMe },
+  { id: "paid", n: "Đã trả rồi", D: StkPaid },
+  { id: "love", n: "Thương quá", D: StkLove },
+  { id: "sleep", n: "Đi ngủ nha", D: StkSleep },
+];
+const stickerOf = (id) => STICKERS.find((s) => s.id === id) || STICKERS[0];
+
 // ————— messages & rows —————
 const Msg = ({ m }) => {
+  if (m.type === "sticker") {
+    const st = stickerOf(m.st);
+    return (
+      <div className="rise" style={{ display: "flex", justifyContent: m.from === "vy" ? "flex-end" : "flex-start", padding: "5px 0" }}>
+        <span className="stk-pop" style={{ width: 116, height: 116, display: "block" }} title={st.n}><st.D /></span>
+      </div>
+    );
+  }
   if (m.type === "ext")
     return (
       <CardBox onClick={m.onTap} style={{ margin: "8px 0", padding: "10px 13px" }}>
@@ -3466,6 +3640,7 @@ export default function MaiV18() {
   const [ongMsgs, setOngMsgs] = useState([]);
   const [wpMsgs, setWpMsgs] = useState([]);
   const [holdTray, setHoldTray] = useState(null);
+  const [tray, setTray] = useState(false);
   const [maiMsgs, setMaiMsgs] = useState([{ id: 0, from: "mai", text: "Chào anh Hải. Còn 2 việc gấp trước 17:00 bên Nhà mình. Anh hỏi Mai gì cũng được, gõ hoặc bấm nút nói." }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3481,7 +3656,7 @@ export default function MaiV18() {
   const flowFrom = useRef(null);  // luồng mở từ chat thì Mai báo lại trong chat
 
   useEffect(() => { if (tick === 0) return; endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [tick]);
-  useEffect(() => { setInput(""); }, [screen]);
+  useEffect(() => { setInput(""); setTray(false); }, [screen]);
   const firstDone = useRef(false);
   const complete = (k) => {
     setDone((d) => ({ ...d, [k]: true }));
@@ -3638,7 +3813,29 @@ export default function MaiV18() {
     </div>
   );
 
+  const sendSticker = (id) => {
+    const msg = { id: Date.now(), from: "vy", type: "sticker", st: id };
+    if (screen === "family") setFamMsgs((x) => [...x, msg]);
+    else if (screen === "ongba") setOngMsgs((x) => [...x, msg]);
+    else if (screen === "winplus") setWpMsgs((x) => [...x, msg]);
+    else setMaiMsgs((x) => [...x, msg]);
+    setTray(false); ding(); bump();
+  };
+
   const inputBar = (onSend, ph, withCam, withMic) => (
+    <>
+      {tray && (
+        <div className="rise" style={{ flexShrink: 0, borderTop: `1px solid ${T.hair}`, background: T.bg, padding: "12px 12px 10px" }}>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
+            {STICKERS.map((s) => (
+              <button key={s.id} onClick={() => sendSticker(s.id)} className="btn press" style={{ background: T.surf, border: `1px solid ${T.hair}`, borderRadius: 16, padding: "8px 8px 6px", flexShrink: 0, width: 84 }}>
+                <span style={{ width: 66, height: 66, display: "block", margin: "0 auto" }}><s.D /></span>
+                <span style={{ display: "block", fontSize: 11, color: T.sub, fontWeight: 600, marginTop: 4, whiteSpace: "nowrap" }}>{s.n}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     <div style={{ padding: "10px 12px calc(10px + env(safe-area-inset-bottom))", background: T.surf, borderTop: `1px solid ${T.hair}`, display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
       {withCam && <HBtn Icon={Camera} onTap={snap} />}
       {withMic && (
@@ -3652,12 +3849,16 @@ export default function MaiV18() {
         style={{ flex: 1, border: `1px solid ${T.hair}`, borderRadius: 999, padding: "12px 16px", fontSize: 16, fontFamily: FONT, outline: "none", background: T.bg, color: T.ink, minWidth: 0 }} />
       {/* Nút gửi kiểu iOS Messages: mờ và co lại khi chưa có chữ, nhưng vùng
           chạm vẫn đủ 44px nhờ lớp bọc, không phải nhờ phóng to hình. */}
+      <button onClick={() => setTray((v) => !v)} className="btn press" style={{ border: `1px solid ${tray ? T.brand : T.hair}`, background: tray ? T.brandSoft : T.surf, borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }} title="Sticker">
+        <span style={{ width: 23, height: 23, display: "block" }}><StkLove /></span>
+      </button>
       <span style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "-3px -3px -3px 0" }}>
         <button onClick={onSend} disabled={!input.trim()} className="btn" style={{ background: input.trim() ? T.brand : "#E4DCCE", color: "#FFFDF9", borderRadius: 999, width: 38, height: 38, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: input.trim() ? "var(--e-brand)" : "none", transform: input.trim() ? "scale(1)" : "scale(.88)", opacity: input.trim() ? 1 : 0.75, cursor: input.trim() ? "pointer" : "default" }}>
           <ArrowUp size={17} strokeWidth={2.6} />
         </button>
       </span>
     </div>
+    </>
   );
 
   const channel = (key, title, members) => (
@@ -3748,6 +3949,8 @@ export default function MaiV18() {
         @keyframes blob{0%,100%{border-radius:46% 54% 52% 48%;transform:scale(1)}33%{border-radius:58% 42% 44% 56%;transform:scale(1.1)}66%{border-radius:44% 56% 60% 40%;transform:scale(1.04)}}
         .tier-sheen{animation:sheen 3.4s cubic-bezier(.4,0,.2,1) .6s infinite}
         @keyframes sheen{0%{transform:translateX(0) skewX(-18deg)}42%,100%{transform:translateX(560px) skewX(-18deg)}}
+        .stk-pop{animation:stkpop .42s cubic-bezier(.22,1.35,.4,1) both}
+        @keyframes stkpop{0%{transform:scale(.5) translateY(10px);opacity:0}70%{transform:scale(1.06)}100%{transform:none;opacity:1}}
         .tier-flash{animation:tierup .7s cubic-bezier(.22,1.2,.36,1) both}
         @keyframes tierup{0%{transform:scale(.94) translateY(8px);opacity:0}60%{transform:scale(1.015)}100%{transform:none;opacity:1}}
         @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
